@@ -103,7 +103,9 @@ def search():
         # Get form data
         city = request.form.get('city')
         business_type = request.form.get('business_type')
-        radius = int(request.form.get('radius', 5000))
+        # Convert miles to meters (1 mile = 1609.34 meters)
+        radius_miles = float(request.form.get('radius', 3))
+        radius_meters = int(radius_miles * 1609.34)
         api_key = os.getenv('GOOGLE_MAPS_API_KEY')
         
         if not api_key:
@@ -116,7 +118,7 @@ def search():
         lat, lng = get_coordinates(city, api_key)
         
         # Search for places
-        places = search_places(lat, lng, business_type, radius, api_key)
+        places = search_places(lat, lng, business_type, radius_meters, api_key)
         
         # Process results
         leads = []
