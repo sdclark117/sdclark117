@@ -4,7 +4,7 @@ from tqdm import tqdm
 import time
 
 # Your API key
-API_KEY = "AIzaSyC1Nc1H7nBh9-vAFxeadGOB-laiChwBKSk"
+API_KEY = "YOUR_API_KEY_HERE"
 
 def main():
     try:

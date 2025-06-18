@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_KEY = "AIzaSyC1Nc1H7nBh9-vAFxeadGOB-laiChwBKSk";
+const API_KEY = "YOUR_API_KEY_HERE";
 
 async function testGeocoding() {
     try {
