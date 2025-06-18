@@ -104,9 +104,12 @@ def search():
         city = request.form.get('city')
         business_type = request.form.get('business_type')
         radius = int(request.form.get('radius', 5000))
-        api_key = request.form.get('api_key') or os.getenv('GOOGLE_MAPS_API_KEY')
+        api_key = os.getenv('GOOGLE_MAPS_API_KEY')
         
-        if not all([city, business_type, api_key]):
+        if not api_key:
+            return jsonify({'error': 'API key not configured'}), 500
+            
+        if not all([city, business_type]):
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Get coordinates

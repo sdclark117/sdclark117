@@ -227,67 +227,24 @@
                                     <label for="business_type" class="form-label">Business Type</label>
                                     <select class="form-select" id="business_type" name="business_type" required>
                                         <option value="">Select a business type...</option>
-                                        <option value="plumber">Plumber</option>
-                                        <option value="electrician">Electrician</option>
                                         <option value="restaurant">Restaurant</option>
                                         <option value="cafe">Cafe</option>
                                         <option value="bar">Bar</option>
+                                        <option value="bakery">Bakery</option>
                                         <option value="store">Store</option>
-                                        <option value="hotel">Hotel</option>
+                                        <option value="supermarket">Supermarket</option>
                                         <option value="gym">Gym</option>
                                         <option value="salon">Salon</option>
-                                        <option value="dentist">Dentist</option>
-                                        <option value="doctor">Doctor</option>
-                                        <option value="lawyer">Lawyer</option>
-                                        <option value="real_estate_agency">Real Estate Agency</option>
-                                        <option value="car_dealer">Car Dealer</option>
-                                        <option value="car_repair">Car Repair</option>
-                                        <option value="car_wash">Car Wash</option>
-                                        <option value="gas_station">Gas Station</option>
-                                        <option value="bank">Bank</option>
-                                        <option value="pharmacy">Pharmacy</option>
-                                        <option value="supermarket">Supermarket</option>
-                                        <option value="shopping_mall">Shopping Mall</option>
-                                        <option value="movie_theater">Movie Theater</option>
-                                        <option value="museum">Museum</option>
-                                        <option value="park">Park</option>
-                                        <option value="school">School</option>
-                                        <option value="university">University</option>
-                                        <option value="hospital">Hospital</option>
-                                        <option value="police">Police</option>
-                                        <option value="fire_station">Fire Station</option>
-                                        <option value="post_office">Post Office</option>
-                                        <option value="library">Library</option>
-                                        <option value="church">Church</option>
-                                        <option value="mosque">Mosque</option>
-                                        <option value="synagogue">Synagogue</option>
-                                        <option value="temple">Temple</option>
-                                        <option value="cemetery">Cemetery</option>
-                                        <option value="zoo">Zoo</option>
-                                        <option value="aquarium">Aquarium</option>
-                                        <option value="stadium">Stadium</option>
-                                        <option value="airport">Airport</option>
-                                        <option value="train_station">Train Station</option>
-                                        <option value="bus_station">Bus Station</option>
-                                        <option value="taxi_stand">Taxi Stand</option>
-                                        <option value="subway_station">Subway Station</option>
-                                        <option value="light_rail_station">Light Rail Station</option>
-                                        <option value="ferry_terminal">Ferry Terminal</option>
-                                        <option value="transit_station">Transit Station</option>
-                                        <option value="point_of_interest">Point of Interest</option>
-                                        <option value="establishment">Establishment</option>
+                                        <option value="spa">Spa</option>
+                                        <option value="hotel">Hotel</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="radius" class="form-label">Search Radius (meters)</label>
-                                    <input type="number" class="form-control" id="radius" name="radius" value="5000" min="100" max="50000" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="api_key" class="form-label">Google Maps API Key</label>
-                                    <input type="text" class="form-control" id="api_key" name="api_key" placeholder="Enter your API key">
+                                    <input type="number" class="form-control" id="radius" name="radius" value="5000" min="1000" max="50000" required>
                                 </div>
                                 <div class="col-12">
-                                    <button type="submit" class="btn btn-primary w-100">Search for Leads</button>
+                                    <button type="submit" class="btn btn-primary w-100">Find Leads</button>
                                 </div>
                             </div>
                         </form>
@@ -371,7 +328,7 @@
             themeSwitcher.init();
 
             // Handle form submission
-            $('#searchForm').on('submit', function(e) {
+            $('#searchForm').on('submit', async function(e) {
                 e.preventDefault();
                 
                 // Show loading spinner
@@ -379,31 +336,27 @@
                 $('#errorAlert').hide();
                 $('#resultsSection').hide();
                 
-                // Get form data
-                const formData = new FormData(this);
-                
-                // Send request
-                $.ajax({
-                    url: '/search',
-                    method: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        if (response.success) {
-                            // Display results
-                            displayResults(response.leads);
-                            $('#resultsSection').show();
-                        }
-                    },
-                    error: function(xhr) {
-                        const error = xhr.responseJSON?.error || 'An error occurred';
-                        $('#errorAlert').text(error).show();
-                    },
-                    complete: function() {
-                        $('#loading').hide();
+                try {
+                    const formData = new FormData(this);
+                    const response = await fetch('/search', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error);
                     }
-                });
+                    
+                    // Process and display results
+                    displayResults(data.leads);
+                    $('#resultsSection').show();
+                } catch (error) {
+                    $('#errorAlert').text(error.message).show();
+                } finally {
+                    $('#loading').hide();
+                }
             });
 
             // Handle download button click
