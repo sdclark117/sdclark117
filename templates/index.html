@@ -561,6 +561,7 @@ body {
                   </div>
                   <button type="submit" class="btn btn-primary w-100">Login</button>
                 </form>
+                </script>
               </div>
               <div class="tab-pane fade" id="signup" role="tabpanel" aria-labelledby="signup-tab">
                 <form id="signupForm">
@@ -572,8 +573,27 @@ body {
                     <label for="signupPassword" class="form-label">Password</label>
                     <input type="password" class="form-control" id="signupPassword" required>
                   </div>
+                  <div class="mb-3">
+                    <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="signupConfirmPassword" required>
+                  </div>
                   <button type="submit" class="btn btn-success w-100">Sign Up</button>
                 </form>
+                <script>
+document.getElementById('signupForm').onsubmit = function(e) {
+  e.preventDefault();
+  var pw = document.getElementById('signupPassword').value;
+  var pw2 = document.getElementById('signupConfirmPassword').value;
+  if (pw !== pw2) {
+    alert('Passwords do not match!');
+    return false;
+  }
+  // Proceed with signup logic here
+  // After successful signup, show profile modal
+  showProfileModal();
+  return false;
+}
+</script>
               </div>
             </div>
           </div>
@@ -1191,60 +1211,77 @@ body {
                 showError('An error occurred while exporting the data');
             }
         }
-    </script><!-- Auth Modal -->
-<div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="authModalLabel">Login or Sign Up</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <ul class="nav nav-tabs" id="authTab" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab" aria-controls="login" aria-selected="true">Login</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="signup-tab" data-bs-toggle="tab" data-bs-target="#signup" type="button" role="tab" aria-controls="signup" aria-selected="false">Sign Up</button>
-          </li>
-        </ul>
-        <div class="tab-content pt-3" id="authTabContent">
-          <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
-            <form id="loginForm">
-              <div class="mb-3">
-                <label for="loginEmail" class="form-label">Email address</label>
-                <input type="email" class="form-control" id="loginEmail" required>
-              </div>
-              <div class="mb-3">
-                <label for="loginPassword" class="form-label">Password</label>
-                <input type="password" class="form-control" id="loginPassword" required>
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Login</button>
-            </form>
+    </script>
+
+    <!-- Profile Modal (UI only) -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="profileModalLabel">Your Profile</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="tab-pane fade" id="signup" role="tabpanel" aria-labelledby="signup-tab">
-            <form id="signupForm">
+          <div class="modal-body">
+            <form id="profileForm">
               <div class="mb-3">
-                <label for="signupEmail" class="form-label">Email address</label>
-                <input type="email" class="form-control" id="signupEmail" required>
+                <label for="profileName" class="form-label">Name</label>
+                <input type="text" class="form-control" id="profileName" required>
               </div>
               <div class="mb-3">
-                <label for="signupPassword" class="form-label">Password</label>
-                <input type="password" class="form-control" id="signupPassword" required>
+                <label for="profileBusiness" class="form-label">Business</label>
+                <input type="text" class="form-control" id="profileBusiness">
               </div>
-              <button type="submit" class="btn btn-success w-100">Sign Up</button>
+              <button type="submit" class="btn btn-primary w-100">Save Profile</button>
             </form>
           </div>
         </div>
       </div>
     </div>
+
+    <script>
+    document.getElementById('signupForm').onsubmit = function(e) {
+      e.preventDefault();
+      var pw = document.getElementById('signupPassword').value;
+      var pw2 = document.getElementById('signupConfirmPassword').value;
+      if (pw !== pw2) {
+        alert('Passwords do not match!');
+        return false;
+      }
+      // Proceed with signup logic here
+      // After successful signup, show profile modal
+      showProfileModal();
+      return false;
+      var profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+      profileModal.show();
+    }
+    </script><!-- Profile Modal (UI only) -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="profileModalLabel">Your Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="profileForm">
+          <div class="mb-3">
+            <label for="profileName" class="form-label">Name</label>
+            <input type="text" class="form-control" id="profileName" required>
+          </div>
+          <div class="mb-3">
+            <label for="profileBusiness" class="form-label">Business</label>
+            <input type="text" class="form-control" id="profileBusiness">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Save Profile</button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
-
 <script>
-function showAuthModal() {
-  var authModal = new bootstrap.Modal(document.getElementById('authModal'));
-  authModal.show();
+function showProfileModal() {
+  var profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+  profileModal.show();
 }
 </script>
 </body>
