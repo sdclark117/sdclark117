@@ -219,15 +219,24 @@
         }
 
         #map {
-            height: 400px;
+            height: 500px;
             width: 100%;
             border-radius: 10px;
-            margin-top: 1rem;
+            margin-top: 20px;
+            border: 1px solid var(--form-text);
         }
         
         .map-container {
-            display: none;
-            margin-top: 2rem;
+            background: var(--map-heading-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .map-container h3 {
+            color: var(--map-heading-text);
+            margin-bottom: 15px;
         }
         
         .lead-marker {
@@ -384,25 +393,6 @@
             border: 1px solid var(--alert-text);
         }
 
-        #map {
-            height: 400px;
-            width: 100%;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-
-        .map-container {
-            background: var(--map-heading-bg);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .map-container h3 {
-            color: var(--map-heading-text);
-            margin-bottom: 15px;
-        }
-
         .gm-style-iw {
             background-color: var(--info-window-bg) !important;
             color: var(--info-window-text) !important;
@@ -547,8 +537,19 @@
         const savedTheme = localStorage.getItem('theme') || 'light';
         setTheme(savedTheme);
 
+        // Initialize map
         function initMap() {
-            map = new google.maps.Map(document.getElementById('map'), {
+            console.log('Initializing map...');  // Debug log
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error('Map element not found!');  // Debug log
+                return;
+            }
+
+            const apiKey = '{{ api_key }}';
+            console.log('API Key present:', !!apiKey);  // Debug log
+
+            map = new google.maps.Map(mapElement, {
                 center: { lat: 0, lng: 0 },
                 zoom: 2,
                 styles: [
@@ -561,105 +562,114 @@
                     }
                 ]
             });
+
             infoWindow = new google.maps.InfoWindow();
+            console.log('Map initialized successfully');  // Debug log
         }
-        
-        function updateMap(center, radius, leads) {
-            // Clear existing markers
+
+        // Initialize map when the page loads
+        window.onload = function() {
+            console.log('Window loaded, initializing map...');  // Debug log
+            initMap();
+        };
+
+        // Handle form submission
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Form submitted');  // Debug log
+            
+            const formData = new FormData(this);
+            const alertDiv = document.getElementById('alert');
+            const resultsTable = document.getElementById('resultsTable');
+            
+            // Clear previous results
+            resultsTable.innerHTML = '';
+            alertDiv.style.display = 'none';
+            
+            // Clear previous markers and circle
             markers.forEach(marker => marker.setMap(null));
             markers = [];
-            
-            // Update map center
-            map.setCenter(center);
-            
-            // Update search circle
             if (searchCircle) {
                 searchCircle.setMap(null);
             }
             
-            searchCircle = new google.maps.Circle({
-                strokeColor: '#FF0000',
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                fillColor: '#FF0000',
-                fillOpacity: 0.1,
-                map: map,
-                center: center,
-                radius: radius * 1609.34 // Convert miles to meters
-            });
-            
-            // Add markers for each lead
-            leads.forEach(lead => {
-                const marker = new google.maps.Marker({
-                    position: { lat: lead.latitude, lng: lead.longitude },
-                    map: map,
-                    title: lead.name,
-                    animation: google.maps.Animation.DROP
-                });
-                
-                const content = `
-                    <div class="lead-info-window">
-                        <h5>${lead.name}</h5>
-                        <p><strong>Address:</strong> ${lead.address}</p>
-                        <p><strong>Phone:</strong> ${lead.phone}</p>
-                        <p><strong>Rating:</strong> ${lead.rating} (${lead.reviews} reviews)</p>
-                        <p><strong>Price Level:</strong> ${lead.price_level}</p>
-                        <a href="${lead.google_maps_url}" target="_blank">View on Google Maps</a>
-                    </div>
-                `;
-                
-                marker.addListener('click', () => {
-                    infoWindow.setContent(content);
-                    infoWindow.open(map, marker);
-                });
-                
-                markers.push(marker);
-            });
-            
-            // Show map container
-            document.getElementById('mapContainer').style.display = 'block';
-        }
-        
-        // Initialize map when page loads
-        window.onload = initMap;
-        
-        // Handle form submission
-        $('#searchForm').on('submit', async function(e) {
-            e.preventDefault();
-            
-            $('#loading').show();
-            $('#errorAlert').hide();
-            $('#resultsSection').hide();
-            $('#mapContainer').hide();
-            
             try {
-                const formData = new FormData(this);
                 const response = await fetch('/search', {
                     method: 'POST',
                     body: formData
                 });
                 
                 const data = await response.json();
+                console.log('Search response:', data);  // Debug log
                 
-                if (data.error) {
-                    throw new Error(data.error);
+                if (response.ok) {
+                    // Update map
+                    const center = data.center;
+                    console.log('Setting map center:', center);  // Debug log
+                    map.setCenter(center);
+                    map.setZoom(12);
+                    
+                    // Add search circle
+                    searchCircle = new google.maps.Circle({
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        fillColor: '#FF0000',
+                        fillOpacity: 0.1,
+                        map: map,
+                        center: center,
+                        radius: formData.get('radius') * 1609.34 // Convert miles to meters
+                    });
+                    
+                    // Add markers for each lead
+                    data.leads.forEach(lead => {
+                        const marker = new google.maps.Marker({
+                            position: { lat: lead.lat, lng: lead.lng },
+                            map: map,
+                            title: lead.name
+                        });
+                        
+                        // Add click listener to marker
+                        marker.addListener('click', () => {
+                            const content = `
+                                <div style="color: var(--info-window-text);">
+                                    <h5>${lead.name}</h5>
+                                    <p>${lead.address}</p>
+                                    ${lead.phone ? `<p>Phone: ${lead.phone}</p>` : ''}
+                                    ${lead.website ? `<p>Website: <a href="${lead.website}" target="_blank">${lead.website}</a></p>` : ''}
+                                    ${lead.rating ? `<p>Rating: ${lead.rating} ⭐</p>` : ''}
+                                </div>
+                            `;
+                            infoWindow.setContent(content);
+                            infoWindow.open(map, marker);
+                        });
+                        
+                        markers.push(marker);
+                    });
+                    
+                    // Update results table
+                    data.leads.forEach(lead => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${lead.name}</td>
+                            <td>${lead.address}</td>
+                            <td>${lead.phone || 'N/A'}</td>
+                            <td>${lead.website ? `<a href="${lead.website}" target="_blank">${lead.website}</a>` : 'N/A'}</td>
+                            <td>${lead.rating || 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="exportToExcel('${lead.name}')">Export</button>
+                            </td>
+                        `;
+                        resultsTable.appendChild(row);
+                    });
+                } else {
+                    alertDiv.textContent = data.error || 'An error occurred';
+                    alertDiv.style.display = 'block';
                 }
-                
-                // Update map with search results
-                updateMap(
-                    { lat: data.center.lat, lng: data.center.lng },
-                    parseFloat(formData.get('radius')),
-                    data.leads
-                );
-                
-                // Display results in table
-                displayResults(data.leads);
-                $('#resultsSection').show();
-                
             } catch (error) {
-                $('#errorAlert').text(error.message).show();
-            } finally {
-                $('#loading').hide();
+                console.error('Search error:', error);  // Debug log
+                alertDiv.textContent = 'An error occurred while processing your request';
+                alertDiv.style.display = 'block';
             }
         });
         
@@ -691,29 +701,6 @@
             } catch (error) {
                 $('#errorAlert').text('An error occurred while exporting').show();
             }
-        }
-
-        function displayResults(leads) {
-            // Store leads for download
-            window.currentLeads = leads;
-            
-            // Clear previous results
-            $('#resultsTable').empty();
-            
-            // Add new results
-            leads.forEach(lead => {
-                const row = `
-                    <tr>
-                        <td>${lead.name}</td>
-                        <td>${lead.address}</td>
-                        <td>${lead.phone || 'N/A'}</td>
-                        <td>${lead.website ? `<a href="${lead.website}" target="_blank">${lead.website}</a>` : 'N/A'}</td>
-                        <td>${lead.rating || 'N/A'}</td>
-                        <td><button class="btn btn-sm btn-primary" onclick="exportToExcel('${lead.name}')">Export</button></td>
-                    </tr>
-                `;
-                $('#resultsTable').append(row);
-            });
         }
     </script>
 </body>

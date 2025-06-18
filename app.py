@@ -114,7 +114,9 @@ def format_business_types(types):
 def index():
     """Render the main page."""
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-    print(f"API Key present: {bool(api_key)}")  # Debug print
+    print(f"API Key present in index route: {bool(api_key)}")  # Debug print
+    if not api_key:
+        print("Warning: GOOGLE_MAPS_API_KEY is not set in environment variables")
     return render_template('index.html', api_key=api_key)
 
 @app.route('/search', methods=['POST'])
