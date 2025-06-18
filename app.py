@@ -9,6 +9,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from dotenv import load_dotenv
+from typing import Union, BinaryIO
 
 # Load environment variables
 load_dotenv()
@@ -209,6 +210,9 @@ def index():
     """Render the main page."""
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     print(f"API Key present: {bool(api_key)}")  # Debug print
+    if not api_key:
+        print("Warning: Google Maps API key is not configured")  # Debug print
+        return render_template('index.html', api_key='')
     return render_template('index.html', api_key=api_key)
 
 @app.route('/search', methods=['POST'])
@@ -265,15 +269,15 @@ def search():
 
 @app.route('/download', methods=['POST'])
 def download():
-    """Handle the download request."""
     try:
-        # Get leads data
-        data = request.get_json()
-        leads = data.get('leads', [])
-        
+        data = request.json
+        if not data or 'leads' not in data:
+            raise Exception("No leads data provided")
+            
+        leads = data['leads']
         if not leads:
-            return jsonify({'error': 'No leads to download'}), 400
-        
+            raise Exception("No leads to export")
+            
         # Create DataFrame
         df = pd.DataFrame(leads)
         
@@ -324,34 +328,28 @@ def download():
                 
                 adjusted_width = (max_length + 2)
                 worksheet.column_dimensions[column_letter].width = adjusted_width
-        
+            
         output.seek(0)
-        
-        # Generate filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'leads_{timestamp}.xlsx'
-        
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name=filename
+            download_name=f'business_leads_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
         )
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/export', methods=['POST'])
 def export_to_excel():
-    """Export search results to Excel."""
     try:
         data = request.json
-        if not data or not isinstance(data, dict):
-            raise Exception("Invalid data format")
+        if not data or 'leads' not in data:
+            raise Exception("No leads data provided")
             
-        leads = data.get('leads', [])
+        leads = data['leads']
         if not leads:
-            raise Exception("No data to export")
+            raise Exception("No leads to export")
             
         # Create DataFrame
         df = pd.DataFrame(leads)
@@ -362,44 +360,62 @@ def export_to_excel():
         
         # Create Excel file in memory
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Business Leads', index=False)
             
             # Get workbook and worksheet objects
             workbook = writer.book
             worksheet = writer.sheets['Business Leads']
             
-            # Add some formatting
-            header_format = workbook.add_format({
-                'bold': True,
-                'text_wrap': True,
-                'valign': 'top',
-                'bg_color': '#D9E1F2',
-                'border': 1
-            })
+            # Style the header
+            header_font = Font(bold=True, color='FFFFFF')
+            header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+            header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
             
-            # Write the column headers with the defined format
-            for col_num, value in enumerate(df.columns.values):
-                worksheet.write(0, col_num, value, header_format)
-                worksheet.set_column(col_num, col_num, 20)  # Set column width
-        
-        # Set the pointer to the beginning of the file
+            for cell in worksheet[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+            
+            # Style the data
+            data_alignment = Alignment(vertical='center', wrap_text=True)
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            for row in worksheet.iter_rows(min_row=2):
+                for cell in row:
+                    cell.alignment = data_alignment
+                    cell.border = border
+            
+            # Adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = get_column_letter(column[0].column)
+                
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                
+                adjusted_width = (max_length + 2)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+            
         output.seek(0)
-        
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'business_leads_{timestamp}.xlsx'
-        
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name=filename
+            download_name=f'business_leads_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
         )
         
     except Exception as e:
-        print(f"Export error: {str(e)}")  # Debug print
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True) 
