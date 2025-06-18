@@ -606,8 +606,14 @@
                     // Update map
                     const center = data.center;
                     console.log('Setting map center:', center);  // Debug log
+                    
+                    // Calculate appropriate zoom level based on radius
+                    const radius = formData.get('radius') * 1609.34; // Convert miles to meters
+                    const zoomLevel = Math.round(14 - Math.log2(radius / 1000)); // Adjust zoom based on radius
+                    
+                    // Set map center and zoom
                     map.setCenter(center);
-                    map.setZoom(12);
+                    map.setZoom(zoomLevel);
                     
                     // Add search circle
                     searchCircle = new google.maps.Circle({
@@ -618,31 +624,44 @@
                         fillOpacity: 0.1,
                         map: map,
                         center: center,
-                        radius: formData.get('radius') * 1609.34 // Convert miles to meters
+                        radius: radius
                     });
                     
                     // Add markers for each lead
-                    data.leads.forEach(lead => {
+                    data.leads.forEach((lead, index) => {
                         const marker = new google.maps.Marker({
                             position: { lat: lead.lat, lng: lead.lng },
                             map: map,
-                            title: lead.name
+                            title: lead.name,
+                            animation: google.maps.Animation.DROP,
+                            // Add a slight delay to the marker drop animation
+                            delay: index * 100
                         });
+                        
+                        // Create info window content
+                        const content = `
+                            <div style="color: var(--info-window-text);">
+                                <h5>${lead.name}</h5>
+                                <p>${lead.address}</p>
+                                ${lead.phone ? `<p>Phone: ${lead.phone}</p>` : ''}
+                                ${lead.website ? `<p>Website: <a href="${lead.website}" target="_blank">${lead.website}</a></p>` : ''}
+                                ${lead.rating ? `<p>Rating: ${lead.rating} ⭐</p>` : ''}
+                            </div>
+                        `;
                         
                         // Add click listener to marker
                         marker.addListener('click', () => {
-                            const content = `
-                                <div style="color: var(--info-window-text);">
-                                    <h5>${lead.name}</h5>
-                                    <p>${lead.address}</p>
-                                    ${lead.phone ? `<p>Phone: ${lead.phone}</p>` : ''}
-                                    ${lead.website ? `<p>Website: <a href="${lead.website}" target="_blank">${lead.website}</a></p>` : ''}
-                                    ${lead.rating ? `<p>Rating: ${lead.rating} ⭐</p>` : ''}
-                                </div>
-                            `;
                             infoWindow.setContent(content);
                             infoWindow.open(map, marker);
                         });
+                        
+                        // Automatically open info window for the first marker
+                        if (index === 0) {
+                            setTimeout(() => {
+                                infoWindow.setContent(content);
+                                infoWindow.open(map, marker);
+                            }, 1000); // Wait for marker animation to complete
+                        }
                         
                         markers.push(marker);
                     });
