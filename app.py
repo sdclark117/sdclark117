@@ -48,21 +48,51 @@ def get_coordinates(city, api_key):
 
 def search_places(lat, lng, business_type, radius, api_key):
     """Search for places using Google Places API."""
-    url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-    params = {
-        'location': f"{lat},{lng}",
-        'radius': radius,
-        'type': business_type,
-        'key': api_key
-    }
-    
-    response = requests.get(url, params=params)
-    data = response.json()
-    
-    if data['status'] != 'OK':
-        raise Exception(f"Places search failed: {data['status']}")
-    
-    return data['results']
+    try:
+        url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+        params = {
+            'location': f"{lat},{lng}",
+            'radius': radius,
+            'type': business_type,
+            'key': api_key
+        }
+        print(f"Searching places with params: {params}")  # Debug print
+        
+        response = requests.get(url, params=params)
+        print(f"Places API Response status: {response.status_code}")  # Debug print
+        data = response.json()
+        print(f"Places API Response data: {data}")  # Debug print
+        
+        if data.get('status') == 'REQUEST_DENIED':
+            error_message = data.get('error_message', 'No error message provided')
+            print(f"Places API request denied. Error message: {error_message}")  # Debug print
+            raise Exception(f"Places API request denied: {error_message}")
+            
+        if data.get('status') != 'OK':
+            raise Exception(f"Places search failed: {data.get('status')} - {data.get('error_message', 'No error message')}")
+        
+        leads = []
+        for place in data.get('results', []):
+            lead = {
+                'name': place.get('name', ''),
+                'address': place.get('vicinity', ''),
+                'lat': place['geometry']['location']['lat'],
+                'lng': place['geometry']['location']['lng'],
+                'rating': place.get('rating', ''),
+                'website': place.get('website', ''),
+                'phone': place.get('formatted_phone_number', '')
+            }
+            leads.append(lead)
+            print(f"Found lead: {lead}")  # Debug print
+        
+        return leads
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Places API request exception: {str(e)}")  # Debug print
+        raise Exception(f"Network error: {str(e)}")
+    except Exception as e:
+        print(f"Unexpected error in search_places: {str(e)}")  # Debug print
+        raise
 
 def get_place_details(place_id, api_key):
     """Get detailed information about a place using Google Places API."""
@@ -131,10 +161,8 @@ def search():
         radius_meters = int(radius_miles * 1609.34)
         api_key = os.getenv('GOOGLE_MAPS_API_KEY')
         
-        print(f"API Key length: {len(api_key) if api_key else 0}")  # Debug print
-        print(f"API Key first 10 chars: {api_key[:10] if api_key else 'None'}")  # Debug print
-        print(f"City: {city}")  # Debug print
-        print(f"Business Type: {business_type}")  # Debug print
+        print(f"Search request - City: {city}, Business Type: {business_type}, Radius: {radius_miles} miles")  # Debug print
+        print(f"API Key present: {bool(api_key)}")  # Debug print
         
         if not api_key:
             return jsonify({'error': 'API key not configured'}), 500
@@ -145,39 +173,20 @@ def search():
         # Get coordinates
         try:
             lat, lng = get_coordinates(city, api_key)
-            print(f"Coordinates: {lat}, {lng}")  # Debug print
+            print(f"Coordinates for {city}: {lat}, {lng}")  # Debug print
         except Exception as e:
             print(f"Error getting coordinates: {str(e)}")  # Debug print
             return jsonify({'error': str(e)}), 500
         
         # Search for places
-        places = search_places(lat, lng, business_type, radius_meters, api_key)
-        
-        # Process results
-        leads = []
-        for place in places:
-            if is_potential_lead(place):
-                # Get detailed information
-                details = get_place_details(place['place_id'], api_key)
-                
-                lead = {
-                    'name': details.get('name', 'N/A'),
-                    'address': details.get('formatted_address', 'N/A'),
-                    'phone': details.get('formatted_phone_number', 'N/A'),
-                    'rating': details.get('rating', 'N/A'),
-                    'reviews': details.get('user_ratings_total', 0),
-                    'price_level': '★' * details.get('price_level', 0),
-                    'business_types': format_business_types(details.get('types', [])),
-                    'opening_hours': format_opening_hours(details.get('opening_hours', {})),
-                    'google_maps_url': f"https://www.google.com/maps/place/?q=place_id:{place['place_id']}",
-                    'latitude': details.get('geometry', {}).get('location', {}).get('lat', 'N/A'),
-                    'longitude': details.get('geometry', {}).get('location', {}).get('lng', 'N/A'),
-                    'business_status': place.get('business_status', 'N/A')
-                }
-                leads.append(lead)
+        try:
+            leads = search_places(lat, lng, business_type, radius_meters, api_key)
+            print(f"Found {len(leads)} leads")  # Debug print
+        except Exception as e:
+            print(f"Error searching places: {str(e)}")  # Debug print
+            return jsonify({'error': str(e)}), 500
         
         return jsonify({
-            'success': True,
             'leads': leads,
             'center': {
                 'lat': lat,
@@ -186,6 +195,7 @@ def search():
         })
         
     except Exception as e:
+        print(f"Unexpected error in search route: {str(e)}")  # Debug print
         return jsonify({'error': str(e)}), 500
 
 @app.route('/download', methods=['POST'])
