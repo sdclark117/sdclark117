@@ -20,8 +20,8 @@
             --table-header-text: #ffffff;
             --table-row-hover: #f8f9fa;
             --info-window-bg: #ffffff;
-            --info-window-text: #212529;
-            --info-window-link: #0d6efd;
+            --info-window-text: #000000;
+            --info-window-link: #0066cc;
             --table-bg: #ffffff;
             --form-bg: #ffffff;
             --form-text: #212529;
@@ -42,9 +42,9 @@
             --table-header-bg: #343a40;
             --table-header-text: #ffffff;
             --table-row-hover: #343a40;
-            --info-window-bg: #212529;
-            --info-window-text: #f8f9fa;
-            --info-window-link: #0d6efd;
+            --info-window-bg: #2d2d2d;
+            --info-window-text: #ffffff;
+            --info-window-link: #66b3ff;
             --table-bg: #212529;
             --form-bg: #212529;
             --form-text: #f8f9fa;
@@ -107,7 +107,7 @@
 
         .table {
             background-color: var(--table-bg);
-            color: var(--table-text);
+            color: var(--bs-body-color);
             border-radius: 10px;
             overflow: hidden;
             transition: background-color 0.3s ease, color 0.3s ease;
@@ -115,7 +115,7 @@
 
         .table thead th {
             background-color: var(--table-header-bg);
-            color: var(--table-header-text);
+            color: var(--bs-body-color);
             border: none;
             transition: background-color 0.3s ease;
         }
@@ -143,6 +143,7 @@
         .alert {
             border-radius: 10px;
             display: none;
+            color: var(--bs-body-color);
         }
 
         .theme-switcher {
@@ -219,19 +220,29 @@
         }
 
         #map {
-            height: 500px;
+            height: 400px;
             width: 100%;
-            border-radius: 10px;
-            margin-top: 20px;
-            border: 1px solid var(--form-text);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .map-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
         
         .map-container {
-            background: var(--map-heading-bg);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
         }
         
         .map-container h3 {
@@ -273,30 +284,30 @@
 
         /* Update table styles for dark theme */
         .table {
-            color: var(--text-color);
+            color: var(--bs-body-color);
         }
 
         .table thead th {
-            color: var(--table-header-text);
+            color: var(--bs-body-color);
         }
 
         .table tbody td {
-            color: var(--text-color);
+            color: var(--bs-body-color);
         }
 
         /* Update form text colors */
         .form-label {
-            color: var(--form-text);
+            color: var(--bs-body-color);
         }
 
         .form-text {
-            color: var(--text-color);
+            color: var(--bs-body-color);
             opacity: 0.8;
         }
 
         /* Update alert text color */
         .alert {
-            color: var(--alert-text);
+            color: var(--bs-body-color);
         }
 
         /* Update map container text */
@@ -335,93 +346,35 @@
             padding: 20px;
         }
 
+        .search-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
         .search-form {
-            background: var(--form-bg);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            flex: 1;
+            min-width: 300px;
         }
 
-        .form-control {
-            background-color: var(--form-bg);
-            color: var(--form-text);
-            border: 1px solid var(--form-text);
+        .map-wrapper {
+            flex: 2;
+            min-width: 300px;
+            height: 400px;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
 
-        .form-control:focus {
-            background-color: var(--form-bg);
-            color: var(--form-text);
-        }
-
-        .btn-primary {
-            background-color: #0d6efd;
-            border: none;
-            padding: 10px 20px;
-        }
-
-        .btn-primary:hover {
-            background-color: #0b5ed7;
-        }
-
-        .results-section {
-            margin-top: 30px;
-        }
-
-        .table {
-            background-color: var(--table-bg);
-            color: var(--table-text);
-        }
-
-        .table thead th {
-            background-color: var(--table-header-bg);
-            color: var(--table-text);
-            border-bottom: 2px solid var(--table-text);
-        }
-
-        .table tbody tr {
-            border-bottom: 1px solid var(--table-text);
-        }
-
-        .table tbody tr:hover {
-            background-color: var(--table-header-bg);
-        }
-
-        .alert {
-            background-color: var(--alert-bg);
-            color: var(--alert-text);
-            border: 1px solid var(--alert-text);
-        }
-
-        .gm-style-iw {
-            background-color: var(--info-window-bg) !important;
-            color: var(--info-window-text) !important;
-            padding: 15px !important;
-            border-radius: 8px !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        }
-
-        .gm-style-iw a {
-            color: var(--info-window-link) !important;
-            text-decoration: none !important;
-        }
-
-        .gm-style-iw a:hover {
-            text-decoration: underline !important;
-        }
-
-        .gm-style-iw-d {
-            overflow: hidden !important;
-            max-height: none !important;
-        }
-
-        .gm-style-iw-c {
-            padding: 0 !important;
-            max-width: 300px !important;
-        }
-
-        .gm-style-iw-t::after {
-            background: linear-gradient(45deg, var(--info-window-bg) 50%, transparent 50%) !important;
+        #map {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 8px;
         }
 
         @media (max-width: 768px) {
@@ -429,16 +382,15 @@
                 padding: 10px;
             }
             
-            .search-form {
-                padding: 15px;
+            .search-container {
+                flex-direction: column;
             }
             
-            .btn-primary {
+            .search-form, .map-wrapper {
                 width: 100%;
-                margin-top: 10px;
             }
             
-            #map {
+            .map-wrapper {
                 height: 300px;
             }
         }
@@ -450,11 +402,13 @@
         <span id="theme-text">Dark Mode</span>
     </button>
 
-    <div class="container">
+    <div class="container mt-4">
         <h1 class="text-center mb-4">Business Lead Finder</h1>
         
-        <div class="row">
-            <div class="col-md-4">
+        <div class="alert alert-danger" id="alert" style="display: none;"></div>
+        
+        <div class="search-container">
+            <div class="search-form">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Search Parameters</h5>
@@ -492,16 +446,9 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-8">
-                <div id="map" style="height: 400px;"></div>
+            <div class="map-wrapper">
+                <div id="map"></div>
             </div>
-        </div>
-
-        <div id="alert" class="alert alert-danger" style="display: none;"></div>
-
-        <div class="map-container">
-            <h3>Search Area</h3>
-            <div id="map"></div>
         </div>
 
         <div class="row mt-4">
@@ -545,6 +492,7 @@
         let markers = [];
         let droppedPin = null;
         let droppedPinMarker = null;
+        let currentLeads = [];  // Store current leads for export
         
         // Theme handling
         function setTheme(theme) {
@@ -575,97 +523,239 @@
 
         // Initialize map
         function initMap() {
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: { lat: 0, lng: 0 },
-                zoom: 2,
-                styles: [
-                    {
-                        "featureType": "all",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{"color": "#7c93a3"},{"lightness": "-10"}]
-                    },
-                    {
-                        "featureType": "administrative.country",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{"color": "#7c93a3"}]
-                    },
-                    {
-                        "featureType": "administrative.locality",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{"color": "#7c93a3"}]
-                    },
-                    {
-                        "featureType": "administrative.neighborhood",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{"color": "#7c93a3"}]
-                    },
-                    {
-                        "featureType": "landscape",
-                        "elementType": "all",
-                        "stylers": [{"color": "#f2f2f2"}]
-                    },
-                    {
-                        "featureType": "poi",
-                        "elementType": "all",
-                        "stylers": [{"visibility": "off"}]
-                    },
-                    {
-                        "featureType": "road",
-                        "elementType": "all",
-                        "stylers": [{"saturation": "-100"},{"lightness": "45"}]
-                    },
-                    {
-                        "featureType": "road.highway",
-                        "elementType": "all",
-                        "stylers": [{"visibility": "simplified"}]
-                    },
-                    {
-                        "featureType": "road.arterial",
-                        "elementType": "labels.icon",
-                        "stylers": [{"visibility": "off"}]
-                    },
-                    {
-                        "featureType": "transit",
-                        "elementType": "all",
-                        "stylers": [{"visibility": "off"}]
-                    },
-                    {
-                        "featureType": "water",
-                        "elementType": "all",
-                        "stylers": [{"color": "#46bcec"},{"visibility": "on"}]
-                    }
-                ]
-            });
-
-            // Add click listener for dropping pin
-            map.addListener('click', function(e) {
-                if (document.getElementById('usePin').checked) {
-                    if (droppedPinMarker) {
-                        droppedPinMarker.setMap(null);
-                    }
-                    droppedPin = e.latLng;
-                    droppedPinMarker = new google.maps.Marker({
-                        position: droppedPin,
-                        map: map,
-                        title: 'Dropped Pin',
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 10,
-                            fillColor: '#FF0000',
-                            fillOpacity: 1,
-                            strokeColor: '#FFFFFF',
-                            strokeWeight: 2
+            const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+            const mapElement = document.getElementById('map');
+            
+            if (!mapElement) {
+                console.error('Map element not found in initMap!');
+                return;
+            }
+            
+            try {
+                map = new google.maps.Map(mapElement, {
+                    center: { lat: 0, lng: 0 },
+                    zoom: 2,
+                    styles: isDarkTheme ? [
+                        { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+                        { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+                        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+                        {
+                            featureType: 'administrative.locality',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#d59563' }]
+                        },
+                        {
+                            featureType: 'poi',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#d59563' }]
+                        },
+                        {
+                            featureType: 'poi.park',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#263c3f' }]
+                        },
+                        {
+                            featureType: 'poi.park',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#6b9a76' }]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#38414e' }]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'geometry.stroke',
+                            stylers: [{ color: '#212a37' }]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#9ca5b3' }]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#746855' }]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'geometry.stroke',
+                            stylers: [{ color: '#1f2835' }]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#f3d19c' }]
+                        },
+                        {
+                            featureType: 'transit',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#2f3948' }]
+                        },
+                        {
+                            featureType: 'transit.station',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#d59563' }]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#17263c' }]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#515c6d' }]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'labels.text.stroke',
+                            stylers: [{ color: '#17263c' }]
                         }
-                    });
-                    map.panTo(droppedPin);
-                }
-            });
+                    ] : []
+                });
+
+                // Add click listener for dropping pin
+                map.addListener('click', function(e) {
+                    if (document.getElementById('usePin').checked) {
+                        if (droppedPinMarker) {
+                            droppedPinMarker.setMap(null);
+                        }
+                        droppedPin = e.latLng;
+                        droppedPinMarker = new google.maps.Marker({
+                            position: droppedPin,
+                            map: map,
+                            title: 'Dropped Pin',
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 10,
+                                fillColor: '#FF0000',
+                                fillOpacity: 1,
+                                strokeColor: '#FFFFFF',
+                                strokeWeight: 2
+                            }
+                        });
+                        map.panTo(droppedPin);
+                    }
+                });
+            } catch (error) {
+                console.error('Map initialization error:', error);
+            }
         }
+
+        // Add theme change listener
+        document.addEventListener('themeChange', function() {
+            if (map) {
+                const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+                map.setOptions({
+                    styles: isDarkTheme ? [
+                        { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+                        { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+                        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+                        {
+                            featureType: 'administrative.locality',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#d59563' }]
+                        },
+                        {
+                            featureType: 'poi',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#d59563' }]
+                        },
+                        {
+                            featureType: 'poi.park',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#263c3f' }]
+                        },
+                        {
+                            featureType: 'poi.park',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#6b9a76' }]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#38414e' }]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'geometry.stroke',
+                            stylers: [{ color: '#212a37' }]
+                        },
+                        {
+                            featureType: 'road',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#9ca5b3' }]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#746855' }]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'geometry.stroke',
+                            stylers: [{ color: '#1f2835' }]
+                        },
+                        {
+                            featureType: 'road.highway',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#f3d19c' }]
+                        },
+                        {
+                            featureType: 'transit',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#2f3948' }]
+                        },
+                        {
+                            featureType: 'transit.station',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#d59563' }]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'geometry',
+                            stylers: [{ color: '#17263c' }]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#515c6d' }]
+                        },
+                        {
+                            featureType: 'water',
+                            elementType: 'labels.text.stroke',
+                            stylers: [{ color: '#17263c' }]
+                        }
+                    ] : []
+                });
+            }
+        });
 
         // Initialize map when the page loads
         window.onload = function() {
             console.log('Window loaded, initializing map...');  // Debug log
-            initMap();
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error('Map element not found!');
+                return;
+            }
+            console.log('Map element found, dimensions:', mapElement.offsetWidth, 'x', mapElement.offsetHeight);
+            
+            // Wait for Google Maps API to load
+            if (typeof google === 'undefined' || !google.maps) {
+                console.error('Google Maps API not loaded!');
+                return;
+            }
+            
+            try {
+                initMap();
+                console.log('Map initialized successfully');
+            } catch (error) {
+                console.error('Error initializing map:', error);
+            }
         };
 
         // Handle form submission
@@ -775,6 +865,7 @@
         });
 
         function displayResults(leads) {
+            currentLeads = leads;  // Store leads for export
             const resultsTable = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
             resultsTable.innerHTML = '';
             
@@ -863,9 +954,15 @@
             resultsTable.innerHTML = '';
             document.getElementById('alert').style.display = 'none';
             document.getElementById('exportBtn').disabled = true;
+            currentLeads = [];  // Clear stored leads
         }
 
         async function exportToExcel() {
+            if (!currentLeads || currentLeads.length === 0) {
+                showError('No data to export');
+                return;
+            }
+
             try {
                 const response = await fetch('/export', {
                     method: 'POST',
@@ -873,7 +970,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        leads: window.currentLeads || []
+                        leads: currentLeads
                     })
                 });
                 
@@ -895,13 +992,6 @@
                 console.error('Export error:', error);
                 showError('An error occurred while exporting the data');
             }
-        }
-
-        // Store current leads for export
-        let currentLeads = [];
-        function displayResults(leads) {
-            currentLeads = leads;  // Store leads for export
-            // ... rest of the displayResults function ...
         }
     </script>
 </body>
