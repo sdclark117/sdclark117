@@ -330,5 +330,63 @@ def download():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/export', methods=['POST'])
+def export_to_excel():
+    """Export search results to Excel."""
+    try:
+        data = request.json
+        leads = data.get('leads', [])
+        
+        if not leads:
+            return jsonify({'error': 'No data to export'}), 400
+            
+        # Create DataFrame
+        df = pd.DataFrame(leads)
+        
+        # Reorder columns for better presentation
+        columns = ['name', 'address', 'phone', 'website', 'rating', 'opening_hours']
+        df = df[columns]
+        
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, sheet_name='Business Leads', index=False)
+            
+            # Get workbook and worksheet objects
+            workbook = writer.book
+            worksheet = writer.sheets['Business Leads']
+            
+            # Add some formatting
+            header_format = workbook.add_format({
+                'bold': True,
+                'text_wrap': True,
+                'valign': 'top',
+                'bg_color': '#D9E1F2',
+                'border': 1
+            })
+            
+            # Write the column headers with the defined format
+            for col_num, value in enumerate(df.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+                worksheet.set_column(col_num, col_num, 20)  # Set column width
+        
+        # Set the pointer to the beginning of the file
+        output.seek(0)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'business_leads_{timestamp}.xlsx'
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        print(f"Export error: {str(e)}")  # Debug print
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True) 

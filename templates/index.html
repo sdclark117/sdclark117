@@ -453,24 +453,41 @@
     <div class="container">
         <h1 class="text-center mb-4">Business Lead Finder</h1>
         
-        <div class="search-form">
-            <form id="searchForm" class="row g-3">
-                <div class="col-md-4">
-                    <label for="city" class="form-label">City</label>
-                    <input type="text" class="form-control" id="city" name="city" required>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Search Parameters</h5>
+                        <form id="searchForm">
+                            <div class="mb-3">
+                                <label for="city" class="form-label">City</label>
+                                <input type="text" class="form-control" id="city" name="city" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="businessType" class="form-label">Business Type</label>
+                                <input type="text" class="form-control" id="businessType" name="businessType" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="radius" class="form-label">Search Radius (miles)</label>
+                                <input type="number" class="form-control" id="radius" name="radius" value="5" min="1" max="50" required>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="usePin" name="usePin">
+                                    <label class="form-check-label" for="usePin">
+                                        Use dropped pin location instead of city
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Search</button>
+                            <button type="button" class="btn btn-secondary" id="clearPin">Clear Pin</button>
+                        </form>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label for="business_type" class="form-label">Business Type</label>
-                    <input type="text" class="form-control" id="business_type" name="business_type" required>
-                </div>
-                <div class="col-md-2">
-                    <label for="radius" class="form-label">Radius (miles)</label>
-                    <input type="number" class="form-control" id="radius" name="radius" value="3" min="1" max="50">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Search</button>
-                </div>
-            </form>
+            </div>
+            <div class="col-md-8">
+                <div id="map" style="height: 400px;"></div>
+            </div>
         </div>
 
         <div id="alert" class="alert alert-danger" style="display: none;"></div>
@@ -480,22 +497,33 @@
             <div id="map"></div>
         </div>
 
-        <div class="results-section">
-            <h2>Search Results</h2>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Address</th>
-                            <th>Phone</th>
-                            <th>Website</th>
-                            <th>Rating</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTable"></tbody>
-                </table>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">Search Results</h5>
+                            <button id="exportBtn" class="btn btn-success" disabled onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="resultsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Address</th>
+                                        <th>Phone</th>
+                                        <th>Website</th>
+                                        <th>Rating</th>
+                                        <th>Opening Hours</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -508,116 +536,9 @@
         let map;
         let searchCircle;
         let markers = [];
-        let infoWindow;
+        let droppedPin = null;
+        let droppedPinMarker = null;
         
-        // Map styles for light and dark themes
-        const mapStyles = {
-            light: [],
-            dark: [
-                {elementType: 'geometry', stylers: [{color: '#242f3e'}]},
-                {elementType: 'labels.text.stroke', stylers: [{color: '#242f3e'}]},
-                {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
-                {
-                    featureType: 'administrative.locality',
-                    elementType: 'labels.text.fill',
-                    stylers: [{color: '#d59563'}]
-                },
-                {
-                    featureType: 'poi',
-                    elementType: 'labels.text.fill',
-                    stylers: [{color: '#d59563'}]
-                },
-                {
-                    featureType: 'poi.park',
-                    elementType: 'geometry',
-                    stylers: [{color: '#263c3f'}]
-                },
-                {
-                    featureType: 'poi.park',
-                    elementType: 'labels.text.fill',
-                    stylers: [{color: '#6b9a76'}]
-                },
-                {
-                    featureType: 'road',
-                    elementType: 'geometry',
-                    stylers: [{color: '#38414e'}]
-                },
-                {
-                    featureType: 'road',
-                    elementType: 'geometry.stroke',
-                    stylers: [{color: '#212a37'}]
-                },
-                {
-                    featureType: 'road',
-                    elementType: 'labels.text.fill',
-                    stylers: [{color: '#9ca5b3'}]
-                },
-                {
-                    featureType: 'road.highway',
-                    elementType: 'geometry',
-                    stylers: [{color: '#746855'}]
-                },
-                {
-                    featureType: 'road.highway',
-                    elementType: 'geometry.stroke',
-                    stylers: [{color: '#1f2835'}]
-                },
-                {
-                    featureType: 'road.highway',
-                    elementType: 'labels.text.fill',
-                    stylers: [{color: '#f3d19c'}]
-                },
-                {
-                    featureType: 'transit',
-                    elementType: 'geometry',
-                    stylers: [{color: '#2f3948'}]
-                },
-                {
-                    featureType: 'transit.station',
-                    elementType: 'labels.text.fill',
-                    stylers: [{color: '#d59563'}]
-                },
-                {
-                    featureType: 'water',
-                    elementType: 'geometry',
-                    stylers: [{color: '#17263c'}]
-                },
-                {
-                    featureType: 'water',
-                    elementType: 'labels.text.fill',
-                    stylers: [{color: '#515c6d'}]
-                },
-                {
-                    featureType: 'water',
-                    elementType: 'labels.text.stroke',
-                    stylers: [{color: '#17263c'}]
-                }
-            ]
-        };
-
-        // Initialize map
-        function initMap() {
-            console.log('Initializing map...');  // Debug log
-            const mapElement = document.getElementById('map');
-            if (!mapElement) {
-                console.error('Map element not found!');  // Debug log
-                return;
-            }
-
-            const apiKey = '{{ api_key }}';
-            console.log('API Key present:', !!apiKey);  // Debug log
-
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            map = new google.maps.Map(mapElement, {
-                center: { lat: 0, lng: 0 },
-                zoom: 2,
-                styles: mapStyles[currentTheme]
-            });
-
-            infoWindow = new google.maps.InfoWindow();
-            console.log('Map initialized successfully');  // Debug log
-        }
-
         // Theme handling
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
@@ -633,11 +554,6 @@
                 themeIcon.className = 'bi bi-moon-fill';
                 themeText.textContent = 'Dark Mode';
             }
-
-            // Update map style if map exists
-            if (map) {
-                map.setOptions({ styles: mapStyles[theme] });
-            }
         }
 
         function toggleTheme() {
@@ -650,6 +566,95 @@
         const savedTheme = localStorage.getItem('theme') || 'light';
         setTheme(savedTheme);
 
+        // Initialize map
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 0, lng: 0 },
+                zoom: 2,
+                styles: [
+                    {
+                        "featureType": "all",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{"color": "#7c93a3"},{"lightness": "-10"}]
+                    },
+                    {
+                        "featureType": "administrative.country",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{"color": "#7c93a3"}]
+                    },
+                    {
+                        "featureType": "administrative.locality",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{"color": "#7c93a3"}]
+                    },
+                    {
+                        "featureType": "administrative.neighborhood",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{"color": "#7c93a3"}]
+                    },
+                    {
+                        "featureType": "landscape",
+                        "elementType": "all",
+                        "stylers": [{"color": "#f2f2f2"}]
+                    },
+                    {
+                        "featureType": "poi",
+                        "elementType": "all",
+                        "stylers": [{"visibility": "off"}]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "all",
+                        "stylers": [{"saturation": "-100"},{"lightness": "45"}]
+                    },
+                    {
+                        "featureType": "road.highway",
+                        "elementType": "all",
+                        "stylers": [{"visibility": "simplified"}]
+                    },
+                    {
+                        "featureType": "road.arterial",
+                        "elementType": "labels.icon",
+                        "stylers": [{"visibility": "off"}]
+                    },
+                    {
+                        "featureType": "transit",
+                        "elementType": "all",
+                        "stylers": [{"visibility": "off"}]
+                    },
+                    {
+                        "featureType": "water",
+                        "elementType": "all",
+                        "stylers": [{"color": "#46bcec"},{"visibility": "on"}]
+                    }
+                ]
+            });
+
+            // Add click listener for dropping pin
+            map.addListener('click', function(e) {
+                if (document.getElementById('usePin').checked) {
+                    if (droppedPinMarker) {
+                        droppedPinMarker.setMap(null);
+                    }
+                    droppedPin = e.latLng;
+                    droppedPinMarker = new google.maps.Marker({
+                        position: droppedPin,
+                        map: map,
+                        title: 'Dropped Pin',
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 10,
+                            fillColor: '#FF0000',
+                            fillOpacity: 1,
+                            strokeColor: '#FFFFFF',
+                            strokeWeight: 2
+                        }
+                    });
+                    map.panTo(droppedPin);
+                }
+            });
+        }
+
         // Initialize map when the page loads
         window.onload = function() {
             console.log('Window loaded, initializing map...');  // Debug log
@@ -659,16 +664,90 @@
         // Handle form submission
         document.getElementById('searchForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            console.log('Form submitted');  // Debug log
+            clearResults();
             
-            const formData = new FormData(this);
-            const alertDiv = document.getElementById('alert');
-            const resultsTable = document.getElementById('resultsTable');
+            const city = document.getElementById('city').value;
+            const businessType = document.getElementById('businessType').value;
+            const radius = document.getElementById('radius').value;
+            const usePin = document.getElementById('usePin').checked;
             
-            // Clear previous results
+            try {
+                let response;
+                if (usePin && droppedPin) {
+                    response = await fetch('/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            lat: droppedPin.lat(),
+                            lng: droppedPin.lng(),
+                            business_type: businessType,
+                            radius: radius
+                        })
+                    });
+                } else {
+                    response = await fetch('/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            city: city,
+                            business_type: businessType,
+                            radius: radius
+                        })
+                    });
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                if (data.leads && data.leads.length > 0) {
+                    displayResults(data.leads);
+                    displayMap(data.leads, data.center);
+                    // Enable export button when we have results
+                    document.getElementById('exportBtn').disabled = false;
+                } else {
+                    showError('No businesses found in the specified area.');
+                }
+            } catch (error) {
+                showError('An error occurred while searching. Please try again.');
+                console.error('Search error:', error);
+            }
+        });
+        
+        document.getElementById('clearPin').addEventListener('click', function() {
+            if (droppedPinMarker) {
+                droppedPinMarker.setMap(null);
+                droppedPinMarker = null;
+                droppedPin = null;
+            }
+        });
+
+        function displayResults(leads) {
+            const resultsTable = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
             resultsTable.innerHTML = '';
-            alertDiv.style.display = 'none';
             
+            leads.forEach(lead => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${lead.name}</td>
+                    <td>${lead.address}</td>
+                    <td>${lead.phone || 'N/A'}</td>
+                    <td>${lead.website ? `<a href="${lead.website}" target="_blank">${lead.website}</a>` : 'N/A'}</td>
+                    <td>${lead.rating || 'N/A'}</td>
+                    <td>${lead.opening_hours ? lead.opening_hours.join('<br>') : 'N/A'}</td>
+                `;
+                resultsTable.appendChild(row);
+            });
+        }
+
+        function displayMap(leads, center) {
             // Clear previous markers and circle
             markers.forEach(marker => marker.setMap(null));
             markers = [];
@@ -676,114 +755,81 @@
                 searchCircle.setMap(null);
             }
             
-            try {
-                const response = await fetch('/search', {
-                    method: 'POST',
-                    body: formData
+            // Set map center and zoom
+            map.setCenter(center);
+            const radius = document.getElementById('radius').value * 1609.34; // Convert miles to meters
+            const zoomLevel = Math.round(14 - Math.log2(radius / 1000));
+            map.setZoom(zoomLevel);
+            
+            // Add search circle
+            searchCircle = new google.maps.Circle({
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#FF0000',
+                fillOpacity: 0.1,
+                map: map,
+                center: center,
+                radius: radius
+            });
+            
+            // Add markers for each lead
+            leads.forEach((lead, index) => {
+                const marker = new google.maps.Marker({
+                    position: { lat: lead.lat, lng: lead.lng },
+                    map: map,
+                    title: lead.name,
+                    animation: google.maps.Animation.DROP,
+                    delay: index * 100
                 });
                 
-                const data = await response.json();
-                console.log('Search response:', data);  // Debug log
+                // Create info window content
+                const content = `
+                    <div style="color: var(--info-window-text);">
+                        <h5>${lead.name}</h5>
+                        <p>${lead.address}</p>
+                        ${lead.phone ? `<p>Phone: ${lead.phone}</p>` : ''}
+                        ${lead.website ? `<p>Website: <a href="${lead.website}" target="_blank">${lead.website}</a></p>` : ''}
+                        ${lead.rating ? `<p>Rating: ${lead.rating} ⭐</p>` : ''}
+                        ${lead.opening_hours ? `<p>Hours:<br>${lead.opening_hours.join('<br>')}</p>` : ''}
+                    </div>
+                `;
                 
-                if (response.ok) {
-                    // Update map
-                    const center = data.center;
-                    console.log('Setting map center:', center);  // Debug log
-                    
-                    // Calculate appropriate zoom level based on radius
-                    const radius = formData.get('radius') * 1609.34; // Convert miles to meters
-                    const zoomLevel = Math.round(14 - Math.log2(radius / 1000)); // Adjust zoom based on radius
-                    
-                    // Set map center and zoom
-                    map.setCenter(center);
-                    map.setZoom(zoomLevel);
-                    
-                    // Add search circle
-                    searchCircle = new google.maps.Circle({
-                        strokeColor: '#FF0000',
-                        strokeOpacity: 0.8,
-                        strokeWeight: 2,
-                        fillColor: '#FF0000',
-                        fillOpacity: 0.1,
-                        map: map,
-                        center: center,
-                        radius: radius
+                // Add click listener to marker
+                marker.addListener('click', () => {
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: content
                     });
-                    
-                    // Add markers for each lead
-                    data.leads.forEach((lead, index) => {
-                        const marker = new google.maps.Marker({
-                            position: { lat: lead.lat, lng: lead.lng },
-                            map: map,
-                            title: lead.name,
-                            animation: google.maps.Animation.DROP,
-                            // Add a slight delay to the marker drop animation
-                            delay: index * 100
-                        });
-                        
-                        // Create info window content
-                        const content = `
-                            <div style="color: var(--info-window-text);">
-                                <h5>${lead.name}</h5>
-                                <p>${lead.address}</p>
-                                ${lead.phone ? `<p>Phone: ${lead.phone}</p>` : ''}
-                                ${lead.website ? `<p>Website: <a href="${lead.website}" target="_blank">${lead.website}</a></p>` : ''}
-                                ${lead.rating ? `<p>Rating: ${lead.rating} ⭐</p>` : ''}
-                            </div>
-                        `;
-                        
-                        // Add click listener to marker
-                        marker.addListener('click', () => {
-                            infoWindow.setContent(content);
-                            infoWindow.open(map, marker);
-                        });
-                        
-                        // Automatically open info window for the first marker
-                        if (index === 0) {
-                            setTimeout(() => {
-                                infoWindow.setContent(content);
-                                infoWindow.open(map, marker);
-                            }, 1000); // Wait for marker animation to complete
-                        }
-                        
-                        markers.push(marker);
-                    });
-                    
-                    // Update results table
-                    data.leads.forEach(lead => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${lead.name}</td>
-                            <td>${lead.address}</td>
-                            <td>${lead.phone || 'N/A'}</td>
-                            <td>${lead.website ? `<a href="${lead.website}" target="_blank">${lead.website}</a>` : 'N/A'}</td>
-                            <td>${lead.rating || 'N/A'}</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" onclick="exportToExcel('${lead.name}')">Export</button>
-                            </td>
-                        `;
-                        resultsTable.appendChild(row);
-                    });
-                } else {
-                    alertDiv.textContent = data.error || 'An error occurred';
-                    alertDiv.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Search error:', error);  // Debug log
-                alertDiv.textContent = 'An error occurred while processing your request';
-                alertDiv.style.display = 'block';
-            }
-        });
-        
-        // Export to Excel function
-        async function exportToExcel(businessName) {
+                    infoWindow.open(map, marker);
+                });
+                
+                markers.push(marker);
+            });
+        }
+
+        function showError(message) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+        }
+
+        function clearResults() {
+            const resultsTable = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
+            resultsTable.innerHTML = '';
+            document.getElementById('alert').style.display = 'none';
+            document.getElementById('exportBtn').disabled = true;
+        }
+
+        async function exportToExcel() {
             try {
                 const response = await fetch('/export', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ business_name: businessName })
+                    body: JSON.stringify({
+                        leads: window.currentLeads || []
+                    })
                 });
                 
                 if (response.ok) {
@@ -791,18 +837,26 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${businessName}_leads.xlsx`;
+                    a.download = `business_leads_${new Date().toISOString().slice(0,19).replace(/[:]/g, '')}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
                     a.remove();
                 } else {
                     const data = await response.json();
-                    $('#errorAlert').text(data.error || 'An error occurred while exporting').show();
+                    showError(data.error || 'Failed to export data');
                 }
             } catch (error) {
-                $('#errorAlert').text('An error occurred while exporting').show();
+                console.error('Export error:', error);
+                showError('An error occurred while exporting the data');
             }
+        }
+
+        // Store current leads for export
+        let currentLeads = [];
+        function displayResults(leads) {
+            currentLeads = leads;  // Store leads for export
+            // ... rest of the displayResults function ...
         }
     </script>
 </body>
