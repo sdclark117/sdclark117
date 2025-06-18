@@ -105,6 +105,7 @@ def search_places(lat, lng, business_type, radius, api_key):
                     if details_data.get('status') == 'OK':
                         details = details_data.get('result', {})
                         lead = {
+                            'place_id': place_id,  # Add place_id for deduplication
                             'name': details.get('name', place.get('name', '')),
                             'address': details.get('formatted_address', place.get('vicinity', '')),
                             'lat': place['geometry']['location']['lat'],
@@ -117,6 +118,7 @@ def search_places(lat, lng, business_type, radius, api_key):
                     else:
                         # Fallback to basic place data if details request fails
                         lead = {
+                            'place_id': place_id,
                             'name': place.get('name', ''),
                             'address': place.get('vicinity', ''),
                             'lat': place['geometry']['location']['lat'],
@@ -129,6 +131,7 @@ def search_places(lat, lng, business_type, radius, api_key):
                 else:
                     # Fallback to basic place data if no place_id
                     lead = {
+                        'place_id': f"temp_{len(leads)}",  # Generate temporary ID
                         'name': place.get('name', ''),
                         'address': place.get('vicinity', ''),
                         'lat': place['geometry']['location']['lat'],
@@ -205,9 +208,7 @@ def format_business_types(types):
 def index():
     """Render the main page."""
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-    print(f"API Key present in index route: {bool(api_key)}")  # Debug print
-    if not api_key:
-        print("Warning: GOOGLE_MAPS_API_KEY is not set in environment variables")
+    print(f"API Key present: {bool(api_key)}")  # Debug print
     return render_template('index.html', api_key=api_key)
 
 @app.route('/search', methods=['POST'])
@@ -345,10 +346,12 @@ def export_to_excel():
     """Export search results to Excel."""
     try:
         data = request.json
+        if not data or not isinstance(data, dict):
+            raise Exception("Invalid data format")
+            
         leads = data.get('leads', [])
-        
         if not leads:
-            return jsonify({'error': 'No data to export'}), 400
+            raise Exception("No data to export")
             
         # Create DataFrame
         df = pd.DataFrame(leads)
