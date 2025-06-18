@@ -510,6 +510,114 @@
         let markers = [];
         let infoWindow;
         
+        // Map styles for light and dark themes
+        const mapStyles = {
+            light: [],
+            dark: [
+                {elementType: 'geometry', stylers: [{color: '#242f3e'}]},
+                {elementType: 'labels.text.stroke', stylers: [{color: '#242f3e'}]},
+                {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+                {
+                    featureType: 'administrative.locality',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#d59563'}]
+                },
+                {
+                    featureType: 'poi',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#d59563'}]
+                },
+                {
+                    featureType: 'poi.park',
+                    elementType: 'geometry',
+                    stylers: [{color: '#263c3f'}]
+                },
+                {
+                    featureType: 'poi.park',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#6b9a76'}]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'geometry',
+                    stylers: [{color: '#38414e'}]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'geometry.stroke',
+                    stylers: [{color: '#212a37'}]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#9ca5b3'}]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'geometry',
+                    stylers: [{color: '#746855'}]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'geometry.stroke',
+                    stylers: [{color: '#1f2835'}]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#f3d19c'}]
+                },
+                {
+                    featureType: 'transit',
+                    elementType: 'geometry',
+                    stylers: [{color: '#2f3948'}]
+                },
+                {
+                    featureType: 'transit.station',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#d59563'}]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'geometry',
+                    stylers: [{color: '#17263c'}]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#515c6d'}]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'labels.text.stroke',
+                    stylers: [{color: '#17263c'}]
+                }
+            ]
+        };
+
+        // Initialize map
+        function initMap() {
+            console.log('Initializing map...');  // Debug log
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error('Map element not found!');  // Debug log
+                return;
+            }
+
+            const apiKey = '{{ api_key }}';
+            console.log('API Key present:', !!apiKey);  // Debug log
+
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            map = new google.maps.Map(mapElement, {
+                center: { lat: 0, lng: 0 },
+                zoom: 2,
+                styles: mapStyles[currentTheme]
+            });
+
+            infoWindow = new google.maps.InfoWindow();
+            console.log('Map initialized successfully');  // Debug log
+        }
+
         // Theme handling
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
@@ -525,6 +633,11 @@
                 themeIcon.className = 'bi bi-moon-fill';
                 themeText.textContent = 'Dark Mode';
             }
+
+            // Update map style if map exists
+            if (map) {
+                map.setOptions({ styles: mapStyles[theme] });
+            }
         }
 
         function toggleTheme() {
@@ -536,36 +649,6 @@
         // Initialize theme from localStorage
         const savedTheme = localStorage.getItem('theme') || 'light';
         setTheme(savedTheme);
-
-        // Initialize map
-        function initMap() {
-            console.log('Initializing map...');  // Debug log
-            const mapElement = document.getElementById('map');
-            if (!mapElement) {
-                console.error('Map element not found!');  // Debug log
-                return;
-            }
-
-            const apiKey = '{{ api_key }}';
-            console.log('API Key present:', !!apiKey);  // Debug log
-
-            map = new google.maps.Map(mapElement, {
-                center: { lat: 0, lng: 0 },
-                zoom: 2,
-                styles: [
-                    {
-                        featureType: "all",
-                        elementType: "all",
-                        stylers: [
-                            { invert_lightness: document.documentElement.getAttribute('data-theme') === 'dark' }
-                        ]
-                    }
-                ]
-            });
-
-            infoWindow = new google.maps.InfoWindow();
-            console.log('Map initialized successfully');  // Debug log
-        }
 
         // Initialize map when the page loads
         window.onload = function() {
