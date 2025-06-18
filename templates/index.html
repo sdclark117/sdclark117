@@ -2,6 +2,24 @@
 <html lang="en" data-theme="dark">
 <head>
 <style>
+.login-btn, #profileBtn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  background: none;
+  border: 2px solid #fff;
+  color: #fff;
+  border-radius: 25px;
+  padding: 10px 24px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.login-btn i, #profileBtn i {
+  font-size: 1.3rem;
+}
 :root {
     --bg-color: #212529;
     --card-bg: #2c3034;
@@ -28,23 +46,23 @@
     --table-border: #495057;
 }
 body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
+    background-color: #212529 !important;
+    color: #fff !important;
 }
 .card, .table, .table thead th, .table tbody tr, .table tbody td {
-    background-color: var(--card-bg) !important;
-    color: var(--text-color) !important;
-    border-color: var(--border-color) !important;
+    background-color: #2c3034 !important;
+    color: #fff !important;
+    border-color: #495057 !important;
 }
 .table thead th {
-    background-color: var(--table-header-bg) !important;
-    color: var(--table-header-text) !important;
+    background-color: #343a40 !important;
+    color: #fff !important;
 }
 .table tbody tr:nth-child(even) {
-    background-color: var(--table-row-alt-bg) !important;
+    background-color: #343a40 !important;
 }
 .table tbody td a {
-    color: var(--info-window-link) !important;
+    color: #66b3ff !important;
 }
 
 /* Auth Modal Light Theme Override */
@@ -541,7 +559,27 @@ body {
         :root[data-theme="dark"] .table tbody td a {
             color: #66b3ff !important;
         }
-    </style>
+
+.login-btn, #profileBtn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  background: none;
+  border: 2px solid #fff;
+  color: #fff;
+  border-radius: 25px;
+  padding: 10px 24px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.login-btn i, #profileBtn i {
+  font-size: 1.3rem;
+}
+
+</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Lead Finder</title>
