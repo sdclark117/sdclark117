@@ -497,10 +497,59 @@ body {
     </style>
 </head>
 <body>
-    <button class="theme-toggle" onclick="toggleTheme()">
-        <i class="bi bi-moon-fill" id="theme-icon"></i>
-        <span id="theme-text">Dark Mode</span>
+    <button class="login-btn" onclick="showAuthModal()" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; background: none; border: 2px solid #fff; color: #fff; border-radius: 25px; padding: 10px 24px; font-size: 1.1rem;">
+        <i class="bi bi-person-circle"></i>
+        <span>Login</span>
     </button>
+
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="authModalLabel">Login or Sign Up</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <ul class="nav nav-tabs" id="authTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab" aria-controls="login" aria-selected="true">Login</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="signup-tab" data-bs-toggle="tab" data-bs-target="#signup" type="button" role="tab" aria-controls="signup" aria-selected="false">Sign Up</button>
+              </li>
+            </ul>
+            <div class="tab-content pt-3" id="authTabContent">
+              <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                <form id="loginForm">
+                  <div class="mb-3">
+                    <label for="loginEmail" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="loginEmail" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="loginPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="loginPassword" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+              </div>
+              <div class="tab-pane fade" id="signup" role="tabpanel" aria-labelledby="signup-tab">
+                <form id="signupForm">
+                  <div class="mb-3">
+                    <label for="signupEmail" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="signupEmail" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="signupPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="signupPassword" required>
+                  </div>
+                  <button type="submit" class="btn btn-success w-100">Sign Up</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="container mt-4">
         <h1 class="text-center mb-4">Business Lead Finder</h1>
@@ -597,32 +646,10 @@ body {
         let droppedPinMarker = null;
         let currentLeads = [];  // Store current leads for export
         
-        // Theme handling
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            
-            const themeIcon = document.getElementById('theme-icon');
-            const themeText = document.getElementById('theme-text');
-            
-            if (theme === 'dark') {
-                themeIcon.className = 'bi bi-sun-fill';
-                themeText.textContent = 'Light Mode';
-            } else {
-                themeIcon.className = 'bi bi-moon-fill';
-                themeText.textContent = 'Dark Mode';
-            }
+        function showAuthModal() {
+          var authModal = new bootstrap.Modal(document.getElementById('authModal'));
+          authModal.show();
         }
-
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            setTheme(newTheme);
-        }
-
-        // Initialize theme from localStorage
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        setTheme(savedTheme);
 
         // Initialize map
         function initMap() {
@@ -1134,6 +1161,61 @@ body {
                 showError('An error occurred while exporting the data');
             }
         }
-    </script>
+    </script><!-- Auth Modal -->
+<div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="authModalLabel">Login or Sign Up</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs" id="authTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab" aria-controls="login" aria-selected="true">Login</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="signup-tab" data-bs-toggle="tab" data-bs-target="#signup" type="button" role="tab" aria-controls="signup" aria-selected="false">Sign Up</button>
+          </li>
+        </ul>
+        <div class="tab-content pt-3" id="authTabContent">
+          <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+            <form id="loginForm">
+              <div class="mb-3">
+                <label for="loginEmail" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="loginEmail" required>
+              </div>
+              <div class="mb-3">
+                <label for="loginPassword" class="form-label">Password</label>
+                <input type="password" class="form-control" id="loginPassword" required>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Login</button>
+            </form>
+          </div>
+          <div class="tab-pane fade" id="signup" role="tabpanel" aria-labelledby="signup-tab">
+            <form id="signupForm">
+              <div class="mb-3">
+                <label for="signupEmail" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="signupEmail" required>
+              </div>
+              <div class="mb-3">
+                <label for="signupPassword" class="form-label">Password</label>
+                <input type="password" class="form-control" id="signupPassword" required>
+              </div>
+              <button type="submit" class="btn btn-success w-100">Sign Up</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showAuthModal() {
+  var authModal = new bootstrap.Modal(document.getElementById('authModal'));
+  authModal.show();
+}
+</script>
 </body>
 </html> 
