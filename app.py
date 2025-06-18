@@ -50,10 +50,15 @@ def search_places(lat, lng, business_type, radius, api_key):
     """Search for places using Google Places API."""
     try:
         url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+        
+        # Convert business type to a format Google Places API understands
+        # Remove any spaces and convert to lowercase
+        business_type = business_type.lower().strip()
+        
         params = {
             'location': f"{lat},{lng}",
             'radius': radius,
-            'type': business_type,
+            'keyword': business_type,  # Use keyword instead of type for more flexible searching
             'key': api_key
         }
         print(f"Searching places with params: {params}")  # Debug print
@@ -69,21 +74,70 @@ def search_places(lat, lng, business_type, radius, api_key):
             raise Exception(f"Places API request denied: {error_message}")
             
         if data.get('status') != 'OK':
-            raise Exception(f"Places search failed: {data.get('status')} - {data.get('error_message', 'No error message')}")
+            error_msg = f"Places search failed: {data.get('status')}"
+            if data.get('error_message'):
+                error_msg += f" - {data.get('error_message')}"
+            print(f"Error: {error_msg}")  # Debug print
+            raise Exception(error_msg)
         
         leads = []
         for place in data.get('results', []):
-            lead = {
-                'name': place.get('name', ''),
-                'address': place.get('vicinity', ''),
-                'lat': place['geometry']['location']['lat'],
-                'lng': place['geometry']['location']['lng'],
-                'rating': place.get('rating', ''),
-                'website': place.get('website', ''),
-                'phone': place.get('formatted_phone_number', '')
-            }
-            leads.append(lead)
-            print(f"Found lead: {lead}")  # Debug print
+            # Get place details for additional information
+            try:
+                place_id = place.get('place_id')
+                if place_id:
+                    details_url = f"https://maps.googleapis.com/maps/api/place/details/json"
+                    details_params = {
+                        'place_id': place_id,
+                        'fields': 'name,formatted_address,formatted_phone_number,website,rating,opening_hours',
+                        'key': api_key
+                    }
+                    details_response = requests.get(details_url, params=details_params)
+                    details_data = details_response.json()
+                    
+                    if details_data.get('status') == 'OK':
+                        details = details_data.get('result', {})
+                        lead = {
+                            'name': details.get('name', place.get('name', '')),
+                            'address': details.get('formatted_address', place.get('vicinity', '')),
+                            'lat': place['geometry']['location']['lat'],
+                            'lng': place['geometry']['location']['lng'],
+                            'rating': details.get('rating', place.get('rating', '')),
+                            'website': details.get('website', ''),
+                            'phone': details.get('formatted_phone_number', ''),
+                            'opening_hours': details.get('opening_hours', {}).get('weekday_text', [])
+                        }
+                    else:
+                        # Fallback to basic place data if details request fails
+                        lead = {
+                            'name': place.get('name', ''),
+                            'address': place.get('vicinity', ''),
+                            'lat': place['geometry']['location']['lat'],
+                            'lng': place['geometry']['location']['lng'],
+                            'rating': place.get('rating', ''),
+                            'website': '',
+                            'phone': '',
+                            'opening_hours': []
+                        }
+                else:
+                    # Fallback to basic place data if no place_id
+                    lead = {
+                        'name': place.get('name', ''),
+                        'address': place.get('vicinity', ''),
+                        'lat': place['geometry']['location']['lat'],
+                        'lng': place['geometry']['location']['lng'],
+                        'rating': place.get('rating', ''),
+                        'website': '',
+                        'phone': '',
+                        'opening_hours': []
+                    }
+                
+                leads.append(lead)
+                print(f"Found lead: {lead}")  # Debug print
+                
+            except Exception as e:
+                print(f"Error getting details for place: {str(e)}")  # Debug print
+                continue
         
         return leads
         
