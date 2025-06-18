@@ -18,11 +18,13 @@ app = Flask(__name__)
 def get_coordinates(city, api_key):
     """Get coordinates for a city using Google Maps Geocoding API."""
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={city}&key={api_key}"
+    print(f"Geocoding URL: {url}")  # Debug print
     response = requests.get(url)
     data = response.json()
+    print(f"Geocoding Response: {data}")  # Debug print
     
     if data['status'] != 'OK':
-        raise Exception(f"Geocoding failed: {data['status']}")
+        raise Exception(f"Geocoding failed: {data['status']} - {data.get('error_message', 'No error message')}")
     
     location = data['results'][0]['geometry']['location']
     return location['lat'], location['lng']
@@ -94,7 +96,9 @@ def format_business_types(types):
 @app.route('/')
 def index():
     """Render the main page."""
-    return render_template('index.html', api_key=os.getenv('GOOGLE_MAPS_API_KEY'))
+    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+    print(f"API Key present: {bool(api_key)}")  # Debug print
+    return render_template('index.html', api_key=api_key)
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -107,6 +111,10 @@ def search():
         radius_miles = float(request.form.get('radius', 3))
         radius_meters = int(radius_miles * 1609.34)
         api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+        
+        print(f"Search API Key present: {bool(api_key)}")  # Debug print
+        print(f"City: {city}")  # Debug print
+        print(f"Business Type: {business_type}")  # Debug print
         
         if not api_key:
             return jsonify({'error': 'API key not configured'}), 500
