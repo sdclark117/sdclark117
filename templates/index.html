@@ -6,6 +6,7 @@
     <title>Business Lead Finder</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <style>
         :root[data-theme="light"] {
             --bg-color: #f8f9fa;
@@ -18,6 +19,16 @@
             --table-header-bg: #366092;
             --table-header-text: #ffffff;
             --table-row-hover: #f8f9fa;
+            --info-window-bg: #ffffff;
+            --info-window-text: #212529;
+            --info-window-link: #0d6efd;
+            --table-bg: #ffffff;
+            --form-bg: #ffffff;
+            --form-text: #212529;
+            --alert-bg: #f8f9fa;
+            --alert-text: #212529;
+            --map-heading-bg: #f8f9fa;
+            --map-heading-text: #212529;
         }
 
         :root[data-theme="dark"] {
@@ -28,12 +39,19 @@
             --header-bg: #1a1d20;
             --header-text: #ffffff;
             --hover-bg: #0d6efd;
-            --table-header-bg: #1a1d20;
+            --table-header-bg: #343a40;
             --table-header-text: #ffffff;
             --table-row-hover: #343a40;
-            --info-window-bg: #2c3034;
+            --info-window-bg: #212529;
             --info-window-text: #f8f9fa;
             --info-window-link: #0d6efd;
+            --table-bg: #212529;
+            --form-bg: #212529;
+            --form-text: #f8f9fa;
+            --alert-bg: #343a40;
+            --alert-text: #f8f9fa;
+            --map-heading-bg: #343a40;
+            --map-heading-text: #f8f9fa;
         }
 
         body {
@@ -88,8 +106,8 @@
         }
 
         .table {
-            background-color: var(--card-bg);
-            color: var(--text-color);
+            background-color: var(--table-bg);
+            color: var(--table-text);
             border-radius: 10px;
             overflow: hidden;
             transition: background-color 0.3s ease, color 0.3s ease;
@@ -259,7 +277,7 @@
 
         /* Update form text colors */
         .form-label {
-            color: var(--text-color);
+            color: var(--form-text);
         }
 
         .form-text {
@@ -269,110 +287,225 @@
 
         /* Update alert text color */
         .alert {
-            color: var(--text-color);
+            color: var(--alert-text);
         }
 
         /* Update map container text */
         #mapContainer h3 {
-            color: var(--text-color);
+            color: var(--map-heading-text);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--form-bg);
+            border: 1px solid var(--form-text);
+            color: var(--form-text);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--table-header-bg);
+        }
+
+        .theme-toggle i {
+            font-size: 1.2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .search-form {
+            background: var(--form-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            background-color: var(--form-bg);
+            color: var(--form-text);
+            border: 1px solid var(--form-text);
+        }
+
+        .form-control:focus {
+            background-color: var(--form-bg);
+            color: var(--form-text);
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+            padding: 10px 20px;
+        }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .table {
+            background-color: var(--table-bg);
+            color: var(--table-text);
+        }
+
+        .table thead th {
+            background-color: var(--table-header-bg);
+            color: var(--table-text);
+            border-bottom: 2px solid var(--table-text);
+        }
+
+        .table tbody tr {
+            border-bottom: 1px solid var(--table-text);
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--table-header-bg);
+        }
+
+        .alert {
+            background-color: var(--alert-bg);
+            color: var(--alert-text);
+            border: 1px solid var(--alert-text);
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .map-container {
+            background: var(--map-heading-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .map-container h3 {
+            color: var(--map-heading-text);
+            margin-bottom: 15px;
+        }
+
+        .gm-style-iw {
+            background-color: var(--info-window-bg) !important;
+            color: var(--info-window-text) !important;
+            padding: 15px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+
+        .gm-style-iw a {
+            color: var(--info-window-link) !important;
+            text-decoration: none !important;
+        }
+
+        .gm-style-iw a:hover {
+            text-decoration: underline !important;
+        }
+
+        .gm-style-iw-d {
+            overflow: hidden !important;
+            max-height: none !important;
+        }
+
+        .gm-style-iw-c {
+            padding: 0 !important;
+            max-width: 300px !important;
+        }
+
+        .gm-style-iw-t::after {
+            background: linear-gradient(45deg, var(--info-window-bg) 50%, transparent 50%) !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .search-form {
+                padding: 15px;
+            }
+            
+            .btn-primary {
+                width: 100%;
+                margin-top: 10px;
+            }
+            
+            #map {
+                height: 300px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="theme-switcher dropdown">
-        <button class="btn dropdown-toggle" type="button" id="themeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-palette"></i>
-        </button>
-        <ul class="dropdown-menu" aria-labelledby="themeDropdown">
-            <li><a class="dropdown-item active" href="#" data-theme="light">Light Theme</a></li>
-            <li><a class="dropdown-item" href="#" data-theme="dark">Dark Theme</a></li>
-        </ul>
-    </div>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="bi bi-moon-fill" id="theme-icon"></i>
+        <span id="theme-text">Dark Mode</span>
+    </button>
 
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h1 class="text-center mb-0">Business Lead Finder</h1>
-                    </div>
-                    <div class="card-body">
-                        <form id="searchForm">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="city" class="form-label">City</label>
-                                        <input type="text" class="form-control" id="city" name="city" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="business_type" class="form-label">Business Type</label>
-                                        <select class="form-select" id="business_type" name="business_type" required>
-                                            <option value="">Select a business type...</option>
-                                            <option value="restaurant">Restaurant</option>
-                                            <option value="cafe">Cafe</option>
-                                            <option value="bar">Bar</option>
-                                            <option value="bakery">Bakery</option>
-                                            <option value="store">Store</option>
-                                            <option value="supermarket">Supermarket</option>
-                                            <option value="gym">Gym</option>
-                                            <option value="salon">Salon</option>
-                                            <option value="spa">Spa</option>
-                                            <option value="hotel">Hotel</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="radius" class="form-label">Search Radius (miles)</label>
-                                        <input type="number" class="form-control" id="radius" name="radius" value="3" min="1" max="30" required>
-                                        <small class="form-text text-muted">Enter a radius between 1 and 30 miles</small>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-primary w-100">Find Leads</button>
-                                </div>
-                            </div>
-                        </form>
-                        
-                        <div id="loading" class="loading">
-                            <div class="spinner-border loading-spinner" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                        
-                        <div id="errorAlert" class="alert alert-danger" role="alert"></div>
-                        
-                        <div id="mapContainer" class="map-container">
-                            <h3 class="mb-3">Search Area Map</h3>
-                            <div id="map"></div>
-                        </div>
-                        
-                        <div id="resultsSection" class="results-section">
-                            <h3 class="mb-3">Search Results</h3>
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Address</th>
-                                            <th>Phone</th>
-                                            <th>Rating</th>
-                                            <th>Reviews</th>
-                                            <th>Price Level</th>
-                                            <th>Business Types</th>
-                                            <th>Opening Hours</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="resultsTable"></tbody>
-                                </table>
-                            </div>
-                            <button id="downloadBtn" class="btn btn-success">Download Results</button>
-                        </div>
-                    </div>
+        <h1 class="text-center mb-4">Business Lead Finder</h1>
+        
+        <div class="search-form">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="city" class="form-label">City</label>
+                    <input type="text" class="form-control" id="city" name="city" required>
                 </div>
+                <div class="col-md-4">
+                    <label for="business_type" class="form-label">Business Type</label>
+                    <input type="text" class="form-control" id="business_type" name="business_type" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="radius" class="form-label">Radius (miles)</label>
+                    <input type="number" class="form-control" id="radius" name="radius" value="3" min="1" max="50">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="alert" class="alert alert-danger" style="display: none;"></div>
+
+        <div class="map-container">
+            <h3>Search Area</h3>
+            <div id="map"></div>
+        </div>
+
+        <div class="results-section">
+            <h2>Search Results</h2>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Phone</th>
+                            <th>Website</th>
+                            <th>Rating</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable"></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -387,12 +520,47 @@
         let markers = [];
         let infoWindow;
         
+        // Theme handling
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            
+            if (theme === 'dark') {
+                themeIcon.className = 'bi bi-sun-fill';
+                themeText.textContent = 'Light Mode';
+            } else {
+                themeIcon.className = 'bi bi-moon-fill';
+                themeText.textContent = 'Dark Mode';
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        }
+
+        // Initialize theme from localStorage
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
-                zoom: 12,
-                center: { lat: 0, lng: 0 }
+                center: { lat: 0, lng: 0 },
+                zoom: 2,
+                styles: [
+                    {
+                        featureType: "all",
+                        elementType: "all",
+                        stylers: [
+                            { invert_lightness: document.documentElement.getAttribute('data-theme') === 'dark' }
+                        ]
+                    }
+                ]
             });
-            
             infoWindow = new google.maps.InfoWindow();
         }
         
@@ -495,34 +663,35 @@
             }
         });
         
-        // Handle download button click
-        $('#downloadBtn').on('click', function() {
-            const leads = window.currentLeads || [];
-            
-            $.ajax({
-                url: '/download',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ leads: leads }),
-                xhrFields: {
-                    responseType: 'blob'
-                },
-                success: function(blob) {
+        // Export to Excel function
+        async function exportToExcel(businessName) {
+            try {
+                const response = await fetch('/export', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ business_name: businessName })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'leads.xlsx';
+                    a.download = `${businessName}_leads.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
                     a.remove();
-                },
-                error: function(xhr) {
-                    const error = xhr.responseJSON?.error || 'An error occurred';
-                    $('#errorAlert').text(error).show();
+                } else {
+                    const data = await response.json();
+                    $('#errorAlert').text(data.error || 'An error occurred while exporting').show();
                 }
-            });
-        });
+            } catch (error) {
+                $('#errorAlert').text('An error occurred while exporting').show();
+            }
+        }
 
         function displayResults(leads) {
             // Store leads for download
@@ -537,13 +706,10 @@
                     <tr>
                         <td>${lead.name}</td>
                         <td>${lead.address}</td>
-                        <td>${lead.phone}</td>
-                        <td>${lead.rating}</td>
-                        <td>${lead.reviews}</td>
-                        <td>${lead.price_level}</td>
-                        <td>${lead.business_types}</td>
-                        <td>${lead.opening_hours}</td>
-                        <td><a href="${lead.google_maps_url}" target="_blank">View on Maps</a></td>
+                        <td>${lead.phone || 'N/A'}</td>
+                        <td>${lead.website ? `<a href="${lead.website}" target="_blank">${lead.website}</a>` : 'N/A'}</td>
+                        <td>${lead.rating || 'N/A'}</td>
+                        <td><button class="btn btn-sm btn-primary" onclick="exportToExcel('${lead.name}')">Export</button></td>
                     </tr>
                 `;
                 $('#resultsTable').append(row);
