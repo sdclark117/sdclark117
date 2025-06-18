@@ -34,7 +34,7 @@
         :root[data-theme="dark"] {
             --bg-color: #212529;
             --card-bg: #2c3034;
-            --text-color: #f8f9fa;
+            --text-color: #ffffff;
             --border-color: #495057;
             --header-bg: #1a1d20;
             --header-text: #ffffff;
@@ -47,11 +47,14 @@
             --info-window-link: #66b3ff;
             --table-bg: #212529;
             --form-bg: #212529;
-            --form-text: #f8f9fa;
+            --form-text: #ffffff;
             --alert-bg: #343a40;
-            --alert-text: #f8f9fa;
+            --alert-text: #ffffff;
             --map-heading-bg: #343a40;
-            --map-heading-text: #f8f9fa;
+            --map-heading-text: #ffffff;
+            --table-row-bg: #2c3034;
+            --table-row-alt-bg: #343a40;
+            --table-border: #495057;
         }
 
         body {
@@ -63,7 +66,7 @@
 
         .card {
             background-color: var(--card-bg);
-            border: none;
+            border: 1px solid var(--border-color);
             border-radius: 15px;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
             transition: background-color 0.3s ease;
@@ -72,14 +75,19 @@
         .card-header {
             background-color: var(--header-bg);
             color: var(--header-text);
+            border-bottom: 1px solid var(--border-color);
             border-radius: 15px 15px 0 0 !important;
             padding: 1.5rem;
             transition: background-color 0.3s ease;
         }
 
-        .form-control, .form-select {
-            background-color: var(--card-bg);
+        .card-body {
             color: var(--text-color);
+        }
+
+        .form-control, .form-select {
+            background-color: var(--form-bg);
+            color: var(--form-text);
             border-color: var(--border-color);
             border-radius: 10px;
             padding: 0.75rem;
@@ -87,41 +95,87 @@
         }
 
         .form-control:focus, .form-select:focus {
-            background-color: var(--card-bg);
-            color: var(--text-color);
+            background-color: var(--form-bg);
+            color: var(--form-text);
             border-color: var(--hover-bg);
-            box-shadow: 0 0 0 0.25rem rgba(54, 96, 146, 0.25);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
 
         .btn-primary {
             background-color: var(--header-bg);
-            border: none;
+            border-color: var(--header-bg);
             border-radius: 10px;
             padding: 0.75rem 1.5rem;
             transition: background-color 0.3s ease;
+            color: var(--header-text);
         }
 
         .btn-primary:hover {
             background-color: var(--hover-bg);
+            border-color: var(--hover-bg);
+        }
+
+        .btn-secondary {
+            background-color: var(--table-header-bg);
+            border-color: var(--table-header-bg);
+            color: var(--header-text);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--table-row-hover);
+            border-color: var(--table-row-hover);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            background-color: var(--table-bg);
         }
 
         .table {
-            background-color: var(--table-bg);
-            color: var(--bs-body-color);
-            border-radius: 10px;
-            overflow: hidden;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            margin-bottom: 0;
+            border: 1px solid var(--border-color);
         }
 
         .table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
             background-color: var(--table-header-bg);
-            color: var(--bs-body-color);
-            border: none;
-            transition: background-color 0.3s ease;
+            color: var(--table-header-text);
+            font-weight: bold;
+            padding: 1rem;
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
         }
 
-        .table tbody tr:hover {
-            background-color: var(--table-row-hover);
+        .table tbody tr {
+            background-color: var(--table-bg);
+            color: var(--text-color);
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: var(--card-bg);
+        }
+
+        .table tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
+            vertical-align: middle;
+        }
+
+        .table tbody td a {
+            color: var(--info-window-link);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .table tbody td a:hover {
+            text-decoration: underline;
         }
 
         .loading {
@@ -141,9 +195,11 @@
         }
 
         .alert {
+            color: var(--alert-text);
+            background-color: var(--alert-bg);
+            border: 1px solid var(--border-color);
             border-radius: 10px;
             display: none;
-            color: var(--bs-body-color);
         }
 
         .theme-switcher {
@@ -282,32 +338,15 @@
             text-decoration: underline;
         }
 
-        /* Update table styles for dark theme */
-        .table {
-            color: var(--bs-body-color);
-        }
-
-        .table thead th {
-            color: var(--bs-body-color);
-        }
-
-        .table tbody td {
-            color: var(--bs-body-color);
-        }
-
         /* Update form text colors */
         .form-label {
-            color: var(--bs-body-color);
+            color: var(--text-color);
+            font-weight: 500;
         }
 
         .form-text {
-            color: var(--bs-body-color);
+            color: var(--text-color);
             opacity: 0.8;
-        }
-
-        /* Update alert text color */
-        .alert {
-            color: var(--bs-body-color);
         }
 
         /* Update map container text */
@@ -462,18 +501,18 @@
                             </button>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-striped" id="resultsTable">
+                            <table class="table table-striped" id="resultsTable" style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
                                 <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Address</th>
-                                        <th>Phone</th>
-                                        <th>Website</th>
-                                        <th>Rating</th>
-                                        <th>Opening Hours</th>
+                                    <tr style="background-color: var(--table-header-bg);">
+                                        <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Name</th>
+                                        <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Address</th>
+                                        <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Phone</th>
+                                        <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Website</th>
+                                        <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Rating</th>
+                                        <th style="color: var(--table-header-text); padding: 1rem;">Opening Hours</th>
                                     </tr>
                                 </thead>
-                                <tbody></tbody>
+                                <tbody style="background-color: var(--table-bg);"></tbody>
                             </table>
                         </div>
                     </div>
@@ -869,18 +908,47 @@
             const resultsTable = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
             resultsTable.innerHTML = '';
             
-            leads.forEach(lead => {
+            leads.forEach((lead, index) => {
                 const row = document.createElement('tr');
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                
+                // Set row background color
+                row.style.backgroundColor = isDark ? (index % 2 === 0 ? '#2c3034' : '#343a40') : (index % 2 === 0 ? '#ffffff' : '#f8f9fa');
+                row.style.color = isDark ? '#ffffff' : '#212529';
+                
+                // Add hover effect
+                row.onmouseover = function() {
+                    this.style.backgroundColor = isDark ? '#343a40' : '#f8f9fa';
+                };
+                row.onmouseout = function() {
+                    this.style.backgroundColor = isDark ? (index % 2 === 0 ? '#2c3034' : '#343a40') : (index % 2 === 0 ? '#ffffff' : '#f8f9fa');
+                };
+                
                 row.innerHTML = `
-                    <td>${lead.name}</td>
-                    <td>${lead.address}</td>
-                    <td>${lead.phone || 'N/A'}</td>
-                    <td>${lead.website ? `<a href="${lead.website}" target="_blank">${lead.website}</a>` : 'N/A'}</td>
-                    <td>${lead.rating || 'N/A'}</td>
-                    <td>${lead.opening_hours ? lead.opening_hours.join('<br>') : 'N/A'}</td>
+                    <td style="padding: 1rem; border-right: 1px solid ${isDark ? '#495057' : '#dee2e6'};">
+                        <strong>${lead.name}</strong>
+                    </td>
+                    <td style="padding: 1rem; border-right: 1px solid ${isDark ? '#495057' : '#dee2e6'};">
+                        ${lead.address}
+                    </td>
+                    <td style="padding: 1rem; border-right: 1px solid ${isDark ? '#495057' : '#dee2e6'};">
+                        ${lead.phone || 'N/A'}
+                    </td>
+                    <td style="padding: 1rem; border-right: 1px solid ${isDark ? '#495057' : '#dee2e6'};">
+                        ${lead.website ? `<a href="${lead.website}" target="_blank" style="color: ${isDark ? '#66b3ff' : '#0066cc'}; text-decoration: none;">${lead.website}</a>` : 'N/A'}
+                    </td>
+                    <td style="padding: 1rem; border-right: 1px solid ${isDark ? '#495057' : '#dee2e6'};">
+                        ${lead.rating ? `${lead.rating} ⭐` : 'N/A'}
+                    </td>
+                    <td style="padding: 1rem;">
+                        ${lead.opening_hours ? lead.opening_hours.join('<br>') : 'N/A'}
+                    </td>
                 `;
                 resultsTable.appendChild(row);
             });
+            
+            // Enable export button
+            document.getElementById('exportBtn').disabled = false;
         }
 
         function displayMap(leads, center) {
