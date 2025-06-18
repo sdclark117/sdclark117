@@ -17,17 +17,34 @@ app = Flask(__name__)
 
 def get_coordinates(city, api_key):
     """Get coordinates for a city using Google Maps Geocoding API."""
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={city}&key={api_key}"
-    print(f"Geocoding URL: {url}")  # Debug print
-    response = requests.get(url)
-    data = response.json()
-    print(f"Geocoding Response: {data}")  # Debug print
-    
-    if data['status'] != 'OK':
-        raise Exception(f"Geocoding failed: {data['status']} - {data.get('error_message', 'No error message')}")
-    
-    location = data['results'][0]['geometry']['location']
-    return location['lat'], location['lng']
+    try:
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={city}&key={api_key}"
+        print(f"Making request to: {url}")  # Debug print
+        
+        response = requests.get(url)
+        print(f"Response status code: {response.status_code}")  # Debug print
+        print(f"Response headers: {response.headers}")  # Debug print
+        
+        data = response.json()
+        print(f"Response data: {data}")  # Debug print
+        
+        if data.get('status') == 'REQUEST_DENIED':
+            error_message = data.get('error_message', 'No error message provided')
+            print(f"Request denied. Error message: {error_message}")  # Debug print
+            raise Exception(f"Geocoding request denied: {error_message}")
+            
+        if data.get('status') != 'OK':
+            raise Exception(f"Geocoding failed: {data.get('status')} - {data.get('error_message', 'No error message')}")
+        
+        location = data['results'][0]['geometry']['location']
+        return location['lat'], location['lng']
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Request exception: {str(e)}")  # Debug print
+        raise Exception(f"Network error: {str(e)}")
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")  # Debug print
+        raise
 
 def search_places(lat, lng, business_type, radius, api_key):
     """Search for places using Google Places API."""
@@ -112,7 +129,8 @@ def search():
         radius_meters = int(radius_miles * 1609.34)
         api_key = os.getenv('GOOGLE_MAPS_API_KEY')
         
-        print(f"Search API Key present: {bool(api_key)}")  # Debug print
+        print(f"API Key length: {len(api_key) if api_key else 0}")  # Debug print
+        print(f"API Key first 10 chars: {api_key[:10] if api_key else 'None'}")  # Debug print
         print(f"City: {city}")  # Debug print
         print(f"Business Type: {business_type}")  # Debug print
         
@@ -123,7 +141,12 @@ def search():
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Get coordinates
-        lat, lng = get_coordinates(city, api_key)
+        try:
+            lat, lng = get_coordinates(city, api_key)
+            print(f"Coordinates: {lat}, {lng}")  # Debug print
+        except Exception as e:
+            print(f"Error getting coordinates: {str(e)}")  # Debug print
+            return jsonify({'error': str(e)}), 500
         
         # Search for places
         places = search_places(lat, lng, business_type, radius_meters, api_key)
