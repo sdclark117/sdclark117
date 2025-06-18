@@ -114,7 +114,8 @@ def search_places(lat, lng, business_type, radius, api_key):
                             'rating': details.get('rating', place.get('rating', '')),
                             'website': details.get('website', ''),
                             'phone': details.get('formatted_phone_number', ''),
-                            'opening_hours': details.get('opening_hours', {}).get('weekday_text', [])
+                            'opening_hours': details.get('opening_hours', {}).get('weekday_text', []),
+                            'reviews': details.get('user_ratings_total', place.get('user_ratings_total', 0))
                         }
                     else:
                         # Fallback to basic place data if details request fails
@@ -127,7 +128,8 @@ def search_places(lat, lng, business_type, radius, api_key):
                             'rating': place.get('rating', ''),
                             'website': '',
                             'phone': '',
-                            'opening_hours': []
+                            'opening_hours': [],
+                            'reviews': place.get('user_ratings_total', 0)
                         }
                 else:
                     # Fallback to basic place data if no place_id
@@ -140,7 +142,8 @@ def search_places(lat, lng, business_type, radius, api_key):
                         'rating': place.get('rating', ''),
                         'website': '',
                         'phone': '',
-                        'opening_hours': []
+                        'opening_hours': [],
+                        'reviews': place.get('user_ratings_total', 0)
                     }
                 
                 leads.append(lead)

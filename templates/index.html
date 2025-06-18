@@ -572,6 +572,7 @@ body {
                                         <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Phone</th>
                                         <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Website</th>
                                         <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Rating</th>
+                                        <th style="color: var(--table-header-text); padding: 1rem; border-right: 1px solid var(--border-color);">Reviews</th>
                                         <th style="color: var(--table-header-text); padding: 1rem;">Opening Hours</th>
                                     </tr>
                                 </thead>
@@ -1008,6 +1009,9 @@ body {
                     </td>
                     <td style="padding: 1rem; border-right: 1px solid ${isDark ? '#495057' : '#dee2e6'};">
                         ${lead.rating ? `${lead.rating} ⭐` : 'N/A'}
+                    </td>
+                    <td style="padding: 1rem; border-right: 1px solid ${isDark ? '#495057' : '#dee2e6'};">
+                        ${lead.reviews !== undefined ? lead.reviews : 'N/A'}
                     </td>
                     <td style="padding: 1rem;">
                         ${lead.opening_hours ? lead.opening_hours.join('<br>') : 'N/A'}
