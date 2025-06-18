@@ -461,7 +461,11 @@
                         <form id="searchForm">
                             <div class="mb-3">
                                 <label for="city" class="form-label">City</label>
-                                <input type="text" class="form-control" id="city" name="city" required>
+                                <input type="text" class="form-control" id="city" name="city" placeholder="e.g., New York">
+                            </div>
+                            <div class="mb-3">
+                                <label for="state" class="form-label">State</label>
+                                <input type="text" class="form-control" id="state" name="state" placeholder="e.g., NY">
                             </div>
                             <div class="mb-3">
                                 <label for="businessType" class="form-label">Business Type</label>
@@ -475,12 +479,15 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="usePin" name="usePin">
                                     <label class="form-check-label" for="usePin">
-                                        Use dropped pin location instead of city
+                                        Also search around dropped pin
                                     </label>
                                 </div>
+                                <small class="form-text text-muted">Check this to include businesses around the dropped pin in your search results</small>
                             </div>
-                            <button type="submit" class="btn btn-primary">Search</button>
-                            <button type="button" class="btn btn-secondary" id="clearPin">Clear Pin</button>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1">Search</button>
+                                <button type="button" class="btn btn-secondary" id="clearPin">Clear Pin</button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -667,6 +674,7 @@
             clearResults();
             
             const city = document.getElementById('city').value;
+            const state = document.getElementById('state').value;
             const businessType = document.getElementById('businessType').value;
             const radius = document.getElementById('radius').value;
             const usePin = document.getElementById('usePin').checked;
@@ -674,7 +682,21 @@
             try {
                 let response;
                 if (usePin && droppedPin) {
-                    response = await fetch('/search', {
+                    // If using both city and pin, make two separate requests
+                    const cityResponse = await fetch('/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            city: city,
+                            state: state,
+                            business_type: businessType,
+                            radius: radius
+                        })
+                    });
+                    
+                    const pinResponse = await fetch('/search', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -686,7 +708,30 @@
                             radius: radius
                         })
                     });
+                    
+                    const cityData = await cityResponse.json();
+                    const pinData = await pinResponse.json();
+                    
+                    if (cityData.error && pinData.error) {
+                        showError('Both searches failed. Please try again.');
+                        return;
+                    }
+                    
+                    // Combine results, removing duplicates based on place_id
+                    const allLeads = [...(cityData.leads || []), ...(pinData.leads || [])];
+                    const uniqueLeads = Array.from(new Map(allLeads.map(lead => [lead.place_id, lead])).values());
+                    
+                    if (uniqueLeads.length > 0) {
+                        displayResults(uniqueLeads);
+                        // Use city center for map if available, otherwise use pin location
+                        const center = cityData.center || pinData.center;
+                        displayMap(uniqueLeads, center);
+                        document.getElementById('exportBtn').disabled = false;
+                    } else {
+                        showError('No businesses found in the specified areas.');
+                    }
                 } else {
+                    // Single search based on city
                     response = await fetch('/search', {
                         method: 'POST',
                         headers: {
@@ -694,26 +739,26 @@
                         },
                         body: JSON.stringify({
                             city: city,
+                            state: state,
                             business_type: businessType,
                             radius: radius
                         })
                     });
-                }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    showError(data.error);
-                    return;
-                }
-                
-                if (data.leads && data.leads.length > 0) {
-                    displayResults(data.leads);
-                    displayMap(data.leads, data.center);
-                    // Enable export button when we have results
-                    document.getElementById('exportBtn').disabled = false;
-                } else {
-                    showError('No businesses found in the specified area.');
+                    
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+                    
+                    if (data.leads && data.leads.length > 0) {
+                        displayResults(data.leads);
+                        displayMap(data.leads, data.center);
+                        document.getElementById('exportBtn').disabled = false;
+                    } else {
+                        showError('No businesses found in the specified area.');
+                    }
                 }
             } catch (error) {
                 showError('An error occurred while searching. Please try again.');

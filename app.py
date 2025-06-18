@@ -15,35 +15,42 @@ load_dotenv()
 
 app = Flask(__name__)
 
-def get_coordinates(city, api_key):
-    """Get coordinates for a city using Google Maps Geocoding API."""
+def get_coordinates(location, api_key):
+    """Get coordinates for a location using Google Geocoding API."""
     try:
-        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={city}&key={api_key}"
-        print(f"Making request to: {url}")  # Debug print
+        url = "https://maps.googleapis.com/maps/api/geocode/json"
+        params = {
+            'address': location,
+            'key': api_key
+        }
+        print(f"Geocoding URL: {url}")  # Debug print
+        print(f"Geocoding params: {params}")  # Debug print
         
-        response = requests.get(url)
-        print(f"Response status code: {response.status_code}")  # Debug print
-        print(f"Response headers: {response.headers}")  # Debug print
-        
+        response = requests.get(url, params=params)
+        print(f"Geocoding response status: {response.status_code}")  # Debug print
         data = response.json()
-        print(f"Response data: {data}")  # Debug print
+        print(f"Geocoding response data: {data}")  # Debug print
         
         if data.get('status') == 'REQUEST_DENIED':
             error_message = data.get('error_message', 'No error message provided')
-            print(f"Request denied. Error message: {error_message}")  # Debug print
+            print(f"Geocoding request denied. Error message: {error_message}")  # Debug print
             raise Exception(f"Geocoding request denied: {error_message}")
             
         if data.get('status') != 'OK':
-            raise Exception(f"Geocoding failed: {data.get('status')} - {data.get('error_message', 'No error message')}")
-        
+            error_msg = f"Geocoding failed: {data.get('status')}"
+            if data.get('error_message'):
+                error_msg += f" - {data.get('error_message')}"
+            print(f"Error: {error_msg}")  # Debug print
+            raise Exception(error_msg)
+            
         location = data['results'][0]['geometry']['location']
-        return location['lat'], location['lng']
+        return location
         
     except requests.exceptions.RequestException as e:
-        print(f"Request exception: {str(e)}")  # Debug print
+        print(f"Geocoding request exception: {str(e)}")  # Debug print
         raise Exception(f"Network error: {str(e)}")
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")  # Debug print
+        print(f"Unexpected error in get_coordinates: {str(e)}")  # Debug print
         raise
 
 def search_places(lat, lng, business_type, radius, api_key):
@@ -205,52 +212,55 @@ def index():
 
 @app.route('/search', methods=['POST'])
 def search():
-    """Handle the search request."""
+    """Search for businesses in a city."""
     try:
-        # Get form data
-        city = request.form.get('city')
-        business_type = request.form.get('business_type')
-        # Convert miles to meters (1 mile = 1609.34 meters)
-        radius_miles = float(request.form.get('radius', 3))
-        radius_meters = int(radius_miles * 1609.34)
         api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-        
-        print(f"Search request - City: {city}, Business Type: {business_type}, Radius: {radius_miles} miles")  # Debug print
-        print(f"API Key present: {bool(api_key)}")  # Debug print
-        
         if not api_key:
-            return jsonify({'error': 'API key not configured'}), 500
+            raise Exception("Google Maps API key is not configured")
             
-        if not all([city, business_type]):
-            return jsonify({'error': 'Missing required fields'}), 400
+        data = request.json
+        if not data:
+            raise Exception("No data provided in request")
+            
+        city = data.get('city', '').strip()
+        state = data.get('state', '').strip()
+        business_type = data.get('business_type', '').strip()
+        radius = float(data.get('radius', 5))  # Default to 5 miles
+        lat = data.get('lat')
+        lng = data.get('lng')
         
-        # Get coordinates
-        try:
-            lat, lng = get_coordinates(city, api_key)
-            print(f"Coordinates for {city}: {lat}, {lng}")  # Debug print
-        except Exception as e:
-            print(f"Error getting coordinates: {str(e)}")  # Debug print
-            return jsonify({'error': str(e)}), 500
+        print(f"Search API Key present: {bool(api_key)}")  # Debug print
+        print(f"City: {city}, State: {state}")  # Debug print
+        print(f"Business Type: {business_type}")  # Debug print
+        print(f"Coordinates: {lat}, {lng}")  # Debug print
+            
+        if not business_type:
+            raise Exception("Business type is required")
+            
+        if lat is not None and lng is not None:
+            # Use provided coordinates
+            center = {'lat': float(lat), 'lng': float(lng)}
+        elif city:
+            # Get coordinates for city
+            location = f"{city}, {state}" if state else city
+            center = get_coordinates(location, api_key)
+        else:
+            raise Exception("Either city or coordinates must be provided")
+            
+        # Convert radius from miles to meters
+        radius_meters = radius * 1609.34
         
         # Search for places
-        try:
-            leads = search_places(lat, lng, business_type, radius_meters, api_key)
-            print(f"Found {len(leads)} leads")  # Debug print
-        except Exception as e:
-            print(f"Error searching places: {str(e)}")  # Debug print
-            return jsonify({'error': str(e)}), 500
+        leads = search_places(center['lat'], center['lng'], business_type, radius_meters, api_key)
         
         return jsonify({
             'leads': leads,
-            'center': {
-                'lat': lat,
-                'lng': lng
-            }
+            'center': center
         })
         
     except Exception as e:
-        print(f"Unexpected error in search route: {str(e)}")  # Debug print
-        return jsonify({'error': str(e)}), 500
+        print(f"Search error: {str(e)}")  # Debug print
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/download', methods=['POST'])
 def download():
