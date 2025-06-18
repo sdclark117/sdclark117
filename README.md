@@ -26,6 +26,18 @@ To get a Google Maps API key:
    - Geocoding API
 4. Create credentials (API key) for your project
 
+## Environment Variables
+
+Create a `.env` file in the project root with the following content:
+
+```
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+Replace `your_api_key_here` with your actual Google Maps API key. This file is ignored by git and should not be committed.
+
+The application will automatically load this variable using `python-dotenv`.
+
 ## Usage
 
 Run the script with the following command:

@@ -8,6 +8,10 @@ from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -100,7 +104,7 @@ def search():
         city = request.form.get('city')
         business_type = request.form.get('business_type')
         radius = int(request.form.get('radius', 5000))
-        api_key = request.form.get('api_key')
+        api_key = request.form.get('api_key') or os.getenv('GOOGLE_MAPS_API_KEY')
         
         if not all([city, business_type, api_key]):
             return jsonify({'error': 'Missing required fields'}), 400
