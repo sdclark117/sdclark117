@@ -31,6 +31,9 @@
             --table-header-bg: #1a1d20;
             --table-header-text: #ffffff;
             --table-row-hover: #343a40;
+            --info-window-bg: #2c3034;
+            --info-window-text: #f8f9fa;
+            --info-window-link: #0d6efd;
         }
 
         body {
@@ -215,15 +218,62 @@
         
         .lead-info-window {
             max-width: 300px;
+            background-color: var(--info-window-bg);
+            color: var(--info-window-text);
+            padding: 10px;
+            border-radius: 8px;
         }
         
         .lead-info-window h5 {
             margin-bottom: 0.5rem;
-            color: var(--text-color);
+            color: var(--info-window-text);
+            font-weight: bold;
         }
         
         .lead-info-window p {
             margin-bottom: 0.25rem;
+            color: var(--info-window-text);
+        }
+
+        .lead-info-window a {
+            color: var(--info-window-link);
+            text-decoration: none;
+        }
+
+        .lead-info-window a:hover {
+            text-decoration: underline;
+        }
+
+        /* Update table styles for dark theme */
+        .table {
+            color: var(--text-color);
+        }
+
+        .table thead th {
+            color: var(--table-header-text);
+        }
+
+        .table tbody td {
+            color: var(--text-color);
+        }
+
+        /* Update form text colors */
+        .form-label {
+            color: var(--text-color);
+        }
+
+        .form-text {
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        /* Update alert text color */
+        .alert {
+            color: var(--text-color);
+        }
+
+        /* Update map container text */
+        #mapContainer h3 {
             color: var(--text-color);
         }
     </style>
