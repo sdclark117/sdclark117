@@ -94,7 +94,7 @@ def format_business_types(types):
 @app.route('/')
 def index():
     """Render the main page."""
-    return render_template('index.html')
+    return render_template('index.html', api_key=os.getenv('GOOGLE_MAPS_API_KEY'))
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -145,7 +145,11 @@ def search():
         
         return jsonify({
             'success': True,
-            'leads': leads
+            'leads': leads,
+            'center': {
+                'lat': lat,
+                'lng': lng
+            }
         })
         
     except Exception as e:

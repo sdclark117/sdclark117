@@ -196,6 +196,36 @@
             background-color: var(--header-bg);
             color: var(--header-text);
         }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+        
+        .map-container {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .lead-marker {
+            cursor: pointer;
+        }
+        
+        .lead-info-window {
+            max-width: 300px;
+        }
+        
+        .lead-info-window h5 {
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+        
+        .lead-info-window p {
+            margin-bottom: 0.25rem;
+            color: var(--text-color);
+        }
     </style>
 </head>
 <body>
@@ -211,61 +241,68 @@
 
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-10">
+            <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="mb-0">Business Lead Finder</h2>
+                        <h1 class="text-center mb-0">Business Lead Finder</h1>
                     </div>
                     <div class="card-body">
                         <form id="searchForm">
-                            <div class="row g-3">
+                            <div class="row">
                                 <div class="col-md-6">
-                                    <label for="city" class="form-label">City</label>
-                                    <input type="text" class="form-control" id="city" name="city" placeholder="e.g., New York, NY" required>
+                                    <div class="mb-3">
+                                        <label for="city" class="form-label">City</label>
+                                        <input type="text" class="form-control" id="city" name="city" required>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="business_type" class="form-label">Business Type</label>
-                                    <select class="form-select" id="business_type" name="business_type" required>
-                                        <option value="">Select a business type...</option>
-                                        <option value="restaurant">Restaurant</option>
-                                        <option value="cafe">Cafe</option>
-                                        <option value="bar">Bar</option>
-                                        <option value="bakery">Bakery</option>
-                                        <option value="store">Store</option>
-                                        <option value="supermarket">Supermarket</option>
-                                        <option value="gym">Gym</option>
-                                        <option value="salon">Salon</option>
-                                        <option value="spa">Spa</option>
-                                        <option value="hotel">Hotel</option>
-                                    </select>
+                                    <div class="mb-3">
+                                        <label for="business_type" class="form-label">Business Type</label>
+                                        <select class="form-select" id="business_type" name="business_type" required>
+                                            <option value="">Select a business type...</option>
+                                            <option value="restaurant">Restaurant</option>
+                                            <option value="cafe">Cafe</option>
+                                            <option value="bar">Bar</option>
+                                            <option value="bakery">Bakery</option>
+                                            <option value="store">Store</option>
+                                            <option value="supermarket">Supermarket</option>
+                                            <option value="gym">Gym</option>
+                                            <option value="salon">Salon</option>
+                                            <option value="spa">Spa</option>
+                                            <option value="hotel">Hotel</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="radius" class="form-label">Search Radius (miles)</label>
-                                    <input type="number" class="form-control" id="radius" name="radius" value="3" min="1" max="30" required>
-                                    <small class="form-text text-muted">Enter a radius between 1 and 30 miles</small>
+                                    <div class="mb-3">
+                                        <label for="radius" class="form-label">Search Radius (miles)</label>
+                                        <input type="number" class="form-control" id="radius" name="radius" value="3" min="1" max="30" required>
+                                        <small class="form-text text-muted">Enter a radius between 1 and 30 miles</small>
+                                    </div>
                                 </div>
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary w-100">Find Leads</button>
                                 </div>
                             </div>
                         </form>
-
-                        <div class="alert alert-danger mt-3" id="errorAlert" role="alert"></div>
-
-                        <div class="loading" id="loading">
-                            <div class="spinner-border loading-spinner text-primary" role="status">
+                        
+                        <div id="loading" class="loading">
+                            <div class="spinner-border loading-spinner" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
-                            <p class="mt-2">Searching for leads...</p>
                         </div>
-
-                        <div class="results-section" id="resultsSection">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h3 class="mb-0">Results</h3>
-                                <button class="btn btn-success" id="downloadBtn">Download Excel</button>
-                            </div>
+                        
+                        <div id="errorAlert" class="alert alert-danger" role="alert"></div>
+                        
+                        <div id="mapContainer" class="map-container">
+                            <h3 class="mb-3">Search Area Map</h3>
+                            <div id="map"></div>
+                        </div>
+                        
+                        <div id="resultsSection" class="results-section">
+                            <h3 class="mb-3">Search Results</h3>
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table">
                                     <thead>
                                         <tr>
                                             <th>Name</th>
@@ -276,12 +313,13 @@
                                             <th>Price Level</th>
                                             <th>Business Types</th>
                                             <th>Opening Hours</th>
-                                            <th>Google Maps</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="resultsTable"></tbody>
                                 </table>
                             </div>
+                            <button id="downloadBtn" class="btn btn-success">Download Results</button>
                         </div>
                     </div>
                 </div>
@@ -289,132 +327,178 @@
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="https://kit.fontawesome.com/your-font-awesome-kit.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places"></script>
     <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('#business_type').select2({
-                theme: 'bootstrap-5'
+        let map;
+        let searchCircle;
+        let markers = [];
+        let infoWindow;
+        
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 12,
+                center: { lat: 0, lng: 0 }
             });
-
-            // Theme Switcher
-            const themeSwitcher = {
-                init() {
-                    this.theme = localStorage.getItem('theme') || 'light';
-                    this.applyTheme(this.theme);
-                    this.bindEvents();
-                },
-
-                applyTheme(theme) {
-                    document.documentElement.setAttribute('data-theme', theme);
-                    localStorage.setItem('theme', theme);
-                    
-                    // Update active state in dropdown
-                    $('.theme-switcher .dropdown-item').removeClass('active');
-                    $(`.theme-switcher .dropdown-item[data-theme="${theme}"]`).addClass('active');
-                },
-
-                bindEvents() {
-                    $('.theme-switcher .dropdown-item').on('click', (e) => {
-                        e.preventDefault();
-                        const theme = $(e.target).data('theme');
-                        this.applyTheme(theme);
-                    });
-                }
-            };
-
-            themeSwitcher.init();
-
-            // Handle form submission
-            $('#searchForm').on('submit', async function(e) {
-                e.preventDefault();
-                
-                // Show loading spinner
-                $('#loading').show();
-                $('#errorAlert').hide();
-                $('#resultsSection').hide();
-                
-                try {
-                    const formData = new FormData(this);
-                    const response = await fetch('/search', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-                    
-                    // Process and display results
-                    displayResults(data.leads);
-                    $('#resultsSection').show();
-                } catch (error) {
-                    $('#errorAlert').text(error.message).show();
-                } finally {
-                    $('#loading').hide();
-                }
+            
+            infoWindow = new google.maps.InfoWindow();
+        }
+        
+        function updateMap(center, radius, leads) {
+            // Clear existing markers
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+            
+            // Update map center
+            map.setCenter(center);
+            
+            // Update search circle
+            if (searchCircle) {
+                searchCircle.setMap(null);
+            }
+            
+            searchCircle = new google.maps.Circle({
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#FF0000',
+                fillOpacity: 0.1,
+                map: map,
+                center: center,
+                radius: radius * 1609.34 // Convert miles to meters
             });
-
-            // Handle download button click
-            $('#downloadBtn').on('click', function() {
-                const leads = window.currentLeads || [];
+            
+            // Add markers for each lead
+            leads.forEach(lead => {
+                const marker = new google.maps.Marker({
+                    position: { lat: lead.latitude, lng: lead.longitude },
+                    map: map,
+                    title: lead.name,
+                    animation: google.maps.Animation.DROP
+                });
                 
-                $.ajax({
-                    url: '/download',
+                const content = `
+                    <div class="lead-info-window">
+                        <h5>${lead.name}</h5>
+                        <p><strong>Address:</strong> ${lead.address}</p>
+                        <p><strong>Phone:</strong> ${lead.phone}</p>
+                        <p><strong>Rating:</strong> ${lead.rating} (${lead.reviews} reviews)</p>
+                        <p><strong>Price Level:</strong> ${lead.price_level}</p>
+                        <a href="${lead.google_maps_url}" target="_blank">View on Google Maps</a>
+                    </div>
+                `;
+                
+                marker.addListener('click', () => {
+                    infoWindow.setContent(content);
+                    infoWindow.open(map, marker);
+                });
+                
+                markers.push(marker);
+            });
+            
+            // Show map container
+            document.getElementById('mapContainer').style.display = 'block';
+        }
+        
+        // Initialize map when page loads
+        window.onload = initMap;
+        
+        // Handle form submission
+        $('#searchForm').on('submit', async function(e) {
+            e.preventDefault();
+            
+            $('#loading').show();
+            $('#errorAlert').hide();
+            $('#resultsSection').hide();
+            $('#mapContainer').hide();
+            
+            try {
+                const formData = new FormData(this);
+                const response = await fetch('/search', {
                     method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ leads: leads }),
-                    xhrFields: {
-                        responseType: 'blob'
-                    },
-                    success: function(blob) {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'leads.xlsx';
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        a.remove();
-                    },
-                    error: function(xhr) {
-                        const error = xhr.responseJSON?.error || 'An error occurred';
-                        $('#errorAlert').text(error).show();
-                    }
+                    body: formData
                 });
-            });
-
-            function displayResults(leads) {
-                // Store leads for download
-                window.currentLeads = leads;
                 
-                // Clear previous results
-                $('#resultsTable').empty();
+                const data = await response.json();
                 
-                // Add new results
-                leads.forEach(lead => {
-                    const row = `
-                        <tr>
-                            <td>${lead.name}</td>
-                            <td>${lead.address}</td>
-                            <td>${lead.phone}</td>
-                            <td>${lead.rating}</td>
-                            <td>${lead.reviews}</td>
-                            <td>${lead.price_level}</td>
-                            <td>${lead.business_types}</td>
-                            <td>${lead.opening_hours}</td>
-                            <td><a href="${lead.google_maps_url}" target="_blank">View on Maps</a></td>
-                        </tr>
-                    `;
-                    $('#resultsTable').append(row);
-                });
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Update map with search results
+                updateMap(
+                    { lat: data.center.lat, lng: data.center.lng },
+                    parseFloat(formData.get('radius')),
+                    data.leads
+                );
+                
+                // Display results in table
+                displayResults(data.leads);
+                $('#resultsSection').show();
+                
+            } catch (error) {
+                $('#errorAlert').text(error.message).show();
+            } finally {
+                $('#loading').hide();
             }
         });
+        
+        // Handle download button click
+        $('#downloadBtn').on('click', function() {
+            const leads = window.currentLeads || [];
+            
+            $.ajax({
+                url: '/download',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ leads: leads }),
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function(blob) {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'leads.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON?.error || 'An error occurred';
+                    $('#errorAlert').text(error).show();
+                }
+            });
+        });
+
+        function displayResults(leads) {
+            // Store leads for download
+            window.currentLeads = leads;
+            
+            // Clear previous results
+            $('#resultsTable').empty();
+            
+            // Add new results
+            leads.forEach(lead => {
+                const row = `
+                    <tr>
+                        <td>${lead.name}</td>
+                        <td>${lead.address}</td>
+                        <td>${lead.phone}</td>
+                        <td>${lead.rating}</td>
+                        <td>${lead.reviews}</td>
+                        <td>${lead.price_level}</td>
+                        <td>${lead.business_types}</td>
+                        <td>${lead.opening_hours}</td>
+                        <td><a href="${lead.google_maps_url}" target="_blank">View on Maps</a></td>
+                    </tr>
+                `;
+                $('#resultsTable').append(row);
+            });
+        }
     </script>
 </body>
 </html> 
