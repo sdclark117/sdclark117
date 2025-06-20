@@ -22,6 +22,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SECURE'] = True  # Set to True in production with HTTPS
+app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY')
 
 # Email configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -40,20 +44,22 @@ login_manager.login_view = 'login'
 
 # User class for Flask-Login
 class User(UserMixin):
-    def __init__(self, id, email, name=None, business=None, is_verified=False):
+    def __init__(self, id):
         self.id = id
-        self.email = email
-        self.name = name
-        self.business = business
-        self.is_verified = is_verified
 
 @login_manager.user_loader
 def load_user(user_id):
+    """Load user from database."""
     conn = get_db_connection()
     user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     conn.close()
     if user_data:
-        return User(user_data['id'], user_data['email'], user_data['name'], user_data['business'], user_data['is_verified'])
+        user = User(user_data['id'])
+        user.email = user_data['email']
+        user.name = user_data['name']
+        user.business = user_data['business']
+        user.is_verified = bool(user_data['is_verified'])
+        return user
     return None
 
 def get_db_connection():
@@ -558,7 +564,7 @@ def register():
             send_verification_email(user_id, email, name)
         
         # Create user object and log them in
-        user = User(user_id, email, name, business, is_verified=False)
+        user = User(user_id)
         login_user(user)
         
         return jsonify({
@@ -578,38 +584,37 @@ def register():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """Log in a user."""
+    """Authenticate user."""
     try:
         data = request.json
         email = data.get('email')
         password = data.get('password')
+        remember = data.get('remember', False)
         
         if not email or not password:
             return jsonify({'error': 'Email and password are required'}), 400
-        
+            
         conn = get_db_connection()
         user_data = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
         conn.close()
         
-        if not user_data or not check_password_hash(user_data['password_hash'], password):
+        if user_data and check_password_hash(user_data['password_hash'], password):
+            user = User(user_data['id'])
+            login_user(user, remember=remember)
+            
+            return jsonify({
+                'success': True, 
+                'user': {
+                    'id': user_data['id'],
+                    'email': user_data['email'],
+                    'name': user_data['name'],
+                    'business': user_data['business'],
+                    'is_verified': bool(user_data['is_verified'])
+                }
+            })
+        else:
             return jsonify({'error': 'Invalid email or password'}), 401
-        
-        # Create user object and log them in
-        user = User(user_data['id'], user_data['email'], user_data['name'], user_data['business'], user_data['is_verified'])
-        login_user(user)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Login successful',
-            'user': {
-                'id': user_data['id'],
-                'email': user_data['email'],
-                'name': user_data['name'],
-                'business': user_data['business'],
-                'is_verified': user_data['is_verified']
-            }
-        })
-        
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

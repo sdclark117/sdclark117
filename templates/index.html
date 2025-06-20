@@ -712,6 +712,10 @@ body {
                     <label for="loginPassword" class="form-label">Password</label>
                     <input type="password" class="form-control" id="loginPassword" required>
                   </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="rememberMe">
+                    <label class="form-check-label" for="rememberMe">Remember me</label>
+                  </div>
                   <button type="submit" class="btn btn-primary w-100">Login</button>
                   <div class="text-center mt-3">
                     <a href="#" onclick="showForgotPasswordModal()" style="color: var(--info-window-link); text-decoration: none;">Forgot Password?</a>
@@ -1732,6 +1736,7 @@ body {
             
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
+            const remember = document.getElementById('rememberMe').checked;
             
             try {
                 const response = await fetch('/api/login', {
@@ -1739,7 +1744,7 @@ body {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password, remember })
                 });
                 
                 const data = await response.json();
