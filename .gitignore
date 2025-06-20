@@ -62,4 +62,33 @@ log/
 *_test.js
 *_test.py
 test_*.js
-test_*.py 
+test_*.py
+
+# Database
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment
+.env.txt
+.venv
+env/
+venv/
+ENV/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Other
+.DS_Store 

@@ -16,6 +16,8 @@ import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 import urllib.parse
+import gspread
+from google.oauth2.service_account import Credentials
 
 # Load environment variables
 load_dotenv()
@@ -896,82 +898,58 @@ def download():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@app.route('/export', methods=['POST'])
-def export_to_excel():
+@app.route('/export-to-google-sheets', methods=['POST'])
+@login_required
+def export_to_google_sheets():
+    """Export leads to a new Google Sheet."""
     try:
         data = request.json
-        if not data or 'leads' not in data:
-            raise Exception("No leads data provided")
-            
-        leads = data['leads']
+        leads = data.get('leads')
+        
         if not leads:
-            raise Exception("No leads to export")
+            return jsonify({'error': 'No leads data provided'}), 400
             
-        # Create DataFrame
-        df = pd.DataFrame(leads)
+        client = get_gspread_client()
         
-        # Reorder columns for better presentation
-        columns = ['name', 'address', 'phone', 'website', 'rating', 'opening_hours']
-        df = df[columns]
+        # Create a new spreadsheet
+        business_type = leads[0].get('search_query', 'business').replace(" ", "_")
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        sheet_title = f"leads_{business_type}_{timestamp}"
         
-        # Create Excel file in memory
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Business Leads', index=False)
-            
-            # Get workbook and worksheet objects
-            workbook = writer.book
-            worksheet = writer.sheets['Business Leads']
-            
-            # Style the header
-            header_font = Font(bold=True, color='FFFFFF')
-            header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
-            header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            
-            for cell in worksheet[1]:
-                cell.font = header_font
-                cell.fill = header_fill
-                cell.alignment = header_alignment
-            
-            # Style the data
-            data_alignment = Alignment(vertical='center', wrap_text=True)
-            border = Border(
-                left=Side(style='thin'),
-                right=Side(style='thin'),
-                top=Side(style='thin'),
-                bottom=Side(style='thin')
-            )
-            
-            for row in worksheet.iter_rows(min_row=2):
-                for cell in row:
-                    cell.alignment = data_alignment
-                    cell.border = border
-            
-            # Adjust column widths
-            for column in worksheet.columns:
-                max_length = 0
-                column_letter = get_column_letter(column[0].column)
-                
-                for cell in column:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                
-                adjusted_width = (max_length + 2)
-                worksheet.column_dimensions[column_letter].width = adjusted_width
-            
-        output.seek(0)
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=f'business_leads_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-        )
+        folder_id = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
+        
+        spreadsheet = client.create(sheet_title, folder_id=folder_id)
+        worksheet = spreadsheet.get_worksheet(0)
+        
+        # Prepare header and rows
+        headers = ["Name", "Address", "Phone", "Website", "Rating", "Reviews", "Opening Hours"]
+        rows = []
+        for lead in leads:
+            opening_hours = "\n".join(lead.get('opening_hours', [])) if lead.get('opening_hours') else 'N/A'
+            rows.append([
+                lead.get('name', 'N/A'),
+                lead.get('address', 'N/A'),
+                lead.get('phone', 'N/A'),
+                lead.get('website', 'N/A'),
+                lead.get('rating', 'N/A'),
+                lead.get('reviews', 'N/A'),
+                opening_hours
+            ])
+        
+        # Write data to worksheet
+        worksheet.append_row(headers)
+        worksheet.append_rows(rows)
+        
+        # Share the spreadsheet so anyone with the link can view
+        spreadsheet.share(None, perm_type='anyone', role='reader')
+        
+        return jsonify({
+            'success': True,
+            'sheet_url': spreadsheet.url
+        })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/settings', methods=['GET'])
 @login_required
@@ -1219,6 +1197,22 @@ def update_last_search():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Google Sheets API setup
+def get_gspread_client():
+    """Get gspread client using service account credentials."""
+    creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
+    if not creds_json:
+        raise ValueError("GOOGLE_CREDENTIALS_JSON environment variable not set.")
+    
+    creds_dict = json.loads(creds_json)
+    scopes = [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    client = gspread.authorize(creds)
+    return client
 
 if __name__ == '__main__':
     # Clean up expired tokens on startup
