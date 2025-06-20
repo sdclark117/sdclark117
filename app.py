@@ -109,7 +109,6 @@ def init_db():
             default_radius INTEGER DEFAULT 5,
             default_business_type TEXT,
             remember_last_search BOOLEAN DEFAULT 0,
-            theme_preference TEXT DEFAULT 'auto',
             results_per_page INTEGER DEFAULT 25,
             show_map_by_default BOOLEAN DEFAULT 1,
             email_notifications BOOLEAN DEFAULT 1,
@@ -985,7 +984,6 @@ def get_settings():
                     'default_radius': settings['default_radius'],
                     'default_business_type': settings['default_business_type'],
                     'remember_last_search': bool(settings['remember_last_search']),
-                    'theme_preference': settings['theme_preference'],
                     'results_per_page': settings['results_per_page'],
                     'show_map_by_default': bool(settings['show_map_by_default']),
                     'email_notifications': bool(settings['email_notifications']),
@@ -1004,7 +1002,6 @@ def get_settings():
                     'default_radius': 5,
                     'default_business_type': '',
                     'remember_last_search': False,
-                    'theme_preference': 'auto',
                     'results_per_page': 25,
                     'show_map_by_default': True,
                     'email_notifications': True,
@@ -1035,14 +1032,13 @@ def update_settings():
             conn.execute('''
                 UPDATE user_settings SET 
                     default_radius = ?, default_business_type = ?, remember_last_search = ?,
-                    theme_preference = ?, results_per_page = ?, show_map_by_default = ?,
+                    results_per_page = ?, show_map_by_default = ?,
                     email_notifications = ?, search_reminders = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = ?
             ''', (
                 data.get('default_radius', 5),
                 data.get('default_business_type', ''),
                 data.get('remember_last_search', False),
-                data.get('theme_preference', 'auto'),
                 data.get('results_per_page', 25),
                 data.get('show_map_by_default', True),
                 data.get('email_notifications', True),
@@ -1054,15 +1050,14 @@ def update_settings():
             conn.execute('''
                 INSERT INTO user_settings (
                     user_id, default_radius, default_business_type, remember_last_search,
-                    theme_preference, results_per_page, show_map_by_default,
+                    results_per_page, show_map_by_default,
                     email_notifications, search_reminders
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 current_user.id,
                 data.get('default_radius', 5),
                 data.get('default_business_type', ''),
                 data.get('remember_last_search', False),
-                data.get('theme_preference', 'auto'),
                 data.get('results_per_page', 25),
                 data.get('show_map_by_default', True),
                 data.get('email_notifications', True),

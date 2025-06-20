@@ -1497,14 +1497,6 @@ body {
                     </div>
                     <div class="card-body">
                       <div class="mb-3">
-                        <label for="themePreference" class="form-label">Theme</label>
-                        <select class="form-select" id="themePreference">
-                          <option value="auto">Auto (follow system)</option>
-                          <option value="dark">Dark Mode</option>
-                          <option value="light">Light Mode</option>
-                        </select>
-                      </div>
-                      <div class="mb-3">
                         <label for="resultsPerPage" class="form-label">Results per page</label>
                         <select class="form-select" id="resultsPerPage">
                           <option value="10">10 results</option>
@@ -1998,7 +1990,6 @@ body {
                     document.getElementById('defaultRadius').value = settings.default_radius || 5;
                     document.getElementById('defaultBusinessType').value = settings.default_business_type || '';
                     document.getElementById('rememberLastSearch').checked = settings.remember_last_search || false;
-                    document.getElementById('themePreference').value = settings.theme_preference || 'auto';
                     document.getElementById('resultsPerPage').value = settings.results_per_page || 25;
                     document.getElementById('showMapByDefault').checked = settings.show_map_by_default !== false;
                     document.getElementById('emailNotifications').checked = settings.email_notifications !== false;
@@ -2016,7 +2007,6 @@ body {
                     default_radius: parseInt(document.getElementById('defaultRadius').value),
                     default_business_type: document.getElementById('defaultBusinessType').value,
                     remember_last_search: document.getElementById('rememberLastSearch').checked,
-                    theme_preference: document.getElementById('themePreference').value,
                     results_per_page: parseInt(document.getElementById('resultsPerPage').value),
                     show_map_by_default: document.getElementById('showMapByDefault').checked,
                     email_notifications: document.getElementById('emailNotifications').checked,
@@ -2178,7 +2168,6 @@ body {
                 document.getElementById('defaultRadius').value = 5;
                 document.getElementById('defaultBusinessType').value = '';
                 document.getElementById('rememberLastSearch').checked = false;
-                document.getElementById('themePreference').value = 'auto';
                 document.getElementById('resultsPerPage').value = 25;
                 document.getElementById('showMapByDefault').checked = true;
                 document.getElementById('emailNotifications').checked = true;
