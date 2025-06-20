@@ -119,6 +119,91 @@ body {
   background: #27496d !important;
 }
 
+/* Settings Tab Styling */
+#profileModal .nav-tabs {
+  border-bottom: 1px solid #dee2e6;
+}
+
+#profileModal .nav-tabs .nav-link {
+  color: #495057;
+  border: 1px solid transparent;
+  border-radius: 0.375rem 0.375rem 0 0;
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+}
+
+#profileModal .nav-tabs .nav-link:hover {
+  border-color: #e9ecef #e9ecef #dee2e6;
+  background-color: #f8f9fa;
+}
+
+#profileModal .nav-tabs .nav-link.active {
+  color: #366092;
+  background-color: #fff;
+  border-color: #dee2e6 #dee2e6 #fff;
+}
+
+#profileModal .card {
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+#profileModal .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+#profileModal .card-header h6 {
+  margin: 0;
+  color: #495057;
+}
+
+#profileModal .card-body {
+  padding: 1rem;
+}
+
+#profileModal .form-text {
+  color: #6c757d !important;
+  font-size: 0.875rem;
+}
+
+#profileModal .btn-outline-info {
+  color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
+#profileModal .btn-outline-info:hover {
+  color: #fff;
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
+#profileModal .btn-outline-danger {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+#profileModal .btn-outline-danger:hover {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+#profileModal .btn-warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #000;
+}
+
+#profileModal .btn-warning:hover {
+  background-color: #ffca2c;
+  border-color: #ffc720;
+  color: #000;
+}
+
         :root[data-theme="dark"] {
             --bg-color: #212529;
             --card-bg: #2c3034;
@@ -588,9 +673,9 @@ body {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 </head>
 <body>
-    <button class="login-btn" onclick="showAuthModal()" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; background: none; border: 2px solid #fff; color: #fff; border-radius: 25px; padding: 10px 24px; font-size: 1.1rem;">
+    <button class="login-btn" id="authBtn" onclick="showAuthModal()" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; background: none; border: 2px solid #fff; color: #fff; border-radius: 25px; padding: 10px 24px; font-size: 1.1rem;">
         <i class="bi bi-person-circle"></i>
-        <span>Login</span>
+        <span id="authBtnText">Login</span>
     </button>
 
     <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
@@ -621,8 +706,10 @@ body {
                     <input type="password" class="form-control" id="loginPassword" required>
                   </div>
                   <button type="submit" class="btn btn-primary w-100">Login</button>
+                  <div class="text-center mt-3">
+                    <a href="#" onclick="showForgotPasswordModal()" style="color: var(--info-window-link); text-decoration: none;">Forgot Password?</a>
+                  </div>
                 </form>
-                </script>
               </div>
               <div class="tab-pane fade" id="signup" role="tabpanel" aria-labelledby="signup-tab">
                 <form id="signupForm">
@@ -638,25 +725,41 @@ body {
                     <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
                     <input type="password" class="form-control" id="signupConfirmPassword" required>
                   </div>
+                  <div class="mb-3">
+                    <label for="signupName" class="form-label">Name (Optional)</label>
+                    <input type="text" class="form-control" id="signupName">
+                  </div>
+                  <div class="mb-3">
+                    <label for="signupBusiness" class="form-label">Business (Optional)</label>
+                    <input type="text" class="form-control" id="signupBusiness">
+                  </div>
                   <button type="submit" class="btn btn-success w-100">Sign Up</button>
                 </form>
-                <script>
-document.getElementById('signupForm').onsubmit = function(e) {
-  e.preventDefault();
-  var pw = document.getElementById('signupPassword').value;
-  var pw2 = document.getElementById('signupConfirmPassword').value;
-  if (pw !== pw2) {
-    alert('Passwords do not match!');
-    return false;
-  }
-  // Proceed with signup logic here
-  // After successful signup, show profile modal
-  showProfileModal();
-  return false;
-}
-</script>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="forgotPasswordModalLabel">Reset Password</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Enter your email address and we'll send you a link to reset your password.</p>
+            <form id="forgotPasswordForm">
+              <div class="mb-3">
+                <label for="forgotPasswordEmail" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="forgotPasswordEmail" required>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Send Reset Link</button>
+            </form>
+            <div id="forgotPasswordAlert" class="alert mt-3" style="display: none;"></div>
           </div>
         </div>
       </div>
@@ -1016,6 +1119,26 @@ document.getElementById('signupForm').onsubmit = function(e) {
             const radius = document.getElementById('radius').value;
             const usePin = document.getElementById('usePin').checked;
             
+            // Save last search parameters if user is authenticated
+            if (isAuthenticated) {
+                try {
+                    await fetch('/api/update-last-search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            city: city,
+                            state: state,
+                            business_type: businessType,
+                            radius: parseInt(radius)
+                        })
+                    });
+                } catch (error) {
+                    console.error('Error saving last search:', error);
+                }
+            }
+            
             try {
                 let response;
                 if (usePin && droppedPin) {
@@ -1274,76 +1397,796 @@ document.getElementById('signupForm').onsubmit = function(e) {
         }
     </script>
 
-    <!-- Profile Modal (UI only) -->
+    <!-- Profile Modal -->
     <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="profileModalLabel">Your Profile</h5>
+            <h5 class="modal-title" id="profileModalLabel">Your Profile & Settings</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <form id="profileForm">
-              <div class="mb-3">
-                <label for="profileName" class="form-label">Name</label>
-                <input type="text" class="form-control" id="profileName" required>
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs" id="profileTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="true">
+                  <i class="bi bi-person-circle"></i> Profile
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
+                  <i class="bi bi-gear"></i> Settings
+                </button>
+              </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content pt-3" id="profileTabContent">
+              <!-- Profile Tab -->
+              <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                <form id="profileForm">
+                  <div class="mb-3">
+                    <label for="profileEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="profileEmail" readonly>
+                  </div>
+                  <div class="mb-3">
+                    <label for="profileName" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="profileName">
+                  </div>
+                  <div class="mb-3">
+                    <label for="profileBusiness" class="form-label">Business</label>
+                    <input type="text" class="form-control" id="profileBusiness">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Email Verification</label>
+                    <div id="verificationStatus" class="d-flex align-items-center">
+                      <span id="verificationIcon" class="me-2"></span>
+                      <span id="verificationText"></span>
+                    </div>
+                    <button type="button" id="resendVerificationBtn" class="btn btn-outline-primary btn-sm mt-2" style="display: none;">
+                      <i class="bi bi-envelope"></i> Resend Verification Email
+                    </button>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">Save Profile</button>
+                    <button type="button" class="btn btn-danger" onclick="logout()">Logout</button>
+                  </div>
+                </form>
               </div>
-              <div class="mb-3">
-                <label for="profileBusiness" class="form-label">Business</label>
-                <input type="text" class="form-control" id="profileBusiness">
+              
+              <!-- Settings Tab -->
+              <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                <form id="settingsForm">
+                  <!-- Search Preferences -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-search"></i> Search Preferences</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="mb-3">
+                        <label for="defaultRadius" class="form-label">Default Search Radius (miles)</label>
+                        <input type="number" class="form-control" id="defaultRadius" min="1" max="50" value="5">
+                        <div class="form-text">This will be the default radius when you start a new search.</div>
+                      </div>
+                      <div class="mb-3">
+                        <label for="defaultBusinessType" class="form-label">Default Business Type</label>
+                        <input type="text" class="form-control" id="defaultBusinessType" placeholder="e.g., plumber, restaurant, salon">
+                        <div class="form-text">This will be pre-filled when you start a new search.</div>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="rememberLastSearch">
+                        <label class="form-check-label" for="rememberLastSearch">
+                          Remember last search parameters
+                        </label>
+                        <div class="form-text">Automatically fill in the last used search criteria.</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Display Preferences -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-display"></i> Display Preferences</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="mb-3">
+                        <label for="themePreference" class="form-label">Theme</label>
+                        <select class="form-select" id="themePreference">
+                          <option value="auto">Auto (follow system)</option>
+                          <option value="dark">Dark Mode</option>
+                          <option value="light">Light Mode</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label for="resultsPerPage" class="form-label">Results per page</label>
+                        <select class="form-select" id="resultsPerPage">
+                          <option value="10">10 results</option>
+                          <option value="25" selected>25 results</option>
+                          <option value="50">50 results</option>
+                          <option value="100">100 results</option>
+                        </select>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="showMapByDefault" checked>
+                        <label class="form-check-label" for="showMapByDefault">
+                          Show map by default
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Notification Settings -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-bell"></i> Notifications</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                        <label class="form-check-label" for="emailNotifications">
+                          Email notifications
+                        </label>
+                        <div class="form-text">Receive emails about account updates and important information.</div>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="searchReminders">
+                        <label class="form-check-label" for="searchReminders">
+                          Search reminders
+                        </label>
+                        <div class="form-text">Get reminded about your saved searches.</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Account Settings -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-shield-lock"></i> Account Security</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword">
+                      </div>
+                      <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword">
+                      </div>
+                      <div class="mb-3">
+                        <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmNewPassword">
+                      </div>
+                      <button type="button" class="btn btn-warning" onclick="changePassword()">
+                        <i class="bi bi-key"></i> Change Password
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Data Management -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-database"></i> Data Management</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-info" onclick="exportUserData()">
+                          <i class="bi bi-download"></i> Export My Data
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="deleteAccount()">
+                          <i class="bi bi-trash"></i> Delete Account
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">Save Settings</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
+                  </div>
+                </form>
               </div>
-              <button type="submit" class="btn btn-primary w-100">Save Profile</button>
-            </form>
+            </div>
+            
+            <div id="profileAlert" class="alert mt-3" style="display: none;"></div>
           </div>
         </div>
       </div>
     </div>
 
     <script>
-    document.getElementById('signupForm').onsubmit = function(e) {
-      e.preventDefault();
-      var pw = document.getElementById('signupPassword').value;
-      var pw2 = document.getElementById('signupConfirmPassword').value;
-      if (pw !== pw2) {
-        alert('Passwords do not match!');
-        return false;
-      }
-      // Proceed with signup logic here
-      // After successful signup, show profile modal
-      showProfileModal();
-      return false;
-      var profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
-      profileModal.show();
-    }
-    </script><!-- Profile Modal (UI only) -->
-<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="profileModalLabel">Your Profile</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="profileForm">
-          <div class="mb-3">
-            <label for="profileName" class="form-label">Name</label>
-            <input type="text" class="form-control" id="profileName" required>
-          </div>
-          <div class="mb-3">
-            <label for="profileBusiness" class="form-label">Business</label>
-            <input type="text" class="form-control" id="profileBusiness">
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Save Profile</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-function showProfileModal() {
-  var profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
-  profileModal.show();
-}
-</script>
+        // Global variables for user state
+        let currentUser = null;
+        let isAuthenticated = false;
+
+        // Check authentication status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+        });
+
+        // Check if user is authenticated
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    isAuthenticated = true;
+                    updateAuthButton();
+                    loadUserSettingsForSearch();
+                } else {
+                    currentUser = null;
+                    isAuthenticated = false;
+                    updateAuthButton();
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+            }
+        }
+
+        // Load user settings for search form
+        async function loadUserSettingsForSearch() {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const settings = data.settings;
+                    
+                    // Apply default settings to search form
+                    if (settings.default_radius) {
+                        document.getElementById('radius').value = settings.default_radius;
+                    }
+                    
+                    if (settings.default_business_type) {
+                        document.getElementById('businessType').value = settings.default_business_type;
+                    }
+                    
+                    // Remember last search if enabled
+                    if (settings.remember_last_search && settings.last_search_city) {
+                        document.getElementById('city').value = settings.last_search_city || '';
+                        document.getElementById('state').value = settings.last_search_state || '';
+                        document.getElementById('businessType').value = settings.last_search_business_type || settings.default_business_type || '';
+                        document.getElementById('radius').value = settings.last_search_radius || settings.default_radius || 5;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading search settings:', error);
+            }
+        }
+
+        // Update the auth button based on authentication status
+        function updateAuthButton() {
+            const authBtn = document.getElementById('authBtn');
+            const authBtnText = document.getElementById('authBtnText');
+            
+            if (isAuthenticated && currentUser) {
+                authBtnText.textContent = currentUser.name || currentUser.email;
+                authBtn.onclick = showProfileModal;
+            } else {
+                authBtnText.textContent = 'Login';
+                authBtn.onclick = showAuthModal;
+            }
+        }
+
+        // Show authentication modal
+        function showAuthModal() {
+            const authModal = new bootstrap.Modal(document.getElementById('authModal'));
+            authModal.show();
+        }
+
+        // Show profile modal
+        function showProfileModal() {
+            if (!isAuthenticated) {
+                showAuthModal();
+                return;
+            }
+            
+            // Populate profile form with current user data
+            document.getElementById('profileEmail').value = currentUser.email;
+            document.getElementById('profileName').value = currentUser.name || '';
+            document.getElementById('profileBusiness').value = currentUser.business || '';
+            
+            // Update verification status
+            updateVerificationStatus();
+            
+            // Load user settings
+            loadUserSettings();
+            
+            const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+            profileModal.show();
+        }
+
+        // Show forgot password modal
+        function showForgotPasswordModal() {
+            const authModal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+            if (authModal) {
+                authModal.hide();
+            }
+            
+            const forgotPasswordModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+            forgotPasswordModal.show();
+        }
+
+        // Update verification status display
+        function updateVerificationStatus() {
+            const verificationIcon = document.getElementById('verificationIcon');
+            const verificationText = document.getElementById('verificationText');
+            const resendBtn = document.getElementById('resendVerificationBtn');
+            
+            if (currentUser.is_verified) {
+                verificationIcon.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+                verificationText.textContent = 'Email verified';
+                verificationText.className = 'text-success';
+                resendBtn.style.display = 'none';
+            } else {
+                verificationIcon.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
+                verificationText.textContent = 'Email not verified';
+                verificationText.className = 'text-warning';
+                resendBtn.style.display = 'block';
+            }
+        }
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    isAuthenticated = true;
+                    updateAuthButton();
+                    
+                    // Close modal and show success message
+                    const authModal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    authModal.hide();
+                    
+                    // Clear form
+                    document.getElementById('loginForm').reset();
+                    
+                    alert('Login successful!');
+                } else {
+                    alert(data.error || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('An error occurred during login');
+            }
+        });
+
+        // Handle signup form submission
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+            const name = document.getElementById('signupName').value;
+            const business = document.getElementById('signupBusiness').value;
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, name, business })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    isAuthenticated = true;
+                    updateAuthButton();
+                    
+                    // Close modal and show success message
+                    const authModal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    authModal.hide();
+                    
+                    // Clear form
+                    document.getElementById('signupForm').reset();
+                    
+                    alert('Registration successful!');
+                } else {
+                    alert(data.error || 'Registration failed');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('An error occurred during registration');
+            }
+        });
+
+        // Handle profile form submission
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('profileName').value;
+            const business = document.getElementById('profileBusiness').value;
+            
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, business })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    updateAuthButton();
+                    
+                    // Show success message
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-success mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                    alertDiv.style.display = 'block';
+                    
+                    // Hide alert after 3 seconds
+                    setTimeout(() => {
+                        alertDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + (data.error || 'Profile update failed');
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Profile update error:', error);
+                const alertDiv = document.getElementById('profileAlert');
+                alertDiv.className = 'alert alert-danger mt-3';
+                alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> An error occurred while updating profile';
+                alertDiv.style.display = 'block';
+            }
+        });
+
+        // Handle logout
+        async function logout() {
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = null;
+                    isAuthenticated = false;
+                    updateAuthButton();
+                    
+                    // Close profile modal
+                    const profileModal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
+                    if (profileModal) {
+                        profileModal.hide();
+                    }
+                    
+                    alert('Logout successful!');
+                } else {
+                    alert(data.error || 'Logout failed');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('An error occurred during logout');
+            }
+        }
+
+        // Handle forgot password form submission
+        document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('forgotPasswordEmail').value;
+            const alertDiv = document.getElementById('forgotPasswordAlert');
+            
+            try {
+                const response = await fetch('/api/request-password-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alertDiv.className = 'alert alert-success mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                    alertDiv.style.display = 'block';
+                    
+                    // Clear form
+                    document.getElementById('forgotPasswordForm').reset();
+                    
+                    // Close modal after 3 seconds
+                    setTimeout(() => {
+                        const forgotPasswordModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                        if (forgotPasswordModal) {
+                            forgotPasswordModal.hide();
+                        }
+                    }, 3000);
+                } else {
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + (data.error || 'Failed to send reset email');
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Password reset request error:', error);
+                alertDiv.className = 'alert alert-danger mt-3';
+                alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> An error occurred while sending reset email';
+                alertDiv.style.display = 'block';
+            }
+        });
+
+        // Handle resend verification email
+        document.getElementById('resendVerificationBtn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/send-verification-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-success mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                    alertDiv.style.display = 'block';
+                    
+                    // Hide alert after 3 seconds
+                    setTimeout(() => {
+                        alertDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + (data.error || 'Failed to send verification email');
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Resend verification error:', error);
+                const alertDiv = document.getElementById('profileAlert');
+                alertDiv.className = 'alert alert-danger mt-3';
+                alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> An error occurred while sending verification email';
+                alertDiv.style.display = 'block';
+            }
+        });
+
+        // Load user settings
+        async function loadUserSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const settings = data.settings;
+                    
+                    // Populate settings form
+                    document.getElementById('defaultRadius').value = settings.default_radius || 5;
+                    document.getElementById('defaultBusinessType').value = settings.default_business_type || '';
+                    document.getElementById('rememberLastSearch').checked = settings.remember_last_search || false;
+                    document.getElementById('themePreference').value = settings.theme_preference || 'auto';
+                    document.getElementById('resultsPerPage').value = settings.results_per_page || 25;
+                    document.getElementById('showMapByDefault').checked = settings.show_map_by_default !== false;
+                    document.getElementById('emailNotifications').checked = settings.email_notifications !== false;
+                    document.getElementById('searchReminders').checked = settings.search_reminders || false;
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Save user settings
+        async function saveSettings() {
+            try {
+                const settings = {
+                    default_radius: parseInt(document.getElementById('defaultRadius').value),
+                    default_business_type: document.getElementById('defaultBusinessType').value,
+                    remember_last_search: document.getElementById('rememberLastSearch').checked,
+                    theme_preference: document.getElementById('themePreference').value,
+                    results_per_page: parseInt(document.getElementById('resultsPerPage').value),
+                    show_map_by_default: document.getElementById('showMapByDefault').checked,
+                    email_notifications: document.getElementById('emailNotifications').checked,
+                    search_reminders: document.getElementById('searchReminders').checked
+                };
+                
+                const response = await fetch('/api/settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-success mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                    alertDiv.style.display = 'block';
+                    
+                    // Hide alert after 3 seconds
+                    setTimeout(() => {
+                        alertDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + (data.error || 'Failed to save settings');
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                const alertDiv = document.getElementById('profileAlert');
+                alertDiv.className = 'alert alert-danger mt-3';
+                alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> An error occurred while saving settings';
+                alertDiv.style.display = 'block';
+            }
+        }
+
+        // Change password
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            
+            if (!currentPassword || !newPassword || !confirmNewPassword) {
+                alert('Please fill in all password fields');
+                return;
+            }
+            
+            if (newPassword !== confirmNewPassword) {
+                alert('New passwords do not match');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                alert('New password must be at least 6 characters long');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Password changed successfully!');
+                    // Clear password fields
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmNewPassword').value = '';
+                } else {
+                    alert(data.error || 'Failed to change password');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                alert('An error occurred while changing password');
+            }
+        }
+
+        // Export user data
+        async function exportUserData() {
+            try {
+                const response = await fetch('/api/export-data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Create and download JSON file
+                    const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `user_data_${new Date().toISOString().slice(0,19).replace(/[:]/g, '')}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    
+                    alert('Data exported successfully!');
+                } else {
+                    alert(data.error || 'Failed to export data');
+                }
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                alert('An error occurred while exporting data');
+            }
+        }
+
+        // Delete account
+        async function deleteAccount() {
+            const password = prompt('Please enter your password to confirm account deletion:');
+            
+            if (!password) {
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/delete-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Account deleted successfully!');
+                    // Redirect to home page
+                    window.location.href = '/';
+                } else {
+                    alert(data.error || 'Failed to delete account');
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                alert('An error occurred while deleting account');
+            }
+        }
+
+        // Reset settings to defaults
+        function resetSettings() {
+            if (confirm('Are you sure you want to reset all settings to defaults?')) {
+                document.getElementById('defaultRadius').value = 5;
+                document.getElementById('defaultBusinessType').value = '';
+                document.getElementById('rememberLastSearch').checked = false;
+                document.getElementById('themePreference').value = 'auto';
+                document.getElementById('resultsPerPage').value = 25;
+                document.getElementById('showMapByDefault').checked = true;
+                document.getElementById('emailNotifications').checked = true;
+                document.getElementById('searchReminders').checked = false;
+                
+                // Save the reset settings
+                saveSettings();
+            }
+        }
+
+        // Handle settings form submission
+        document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveSettings();
+        });
+    </script>
 </body>
 </html> 
