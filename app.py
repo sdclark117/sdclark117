@@ -21,6 +21,9 @@ from google.oauth2.service_account import Credentials
 import stripe
 import time
 from functools import wraps
+import click
+from flask.cli import with_appcontext
+from flask_migrate import Migrate
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +53,17 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('GMAIL_USERNAME')
 
 mail = Mail(app)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+@click.command('init-db')
+@with_appcontext
+def init_db_command():
+    """Clear the existing data and create new tables."""
+    db.drop_all()
+    db.create_all()
+    click.echo('Initialized the database.')
+
+app.cli.add_command(init_db_command)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
