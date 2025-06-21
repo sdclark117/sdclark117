@@ -745,6 +745,10 @@ body {
                     <label for="signupBusiness" class="form-label">Business (Optional)</label>
                     <input type="text" class="form-control" id="signupBusiness">
                   </div>
+                  <div class="mb-3">
+                    <label for="signupPhone" class="form-label">Phone (Optional)</label>
+                    <input type="tel" class="form-control" id="signupPhone">
+                  </div>
                   <button type="submit" class="btn btn-success w-100">Sign Up</button>
                 </form>
               </div>
@@ -1429,6 +1433,10 @@ body {
                     <input type="text" class="form-control" id="profileBusiness">
                   </div>
                   <div class="mb-3">
+                    <label for="profilePhone" class="form-label">Phone</label>
+                    <input type="tel" class="form-control" id="profilePhone">
+                  </div>
+                  <div class="mb-3">
                     <label class="form-label">Email Verification</label>
                     <div id="verificationStatus" class="d-flex align-items-center">
                       <span id="verificationIcon" class="me-2"></span>
@@ -1687,6 +1695,7 @@ body {
             document.getElementById('profileEmail').value = currentUser.email;
             document.getElementById('profileName').value = currentUser.name || '';
             document.getElementById('profileBusiness').value = currentUser.business || '';
+            document.getElementById('profilePhone').value = currentUser.phone || '';
             
             // Update verification status
             updateVerificationStatus();
@@ -1764,6 +1773,12 @@ body {
                 upgradeBtn.style.display = 'block';
                 upgradeBtn.textContent = 'Choose a Plan';
             }
+
+            // Add admin dashboard link if user is admin
+            if (user.is_admin) {
+                const adminLink = `<a href="/admin/dashboard" class="btn btn-warning mt-2">Admin Dashboard</a>`;
+                statusDiv.insertAdjacentHTML('beforeend', adminLink);
+            }
         }
 
         document.getElementById('manageSubscriptionBtn').addEventListener('click', async function() {
@@ -1826,6 +1841,7 @@ body {
             const confirmPassword = document.getElementById('signupConfirmPassword').value;
             const name = document.getElementById('signupName').value;
             const business = document.getElementById('signupBusiness').value;
+            const phone = document.getElementById('signupPhone').value;
             
             if (password !== confirmPassword) {
                 alert('Passwords do not match!');
@@ -1838,7 +1854,7 @@ body {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ email, password, name, business })
+                    body: JSON.stringify({ email, password, name, business, phone })
                 });
                 
                 const data = await response.json();
@@ -1871,6 +1887,7 @@ body {
             
             const name = document.getElementById('profileName').value;
             const business = document.getElementById('profileBusiness').value;
+            const phone = document.getElementById('profilePhone').value;
             
             try {
                 const response = await fetch('/api/profile', {
@@ -1878,7 +1895,7 @@ body {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ name, business })
+                    body: JSON.stringify({ name, business, phone })
                 });
                 
                 const data = await response.json();
