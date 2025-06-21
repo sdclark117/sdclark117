@@ -802,18 +802,15 @@ body {
                             </div>
                             <div class="mb-3">
                                 <label for="radius" class="form-label">Search Radius (miles)</label>
-                                <input type="number" class="form-control" id="radius" name="radius" value="5" min="1" max="50" required>
+                                <input type="number" class="form-control" id="radius" value="5" min="1" max="50">
                             </div>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="usePin" name="usePin">
-                                    <label class="form-check-label" for="usePin" style="color: var(--text-color) !important;">
-                                        Also search around dropped pin
-                                    </label>
-                                </div>
-                                <small class="form-text" id="pinHelpText" style="color: var(--text-color) !important; opacity: 0.8;">
-                                    Check this to include businesses around the dropped pin in your search results
-                                </small>
+                            <div class="mb-3" id="maxReviewsContainer" style="display: none;">
+                                <label for="maxReviews" class="form-label">Maximum Reviews (Premium/Platinum Only)</label>
+                                <input type="number" class="form-control" id="maxReviews" placeholder="e.g., 15">
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="usePin" checked>
+                                <label class="form-check-label" for="usePin">Also search around dropped pin</label>
                             </div>
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary flex-grow-1">Search</button>
@@ -1130,6 +1127,7 @@ body {
             const businessType = document.getElementById('businessType').value;
             const radius = document.getElementById('radius').value;
             const usePin = document.getElementById('usePin').checked;
+            const maxReviews = document.getElementById('maxReviews').value;
             
             // Save last search parameters if user is authenticated
             if (isAuthenticated) {
@@ -1143,7 +1141,8 @@ body {
                             city: city,
                             state: state,
                             business_type: businessType,
-                            radius: parseInt(radius)
+                            radius: parseInt(radius),
+                            max_reviews: maxReviews ? parseInt(maxReviews, 10) : null
                         })
                     });
                 } catch (error) {
@@ -1152,85 +1151,57 @@ body {
             }
             
             try {
-                let response;
+                let searches = [];
+                let body;
+
+                const searchDetails = {
+                    business_type: businessType,
+                    radius: radius,
+                    max_reviews: maxReviews ? parseInt(maxReviews, 10) : null
+                };
+
+                if (city) {
+                    searches.push({ ...searchDetails, city: city, state: state });
+                }
+
                 if (usePin && droppedPin) {
-                    // If using both city and pin, make two separate requests
-                    const cityResponse = await fetch('/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            city: city,
-                            state: state,
-                            business_type: businessType,
-                            radius: radius
-                        })
-                    });
-                    
-                    const pinResponse = await fetch('/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            lat: droppedPin.lat(),
-                            lng: droppedPin.lng(),
-                            business_type: businessType,
-                            radius: radius
-                        })
-                    });
-                    
-                    const cityData = await cityResponse.json();
-                    const pinData = await pinResponse.json();
-                    
-                    if (cityData.error && pinData.error) {
-                        showError('Both searches failed. Please try again.');
-                        return;
-                    }
-                    
-                    // Combine results, removing duplicates based on place_id
-                    const allLeads = [...(cityData.leads || []), ...(pinData.leads || [])];
-                    const uniqueLeads = Array.from(new Map(allLeads.map(lead => [lead.place_id, lead])).values());
-                    
-                    if (uniqueLeads.length > 0) {
-                        displayResults(uniqueLeads);
-                        // Use city center for map if available, otherwise use pin location
-                        const center = cityData.center || pinData.center;
-                        displayMap(uniqueLeads, center);
-                        document.getElementById('exportBtn').disabled = false;
+                    searches.push({ ...searchDetails, lat: droppedPin.lat(), lng: droppedPin.lng() });
+                }
+
+                if (searches.length === 0) {
+                    showError('Please enter a city or drop a pin on the map.');
+                    return;
+                }
+                
+                body = JSON.stringify({ searches: searches });
+
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: body
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    if (data.prompt_register) {
+                        $('#authModal').modal('show');
+                        $('#authTabs a[href="#register"]').tab('show');
+                        showError(data.error); 
                     } else {
-                        showError('No businesses found in the specified areas.');
-                    }
-                } else {
-                    // Single search based on city
-                    response = await fetch('/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            city: city,
-                            state: state,
-                            business_type: businessType,
-                            radius: radius
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.error) {
                         showError(data.error);
-                        return;
                     }
-                    
-                    if (data.leads && data.leads.length > 0) {
-                        displayResults(data.leads);
-                        displayMap(data.leads, data.center);
-                        document.getElementById('exportBtn').disabled = false;
-                    } else {
-                        showError('No businesses found in the specified area.');
-                    }
+                    return;
+                }
+
+                if (data.leads && data.leads.length > 0) {
+                    displayResults(data.leads);
+                    displayMap(data.leads, data.center);
+                    document.getElementById('exportBtn').disabled = false;
+                } else {
+                    showError('No businesses found in the specified area.');
                 }
             } catch (error) {
                 showError('An error occurred while searching. Please try again.');
@@ -1469,13 +1440,15 @@ body {
                   </div>
                   <div class="mb-3">
                     <label class="form-label">Subscription</label>
-                    <div id="subscriptionStatus" class="d-flex align-items-center">
-                      <!-- Subscription status will be injected here -->
+                    <div id="subscriptionStatus">
+                        <p><strong>Current Plan:</strong> <span id="currentPlan">N/A</span></p>
+                        <p><strong>Trial Ends:</strong> <span id="trialEndsAt">N/A</span></p>
                     </div>
+                    <button type="button" class="btn btn-info" id="manageSubscriptionBtn" style="display: none;">Manage Subscription</button>
+                    <a href="/pricing" class="btn btn-primary" id="upgradeSubscriptionBtn" style="display: none;">Upgrade Plan</a>
                   </div>
                   <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary flex-grow-1">Save Profile</button>
-                    <button type="button" class="btn btn-info" id="manageBillingBtn" style="display: none;" onclick="manageBilling()">Manage Billing</button>
                     <button type="button" class="btn btn-danger" onclick="logout()">Logout</button>
                   </div>
                 </form>
@@ -1634,10 +1607,18 @@ body {
                     updateAuthButton();
                     loadUserSettingsForSearch();
                     updateSubscriptionStatus(data.user);
+                    document.getElementById('profileBtn').style.display = 'flex';
+                    document.getElementById('loginBtn').style.display = 'none';
+                    
+                    const plan = data.user.current_plan;
+                    if (plan === 'PREMIUM' || plan === 'PLATINUM') {
+                        document.getElementById('maxReviewsContainer').style.display = 'block';
+                    }
                 } else {
                     currentUser = null;
                     isAuthenticated = false;
                     updateAuthButton();
+                    document.getElementById('profileBtn').style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error checking auth status:', error);
@@ -1751,32 +1732,41 @@ body {
 
         function updateSubscriptionStatus(user) {
             const statusDiv = document.getElementById('subscriptionStatus');
-            const manageBillingBtn = document.getElementById('manageBillingBtn');
+            const manageBtn = document.getElementById('manageSubscriptionBtn');
+            const upgradeBtn = document.getElementById('upgradeSubscriptionBtn');
+            const currentPlanSpan = document.getElementById('currentPlan');
+            const trialEndsSpan = document.getElementById('trialEndsAt');
+
+            manageBtn.style.display = 'none';
+            upgradeBtn.style.display = 'none';
 
             if (user.current_plan) {
-                statusDiv.innerHTML = `
-                    <span class="badge bg-success me-2">${user.current_plan}</span>
-                    <span>${user.search_count} / ${user.search_limit} searches used</span>
-                `;
-                manageBillingBtn.style.display = 'block';
+                currentPlanSpan.textContent = user.current_plan.charAt(0).toUpperCase() + user.current_plan.slice(1).toLowerCase();
+                trialEndsSpan.textContent = 'N/A';
+                manageBtn.style.display = 'block';
             } else if (user.trial_ends_at) {
                 const trialEndDate = new Date(user.trial_ends_at);
                 const now = new Date();
                 const diffTime = trialEndDate - now;
                 if (diffTime > 0) {
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    statusDiv.innerHTML = `<span class="badge bg-info">FREE TRIAL</span> <span>${diffDays} days remaining</span>`;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    currentPlanSpan.textContent = 'Free Trial';
+                    trialEndsSpan.textContent = `${diffDays} days remaining`;
+                    upgradeBtn.style.display = 'block';
                 } else {
-                    statusDiv.innerHTML = 'Free Trial Expired';
+                    currentPlanSpan.textContent = 'Free Trial Expired';
+                    trialEndsSpan.textContent = 'N/A';
+                    upgradeBtn.style.display = 'block';
                 }
-                manageBillingBtn.style.display = 'none';
             } else {
-                statusDiv.innerHTML = `<a href="/pricing" class="btn btn-primary">Choose a Plan</a>`;
-                manageBillingBtn.style.display = 'none';
+                currentPlanSpan.textContent = 'None';
+                trialEndsSpan.textContent = 'N/A';
+                upgradeBtn.style.display = 'block';
+                upgradeBtn.textContent = 'Choose a Plan';
             }
         }
 
-        async function manageBilling() {
+        document.getElementById('manageSubscriptionBtn').addEventListener('click', async function() {
             const response = await fetch('/api/create-portal-session', { method: 'POST' });
             const data = await response.json();
             if (data.url) {
@@ -1784,7 +1774,7 @@ body {
             } else {
                 alert(data.error || 'Could not open billing portal.');
             }
-        }
+        });
 
         // Handle login form submission
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -2244,6 +2234,42 @@ body {
             e.preventDefault();
             await saveSettings();
         });
+
+        const trialEndsAt = data.user.trial_ends_at ? new Date(data.user.trial_ends_at).toLocaleDateString() : 'N/A';
+        document.getElementById('trialEndsAt').textContent = trialEndsAt;
+
+        const plan = data.user.current_plan;
+        document.getElementById('currentPlan').textContent = plan ? plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase() : 'None';
+        
+        if (plan === 'PREMIUM' || plan === 'PLATINUM') {
+            document.getElementById('maxReviewsContainer').style.display = 'block';
+        }
+    </script>
+
+    <script>
+        document.getElementById('manageSubscriptionBtn').addEventListener('click', function() {
+            fetch('/api/create-portal-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    showError(data.error || 'Could not open subscription management.');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating portal session:', error);
+                showError('An error occurred. Please try again.');
+            });
+        });
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     </script>
 </body>
 </html> 

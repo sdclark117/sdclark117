@@ -19,6 +19,7 @@ import urllib.parse
 import gspread
 from google.oauth2.service_account import Credentials
 import stripe
+import time
 
 # Load environment variables
 load_dotenv()
@@ -270,11 +271,14 @@ def get_coordinates(location, api_key):
         print(f"Geocoding request exception: {str(e)}")  # Debug print
         raise Exception(f"Network error: {str(e)}")
     except Exception as e:
-        print(f"Unexpected error in get_coordinates: {str(e)}")  # Debug print
-        raise
+        print(f"Error in geocoding: {e}")
+        return None
 
-def search_places(lat, lng, business_type, radius, api_key):
-    """Search for places using Google Places API."""
+def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
+    """Search for places using Google Places API and filter by reviews."""
+    all_leads = []
+    
+    # Initial search to get a list of places
     try:
         url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
         
@@ -307,72 +311,42 @@ def search_places(lat, lng, business_type, radius, api_key):
             print(f"Error: {error_msg}")  # Debug print
             raise Exception(error_msg)
         
-        leads = []
-        for place in data.get('results', []):
-            # Get place details for additional information
-            try:
-                place_id = place.get('place_id')
-                if place_id:
-                    details_url = f"https://maps.googleapis.com/maps/api/place/details/json"
-                    details_params = {
-                        'place_id': place_id,
-                        'fields': 'name,formatted_address,formatted_phone_number,website,rating,opening_hours',
-                        'key': api_key
-                    }
-                    details_response = requests.get(details_url, params=details_params)
-                    details_data = details_response.json()
+        # Process results page by page
+        while True:
+            response = requests.get(url, params=params)
+            results = response.json()
+            
+            if results.get('status') != 'OK' and results.get('status') != 'ZERO_RESULTS':
+                print(f"Places API Error: {results.get('status')} - {results.get('error_message', '')}")
+                break
+
+            for place in results.get('results', []):
+                if is_potential_lead(place):
+                    time.sleep(0.1)  # Small delay to avoid hitting rate limits
+                    place_details = get_place_details(place.get('place_id'), api_key)
                     
-                    if details_data.get('status') == 'OK':
-                        details = details_data.get('result', {})
-                        lead = {
-                            'place_id': place_id,  # Add place_id for deduplication
-                            'name': details.get('name', place.get('name', '')),
-                            'address': details.get('formatted_address', place.get('vicinity', '')),
+                    if place_details:
+                        # Filter by maximum number of reviews
+                        review_count = place_details.get('user_ratings_total')
+                        if max_reviews is not None and review_count is not None and review_count > max_reviews:
+                            continue
+
+                        all_leads.append({
+                            'place_id': place.get('place_id'),
+                            'name': place_details.get('name'),
+                            'address': place_details.get('formatted_address', place.get('vicinity', '')),
                             'lat': place['geometry']['location']['lat'],
                             'lng': place['geometry']['location']['lng'],
-                            'rating': details.get('rating', place.get('rating', '')),
-                            'website': details.get('website', ''),
-                            'phone': details.get('formatted_phone_number', ''),
-                            'opening_hours': details.get('opening_hours', {}).get('weekday_text', []),
-                            'reviews': details.get('user_ratings_total', place.get('user_ratings_total', 0))
-                        }
-                    else:
-                        # Fallback to basic place data if details request fails
-                        lead = {
-                            'place_id': place_id,
-                            'name': place.get('name', ''),
-                            'address': place.get('vicinity', ''),
-                            'lat': place['geometry']['location']['lat'],
-                            'lng': place['geometry']['location']['lng'],
-                            'rating': place.get('rating', ''),
-                            'website': '',
-                            'phone': '',
-                            'opening_hours': [],
-                            'reviews': place.get('user_ratings_total', 0)
-                        }
-                else:
-                    # Fallback to basic place data if no place_id
-                    lead = {
-                        'place_id': f"temp_{len(leads)}",  # Generate temporary ID
-                        'name': place.get('name', ''),
-                        'address': place.get('vicinity', ''),
-                        'lat': place['geometry']['location']['lat'],
-                        'lng': place['geometry']['location']['lng'],
-                        'rating': place.get('rating', ''),
-                        'website': '',
-                        'phone': '',
-                        'opening_hours': [],
-                        'reviews': place.get('user_ratings_total', 0)
-                    }
-                
-                leads.append(lead)
-                print(f"Found lead: {lead}")  # Debug print
-                
-            except Exception as e:
-                print(f"Error getting details for place: {str(e)}")  # Debug print
-                continue
+                            'rating': place_details.get('rating'),
+                            'website': place_details.get('website', ''),
+                            'phone': place_details.get('formatted_phone_number', ''),
+                            'opening_hours': format_opening_hours(place_details.get('opening_hours', {}).get('weekday_text')),
+                            'reviews': place_details.get('user_ratings_total'),
+                            'business_type': format_business_types(place_details.get('types')),
+                            'business_status': place.get('business_status')
+                        })
         
-        return leads
+        return all_leads
         
     except requests.exceptions.RequestException as e:
         print(f"Places API request exception: {str(e)}")  # Debug print
@@ -400,11 +374,6 @@ def get_place_details(place_id, api_key):
 
 def is_potential_lead(place):
     """Check if a place meets the criteria for a potential lead."""
-    # Check if the place has fewer than 15 reviews or no reviews
-    reviews = place.get('user_ratings_total', 0)
-    if reviews >= 15:
-        return False
-    
     # Check if the place has a website
     if 'website' in place:
         return False
@@ -626,38 +595,64 @@ def search():
         if not data:
             raise Exception("No data provided in request")
             
-        city = data.get('city', '').strip()
-        state = data.get('state', '').strip()
-        business_type = data.get('business_type', '').strip()
-        radius = float(data.get('radius', 5))
-        lat = data.get('lat')
-        lng = data.get('lng')
+        searches = data.get('searches')
+        if not searches:
+            # Fallback for old request format for a single search
+            searches = [data]
+
+        all_leads = []
+        all_centers = []
         
-        if not business_type:
-            raise Exception("Business type is required")
+        for search_params in searches:
+            city = search_params.get('city', '').strip()
+            state = search_params.get('state', '').strip()
+            business_type = search_params.get('business_type', '').strip()
+            radius = float(search_params.get('radius', 5))
+            lat = search_params.get('lat')
+            lng = search_params.get('lng')
+            max_reviews_str = search_params.get('max_reviews')
+            max_reviews = None
+
+            if max_reviews_str:
+                if current_user.is_authenticated and current_user.current_plan in ['PREMIUM', 'PLATINUM']:
+                    try:
+                        max_reviews = int(max_reviews_str)
+                    except (ValueError, TypeError):
+                        max_reviews = None # Ignore if value is invalid
             
-        if lat is not None and lng is not None:
-            center = {'lat': float(lat), 'lng': float(lng)}
-        elif city:
-            location = f"{city}, {state}" if state else city
-            center = get_coordinates(location, api_key)
-        else:
-            raise Exception("Either city or coordinates must be provided")
+            if not business_type:
+                raise Exception("Business type is required")
+                
+            if lat is not None and lng is not None:
+                center = {'lat': float(lat), 'lng': float(lng)}
+            elif city:
+                location = f"{city}, {state}" if state else city
+                center = get_coordinates(location, api_key)
+            else:
+                raise Exception("Either city or coordinates must be provided")
             
-        radius_meters = radius * 1609.34
-        leads = search_places(center['lat'], center['lng'], business_type, radius_meters, api_key)
-        
+            radius_meters = radius * 1609.34
+            leads = search_places(center['lat'], center['lng'], business_type, radius_meters, api_key, max_reviews=max_reviews)
+            all_leads.extend(leads)
+            all_centers.append(center)
+
+        # Remove duplicates
+        unique_leads = list({lead['place_id']: lead for lead in all_leads}.values())
+
         # Increment search count and limit results
         if current_user.is_authenticated:
             current_user.search_count += 1
             db.session.commit()
         else:
             session['guest_search_count'] = session.get('guest_search_count', 0) + 1
-            leads = leads[:15] # Limit results for guests
+            unique_leads = unique_leads[:15] # Limit results for guests
         
+        # Determine the primary center for the map
+        map_center = all_centers[0] if all_centers else None
+
         return jsonify({
-            'leads': leads,
-            'center': center
+            'leads': unique_leads,
+            'center': map_center
         })
         
     except Exception as e:
