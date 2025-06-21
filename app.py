@@ -587,34 +587,36 @@ def check_auth():
         return jsonify({'authenticated': False})
 
 @app.route('/search', methods=['POST'])
-@login_required
 def search():
-    """Search for business leads."""
+    """Search for business leads, with limits for both guests and authenticated users."""
     
-    # Check subscription status and search limits
-    now = datetime.utcnow()
-    
-    # Reset monthly search count if a month has passed
-    if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
-        current_user.search_count = 0
-        current_user.last_search_reset = now
-        db.session.commit()
+    # Handle search limits based on authentication
+    if current_user.is_authenticated:
+        # Existing logic for authenticated users
+        now = datetime.utcnow()
+        if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
+            current_user.search_count = 0
+            current_user.last_search_reset = now
+            db.session.commit()
 
-    # Check if user is on a paid plan
-    if current_user.current_plan:
-        limit = plan_search_limits.get(current_user.current_plan, 0)
-        if current_user.search_count >= limit:
-            return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
-    
-    # Check if user is on a trial plan
-    elif current_user.trial_ends_at and now < current_user.trial_ends_at:
-        # Allow unlimited searches during trial, or you can set a specific trial limit
-        pass
-    
-    # If no plan and trial is over
+        if current_user.current_plan:
+            limit = plan_search_limits.get(current_user.current_plan, 0)
+            if current_user.search_count >= limit:
+                return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
+        elif not (current_user.trial_ends_at and now < current_user.trial_ends_at):
+             return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
     else:
-        return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
+        # New logic for guest users
+        if 'guest_search_count' not in session:
+            session['guest_search_count'] = 0
         
+        if session.get('guest_search_count', 0) >= 5:
+            return jsonify({
+                'error': 'You have reached your limit of 5 free searches. Please create an account to continue.',
+                'prompt_register': True
+            }), 403
+
+    # The rest of the search logic remains largely the same
     try:
         api_key = os.getenv('GOOGLE_MAPS_API_KEY')
         if not api_key:
@@ -627,37 +629,31 @@ def search():
         city = data.get('city', '').strip()
         state = data.get('state', '').strip()
         business_type = data.get('business_type', '').strip()
-        radius = float(data.get('radius', 5))  # Default to 5 miles
+        radius = float(data.get('radius', 5))
         lat = data.get('lat')
         lng = data.get('lng')
         
-        print(f"Search API Key present: {bool(api_key)}")  # Debug print
-        print(f"City: {city}, State: {state}")  # Debug print
-        print(f"Business Type: {business_type}")  # Debug print
-        print(f"Coordinates: {lat}, {lng}")  # Debug print
-            
         if not business_type:
             raise Exception("Business type is required")
             
         if lat is not None and lng is not None:
-            # Use provided coordinates
             center = {'lat': float(lat), 'lng': float(lng)}
         elif city:
-            # Get coordinates for city
             location = f"{city}, {state}" if state else city
             center = get_coordinates(location, api_key)
         else:
             raise Exception("Either city or coordinates must be provided")
             
-        # Convert radius from miles to meters
         radius_meters = radius * 1609.34
-        
-        # Search for places
         leads = search_places(center['lat'], center['lng'], business_type, radius_meters, api_key)
         
-        # Increment search count after a successful search
-        current_user.search_count += 1
-        db.session.commit()
+        # Increment search count and limit results
+        if current_user.is_authenticated:
+            current_user.search_count += 1
+            db.session.commit()
+        else:
+            session['guest_search_count'] = session.get('guest_search_count', 0) + 1
+            leads = leads[:15] # Limit results for guests
         
         return jsonify({
             'leads': leads,
@@ -665,10 +661,10 @@ def search():
         })
         
     except Exception as e:
-        print(f"Search error: {str(e)}")  # Debug print
         return jsonify({'error': str(e)}), 400
 
 @app.route('/download', methods=['POST'])
+@login_required
 def download():
     try:
         data = request.json
