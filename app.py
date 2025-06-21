@@ -20,6 +20,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import stripe
 import time
+from functools import wraps
 
 # Load environment variables
 load_dotenv()
@@ -74,9 +75,11 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(128), nullable=False)
     name = db.Column(db.String(100))
     business = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     trial_ends_at = db.Column(db.DateTime)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     stripe_customer_id = db.Column(db.String(120), unique=True)
     stripe_subscription_id = db.Column(db.String(120), unique=True)
     current_plan = db.Column(db.String(50))
@@ -457,13 +460,20 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'User already exists'}), 400
     
+    owner_emails = [email.strip() for email in os.environ.get('OWNER_EMAILS', '').split(',') if email.strip()]
+    is_admin = email in owner_emails
+
     new_user = User(
         email=email,
         password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
         name=data.get('name', ''),
         business=data.get('business', ''),
-        trial_ends_at=datetime.utcnow() + timedelta(days=14)
+        phone=data.get('phone', ''),
+        is_admin=is_admin
     )
+
+    # All users, including admins, get a trial period initially
+    new_user.trial_ends_at = datetime.utcnow() + timedelta(days=14)
     db.session.add(new_user)
     db.session.commit()
     
@@ -500,12 +510,22 @@ def logout():
 @app.route('/api/profile', methods=['PUT'])
 @login_required
 def update_profile():
-    """Update the current user's profile."""
+    """Update user's profile information."""
     data = request.json
     current_user.name = data.get('name', current_user.name)
     current_user.business = data.get('business', current_user.business)
+    current_user.phone = data.get('phone', current_user.phone)
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Profile updated successfully', 'user': {'name': current_user.name, 'business': current_user.business}})
+    return jsonify({'success': True, 'message': 'Profile updated successfully', 'user': {
+        'name': current_user.name,
+        'email': current_user.email,
+        'business': current_user.business,
+        'phone': current_user.phone,
+        'is_verified': current_user.is_verified,
+        'current_plan': current_user.current_plan,
+        'trial_ends_at': current_user.trial_ends_at.isoformat() if current_user.trial_ends_at else None,
+        'is_admin': current_user.is_admin
+    }})
 
 @app.route('/api/request-password-reset', methods=['POST'])
 def request_password_reset():
@@ -541,15 +561,20 @@ def send_verification_email_api():
 
 @app.route('/api/check-auth')
 def check_auth():
-    """Check if user is authenticated."""
+    """Check if a user is authenticated and return user info."""
     if current_user.is_authenticated:
         return jsonify({
             'authenticated': True,
             'user': {
-                'id': current_user.id, 'email': current_user.email, 'name': current_user.name,
-                'is_verified': current_user.is_verified, 'trial_ends_at': current_user.trial_ends_at.isoformat() if current_user.trial_ends_at else None,
-                'current_plan': current_user.current_plan, 'search_count': current_user.search_count,
-                'search_limit': plan_search_limits.get(current_user.current_plan, 'N/A')
+                'id': current_user.id,
+                'email': current_user.email,
+                'name': current_user.name,
+                'is_verified': current_user.is_verified,
+                'trial_ends_at': current_user.trial_ends_at.isoformat() if current_user.trial_ends_at else None,
+                'current_plan': current_user.current_plan,
+                'search_count': current_user.search_count,
+                'search_limit': plan_search_limits.get(current_user.current_plan, 'N/A'),
+                'is_admin': current_user.is_admin
             }
         })
     else:
@@ -561,19 +586,20 @@ def search():
     
     # Handle search limits based on authentication
     if current_user.is_authenticated:
-        # Existing logic for authenticated users
-        now = datetime.utcnow()
-        if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
-            current_user.search_count = 0
-            current_user.last_search_reset = now
-            db.session.commit()
+        if not current_user.is_admin: # Admins bypass all search limits
+            # Existing logic for authenticated users
+            now = datetime.utcnow()
+            if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
+                current_user.search_count = 0
+                current_user.last_search_reset = now
+                db.session.commit()
 
-        if current_user.current_plan:
-            limit = plan_search_limits.get(current_user.current_plan, 0)
-            if current_user.search_count >= limit:
-                return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
-        elif not (current_user.trial_ends_at and now < current_user.trial_ends_at):
-             return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
+            if current_user.current_plan:
+                limit = plan_search_limits.get(current_user.current_plan, 0)
+                if current_user.search_count >= limit:
+                    return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
+            elif not (current_user.trial_ends_at and now < current_user.trial_ends_at):
+                 return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
     else:
         # New logic for guest users
         if 'guest_search_count' not in session:
@@ -614,7 +640,8 @@ def search():
             max_reviews = None
 
             if max_reviews_str:
-                if current_user.is_authenticated and current_user.current_plan in ['PREMIUM', 'PLATINUM']:
+                if (current_user.is_authenticated and current_user.current_plan in ['PREMIUM', 'PLATINUM']) or \
+                   (current_user.is_authenticated and current_user.is_admin):
                     try:
                         max_reviews = int(max_reviews_str)
                     except (ValueError, TypeError):
@@ -641,8 +668,9 @@ def search():
 
         # Increment search count and limit results
         if current_user.is_authenticated:
-            current_user.search_count += 1
-            db.session.commit()
+            if not current_user.is_admin: # Admins don't have their searches counted
+                current_user.search_count += 1
+                db.session.commit()
         else:
             session['guest_search_count'] = session.get('guest_search_count', 0) + 1
             unique_leads = unique_leads[:15] # Limit results for guests
@@ -1032,10 +1060,25 @@ def get_gspread_client():
 @login_required
 def pricing():
     """Render the pricing page."""
-    return render_template(
-        'pricing.html',
-        stripe_publishable_key=os.environ.get('STRIPE_PUBLISHABLE_KEY'),
-        basic_price_id=plan_price_ids['BASIC'],
-        premium_price_id=plan_price_ids['PREMIUM'],
-        platinum_price_id=plan_price_ids['PLATINUM']
-    ) 
+    return render_template('pricing.html', 
+                           stripe_publishable_key=os.environ.get('STRIPE_PUBLISHABLE_KEY'),
+                           basic_price_id=plan_price_ids['BASIC'],
+                           premium_price_id=plan_price_ids['PREMIUM'],
+                           platinum_price_id=plan_price_ids['PLATINUM'])
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash("You do not have permission to access this page.", "error")
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin/dashboard')
+@login_required
+@admin_required
+def admin_dashboard():
+    """Display the admin dashboard with subscribed users."""
+    subscribed_users = User.query.filter(User.current_plan.isnot(None)).all()
+    return render_template('admin_dashboard.html', users=subscribed_users) 
