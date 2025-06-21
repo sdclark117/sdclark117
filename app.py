@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file, session, 
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import json
 import requests
