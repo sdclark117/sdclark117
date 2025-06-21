@@ -1370,6 +1370,7 @@ def get_gspread_client():
     return client
 
 @app.route('/pricing')
+@login_required
 def pricing():
     """Render the pricing page."""
     return render_template(
