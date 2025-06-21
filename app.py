@@ -45,6 +45,17 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'index'
 
+@login_manager.unauthorized_handler
+def unauthorized_callback():
+    """Handle unauthorized access attempts."""
+    # If the request is an API call, return a JSON error
+    if request.path.startswith('/api/'):
+        return jsonify(error='Authentication required to access this endpoint.'), 401
+    
+    # Otherwise, it's a browser navigation, so redirect to the login page
+    flash('You must be logged in to view this page.')
+    return redirect(url_for('index'))
+
 # User class for Flask-Login
 class User(UserMixin):
     def __init__(self, id):
