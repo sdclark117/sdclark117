@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing Plans</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg-color: #212529;
+            --card-bg: #2c3034;
+            --text-color: #ffffff;
+            --border-color: #495057;
+            --header-bg: #1a1d20;
+            --header-text: #ffffff;
+            --hover-bg: #0d6efd;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .pricing-header {
+            max-width: 700px;
+            margin: auto;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+        .card-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-3">
+        <header>
+            <div class="d-flex flex-column flex-md-row align-items-center pb-3 mb-4 border-bottom">
+                <a href="/" class="d-flex align-items-center text-decoration-none">
+                    <span class="fs-4 text-white">Business Lead Finder</span>
+                </a>
+            </div>
+
+            <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
+                <h1 class="display-4 fw-normal">Pricing</h1>
+                <p class="fs-5 text-muted">
+                    Choose a plan that fits your needs. All plans start with a 14-day free trial.
+                    No credit card required for the trial.
+                </p>
+            </div>
+        </header>
+
+        <main>
+            <div class="row row-cols-1 row-cols-md-3 mb-3 text-center">
+                <div class="col">
+                    <div class="card mb-4 rounded-3 shadow-sm">
+                        <div class="card-header py-3">
+                            <h4 class="my-0 fw-normal">BASIC</h4>
+                        </div>
+                        <div class="card-body">
+                            <h1 class="card-title pricing-card-title">$19.99<small class="text-muted fw-light">/mo</small></h1>
+                            <ul class="list-unstyled mt-3 mb-4">
+                                <li>50 searches per month</li>
+                                <li>Export to Google Sheets</li>
+                                <li>Email support</li>
+                            </ul>
+                            <button type="button" class="w-100 btn btn-lg btn-outline-primary" 
+                                    onclick="createCheckout('{{ basic_price_id }}')">
+                                Start 14-day trial
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card mb-4 rounded-3 shadow-sm">
+                        <div class="card-header py-3">
+                            <h4 class="my-0 fw-normal">PREMIUM</h4>
+                        </div>
+                        <div class="card-body">
+                            <h1 class="card-title pricing-card-title">$49.99<small class="text-muted fw-light">/mo</small></h1>
+                            <ul class="list-unstyled mt-3 mb-4">
+                                <li>100 searches per month</li>
+                                <li>Export to Google Sheets</li>
+                                <li>Priority email support</li>
+                            </ul>
+                            <button type="button" class="w-100 btn btn-lg btn-primary"
+                                    onclick="createCheckout('{{ premium_price_id }}')">
+                                Start 14-day trial
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card mb-4 rounded-3 shadow-sm border-primary">
+                        <div class="card-header py-3 text-white bg-primary border-primary">
+                            <h4 class="my-0 fw-normal">PLATINUM</h4>
+                        </div>
+                        <div class="card-body">
+                            <h1 class="card-title pricing-card-title">$99.99<small class="text-muted fw-light">/mo</small></h1>
+                            <ul class="list-unstyled mt-3 mb-4">
+                                <li>Unlimited searches per month</li>
+                                <li>Export to Google Sheets</li>
+                                <li>Phone & email support</li>
+                            </ul>
+                            <button type="button" class="w-100 btn btn-lg btn-primary"
+                                    onclick="createCheckout('{{ platinum_price_id }}')">
+                                Start 14-day trial
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        const stripe = Stripe('{{ stripe_publishable_key }}');
+
+        function createCheckout(priceId) {
+            fetch('/api/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ price_id: priceId }),
+            })
+            .then(response => response.json())
+            .then(session => {
+                if (session.session_id) {
+                    return stripe.redirectToCheckout({ sessionId: session.session_id });
+                } else {
+                    alert(session.error || 'An error occurred.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while creating the checkout session.');
+            });
+        }
+    </script>
+</body>
+</html> 

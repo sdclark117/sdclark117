@@ -684,6 +684,7 @@ body {
         <i class="bi bi-person-circle"></i>
         <span id="authBtnText">Login</span>
     </button>
+    <a href="/pricing" class="btn btn-outline-primary" style="position: fixed; top: 1rem; right: 10rem; z-index: 1000;">Pricing</a>
 
     <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
       <div class="modal-dialog">
@@ -1466,8 +1467,15 @@ body {
                       <i class="bi bi-envelope"></i> Resend Verification Email
                     </button>
                   </div>
+                  <div class="mb-3">
+                    <label class="form-label">Subscription</label>
+                    <div id="subscriptionStatus" class="d-flex align-items-center">
+                      <!-- Subscription status will be injected here -->
+                    </div>
+                  </div>
                   <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary flex-grow-1">Save Profile</button>
+                    <button type="button" class="btn btn-info" id="manageBillingBtn" style="display: none;" onclick="manageBilling()">Manage Billing</button>
                     <button type="button" class="btn btn-danger" onclick="logout()">Logout</button>
                   </div>
                 </form>
@@ -1625,6 +1633,7 @@ body {
                     isAuthenticated = true;
                     updateAuthButton();
                     loadUserSettingsForSearch();
+                    updateSubscriptionStatus(data.user);
                 } else {
                     currentUser = null;
                     isAuthenticated = false;
@@ -1704,6 +1713,8 @@ body {
             // Load user settings
             loadUserSettings();
             
+            updateSubscriptionStatus(currentUser);
+            
             const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
             profileModal.show();
         }
@@ -1735,6 +1746,37 @@ body {
                 verificationText.textContent = 'Email not verified';
                 verificationText.className = 'text-warning';
                 resendBtn.style.display = 'block';
+            }
+        }
+
+        function updateSubscriptionStatus(user) {
+            const statusDiv = document.getElementById('subscriptionStatus');
+            const manageBillingBtn = document.getElementById('manageBillingBtn');
+
+            if (user.current_plan) {
+                statusDiv.innerHTML = `
+                    <span class="badge bg-success me-2">${user.current_plan}</span>
+                    <span>${user.search_count} / ${user.search_limit} searches used</span>
+                `;
+                manageBillingBtn.style.display = 'block';
+            } else if (user.trial_ends_at) {
+                const trialEndDate = new Date(user.trial_ends_at);
+                const daysRemaining = Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24));
+                statusDiv.innerHTML = `<span class="badge bg-info">Free Trial</span> <span>${daysRemaining} days remaining</span>`;
+                manageBillingBtn.style.display = 'none';
+            } else {
+                statusDiv.innerHTML = `<a href="/pricing" class="btn btn-primary">Choose a Plan</a>`;
+                manageBillingBtn.style.display = 'none';
+            }
+        }
+
+        async function manageBilling() {
+            const response = await fetch('/api/create-portal-session', { method: 'POST' });
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                alert(data.error || 'Could not open billing portal.');
             }
         }
 

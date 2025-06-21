@@ -18,6 +18,7 @@ import secrets
 import urllib.parse
 import gspread
 from google.oauth2.service_account import Credentials
+import stripe
 
 # Load environment variables
 load_dotenv()
@@ -81,7 +82,13 @@ def init_db():
             name TEXT,
             business TEXT,
             is_verified BOOLEAN DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            trial_ends_at TIMESTAMP,
+            stripe_customer_id TEXT,
+            stripe_subscription_id TEXT,
+            current_plan TEXT, -- e.g., 'BASIC', 'PREMIUM', 'PLATINUM'
+            search_count INTEGER DEFAULT 0,
+            last_search_reset TIMESTAMP
         )
     ''')
     
@@ -529,10 +536,25 @@ def reset_password_page(token):
     except Exception as e:
         return render_template('password_reset.html', valid=False, message=f"An error occurred: {str(e)}")
 
+# Stripe configuration
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET')
+plan_price_ids = {
+    'BASIC': os.environ.get('STRIPE_BASIC_PLAN_PRICE_ID'),
+    'PREMIUM': os.environ.get('STRIPE_PREMIUM_PLAN_PRICE_ID'),
+    'PLATINUM': os.environ.get('STRIPE_PLATINUM_PLAN_PRICE_ID')
+}
+
+plan_search_limits = {
+    'BASIC': 50,
+    'PREMIUM': 100,
+    'PLATINUM': float('inf')
+}
+
 # Authentication routes
 @app.route('/api/register', methods=['POST'])
 def register():
-    """Register a new user."""
+    """Register a new user and start a 14-day trial."""
     try:
         data = request.json
         email = data.get('email')
@@ -553,9 +575,10 @@ def register():
         
         # Create new user
         password_hash = generate_password_hash(password)
+        trial_ends_at = datetime.now() + timedelta(days=14)
         cursor = conn.execute(
-            'INSERT INTO users (email, password_hash, name, business) VALUES (?, ?, ?, ?)',
-            (email, password_hash, name, business)
+            'INSERT INTO users (email, password_hash, name, business, trial_ends_at) VALUES (?, ?, ?, ?, ?)',
+            (email, password_hash, name, business, trial_ends_at)
         )
         user_id = cursor.lastrowid
         conn.commit()
@@ -774,8 +797,36 @@ def check_auth():
         return jsonify({'authenticated': False})
 
 @app.route('/search', methods=['POST'])
+@login_required
 def search():
-    """Search for businesses in a city."""
+    """Search for business leads."""
+    
+    # Check subscription status and search limits
+    now = datetime.now()
+    
+    # Reset monthly search count if a month has passed
+    if current_user.last_search_reset and (now - datetime.fromisoformat(current_user.last_search_reset)).days >= 30:
+        conn = get_db_connection()
+        conn.execute('UPDATE users SET search_count = 0, last_search_reset = CURRENT_TIMESTAMP WHERE id = ?', (current_user.id,))
+        conn.commit()
+        conn.close()
+        current_user.search_count = 0
+
+    # Check if user is on a paid plan
+    if current_user.current_plan:
+        limit = plan_search_limits.get(current_user.current_plan, 0)
+        if current_user.search_count >= limit:
+            return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
+    
+    # Check if user is on a trial plan
+    elif current_user.trial_ends_at and now < datetime.fromisoformat(current_user.trial_ends_at):
+        # Allow unlimited searches during trial, or you can set a specific trial limit
+        pass
+    
+    # If no plan and trial is over
+    else:
+        return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
+        
     try:
         api_key = os.getenv('GOOGLE_MAPS_API_KEY')
         if not api_key:
@@ -815,6 +866,12 @@ def search():
         
         # Search for places
         leads = search_places(center['lat'], center['lng'], business_type, radius_meters, api_key)
+        
+        # Increment search count after a successful search
+        conn = get_db_connection()
+        conn.execute('UPDATE users SET search_count = search_count + 1 WHERE id = ?', (current_user.id,))
+        conn.commit()
+        conn.close()
         
         return jsonify({
             'leads': leads,
@@ -1198,6 +1255,100 @@ def update_last_search():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/create-checkout-session', methods=['POST'])
+@login_required
+def create_checkout_session():
+    """Create a new Stripe checkout session for a subscription."""
+    try:
+        data = request.json
+        price_id = data.get('price_id')
+        
+        if not price_id:
+            return jsonify({'error': 'Price ID is required'}), 400
+            
+        checkout_session = stripe.checkout.Session.create(
+            client_reference_id=current_user.id,
+            customer_email=current_user.email,
+            payment_method_types=['card'],
+            line_items=[{
+                'price': price_id,
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=request.host_url + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=request.host_url,
+        )
+        return jsonify({'session_id': checkout_session.id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/create-portal-session', methods=['POST'])
+@login_required
+def create_portal_session():
+    """Create a new Stripe customer portal session."""
+    try:
+        if not current_user.stripe_customer_id:
+            return jsonify({'error': 'User does not have a Stripe customer ID'}), 400
+            
+        portal_session = stripe.billing_portal.Session.create(
+            customer=current_user.stripe_customer_id,
+            return_url=request.host_url,
+        )
+        return jsonify({'url': portal_session.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/stripe-webhook', methods=['POST'])
+def stripe_webhook():
+    """Handle webhook events from Stripe."""
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, stripe_webhook_secret
+        )
+    except (ValueError, stripe.error.SignatureVerificationError) as e:
+        return 'Invalid payload or signature', 400
+
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        user_id = session.get('client_reference_id')
+        customer_id = session.get('customer')
+        subscription_id = session.get('subscription')
+        
+        conn = get_db_connection()
+        conn.execute(
+            'UPDATE users SET stripe_customer_id = ?, stripe_subscription_id = ? WHERE id = ?',
+            (customer_id, subscription_id, user_id)
+        )
+        conn.commit()
+        conn.close()
+
+    elif event['type'] in ['customer.subscription.updated', 'customer.subscription.deleted']:
+        subscription = event['data']['object']
+        customer_id = subscription['customer']
+        
+        plan_id = subscription['items']['data'][0]['price']['id']
+        plan_name = next((name for name, id in plan_price_ids.items() if id == plan_id), None)
+        
+        conn = get_db_connection()
+        if event['type'] == 'customer.subscription.deleted':
+            conn.execute(
+                "UPDATE users SET current_plan = NULL, stripe_subscription_id = NULL, search_count = 0, last_search_reset = NULL WHERE stripe_customer_id = ?",
+                (customer_id,)
+            )
+        else:
+            conn.execute(
+                "UPDATE users SET current_plan = ?, last_search_reset = CURRENT_TIMESTAMP, search_count = 0 WHERE stripe_customer_id = ?",
+                (plan_name, customer_id)
+            )
+        conn.commit()
+        conn.close()
+
+    return 'Success', 200
+
 # Google Sheets API setup
 def get_gspread_client():
     """Get gspread client using service account credentials."""
@@ -1213,6 +1364,17 @@ def get_gspread_client():
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     client = gspread.authorize(creds)
     return client
+
+@app.route('/pricing')
+def pricing():
+    """Render the pricing page."""
+    return render_template(
+        'pricing.html',
+        stripe_publishable_key=os.environ.get('STRIPE_PUBLISHABLE_KEY'),
+        basic_price_id=plan_price_ids['BASIC'],
+        premium_price_id=plan_price_ids['PREMIUM'],
+        platinum_price_id=plan_price_ids['PLATINUM']
+    )
 
 if __name__ == '__main__':
     # Clean up expired tokens on startup
