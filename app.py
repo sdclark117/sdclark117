@@ -76,8 +76,12 @@ def load_user(user_id):
         return user
     return None
 
+# Define the path for the database file
+DATA_DIR = os.environ.get('RENDER_DISK_MOUNT_PATH', '.')
+DB_PATH = os.path.join(DATA_DIR, 'users.db')
+
 def get_db_connection():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
