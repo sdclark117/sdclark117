@@ -1746,13 +1746,18 @@ body {
             const currentPlanSpan = document.getElementById('currentPlan');
             const trialEndsSpan = document.getElementById('trialEndsAt');
 
+            // Always hide buttons by default and remove any existing admin dashboard links to prevent duplication
             manageBtn.style.display = 'none';
             upgradeBtn.style.display = 'none';
+            const existingAdminLinks = statusDiv.querySelectorAll('a[href="/admin/dashboard"]');
+            existingAdminLinks.forEach(link => link.remove());
 
             if (user.is_admin) {
                 currentPlanSpan.textContent = 'Admin Access';
                 trialEndsSpan.textContent = 'Unlimited';
-                return; // Stop here for admins
+                const adminLink = `<a href="/admin/dashboard" class="btn btn-warning mt-2">Admin Dashboard</a>`;
+                statusDiv.insertAdjacentHTML('beforeend', adminLink);
+                return; // Exit here for admins, preventing other logic from running
             }
 
             if (user.current_plan) {
@@ -1778,12 +1783,6 @@ body {
                 trialEndsSpan.textContent = 'N/A';
                 upgradeBtn.style.display = 'block';
                 upgradeBtn.textContent = 'Choose a Plan';
-            }
-
-            // Add admin dashboard link if user is admin
-            if (user.is_admin) {
-                const adminLink = `<a href="/admin/dashboard" class="btn btn-warning mt-2">Admin Dashboard</a>`;
-                statusDiv.insertAdjacentHTML('beforeend', adminLink);
             }
         }
 
