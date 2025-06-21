@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
+from flask_sqlalchemy import SQLAlchemy
 import os
 import json
 import requests
@@ -12,8 +13,6 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from dotenv import load_dotenv
 from typing import Union, BinaryIO
-import sqlite3
-from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 import urllib.parse
 import gspread
@@ -25,9 +24,17 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
+
+# Database Configuration
+db_url = os.environ.get('DATABASE_URL')
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
-app.config['REMEMBER_COOKIE_SECURE'] = True  # Set to True in production with HTTPS
+app.config['REMEMBER_COOKIE_SECURE'] = True
 app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY')
 
 # Email configuration
@@ -39,6 +46,7 @@ app.config['MAIL_PASSWORD'] = os.getenv('GMAIL_APP_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('GMAIL_USERNAME')
 
 mail = Mail(app)
+db = SQLAlchemy(app)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -57,106 +65,59 @@ def unauthorized_callback():
     return redirect(url_for('index'))
 
 # User class for Flask-Login
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
+class User(db.Model, UserMixin):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    name = db.Column(db.String(100))
+    business = db.Column(db.String(100))
+    is_verified = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    trial_ends_at = db.Column(db.DateTime)
+    stripe_customer_id = db.Column(db.String(120), unique=True)
+    stripe_subscription_id = db.Column(db.String(120), unique=True)
+    current_plan = db.Column(db.String(50))
+    search_count = db.Column(db.Integer, default=0)
+    last_search_reset = db.Column(db.DateTime)
+
+class EmailVerificationToken(db.Model):
+    __tablename__ = 'email_verification_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(128), unique=True, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class PasswordResetToken(db.Model):
+    __tablename__ = 'password_reset_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(128), unique=True, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class UserSettings(db.Model):
+    __tablename__ = 'user_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    default_radius = db.Column(db.Integer, default=5)
+    default_business_type = db.Column(db.String(100))
+    remember_last_search = db.Column(db.Boolean, default=False)
+    results_per_page = db.Column(db.Integer, default=25)
+    show_map_by_default = db.Column(db.Boolean, default=True)
+    email_notifications = db.Column(db.Boolean, default=True)
+    search_reminders = db.Column(db.Boolean, default=False)
+    last_search_city = db.Column(db.String(100))
+    last_search_state = db.Column(db.String(100))
+    last_search_business_type = db.Column(db.String(100))
+    last_search_radius = db.Column(db.Integer)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 @login_manager.user_loader
 def load_user(user_id):
     """Load user from database."""
-    conn = get_db_connection()
-    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
-    if user_data:
-        user = User(user_data['id'])
-        user.email = user_data['email']
-        user.name = user_data['name']
-        user.business = user_data['business']
-        user.is_verified = bool(user_data['is_verified'])
-        return user
-    return None
-
-# Define the path for the database file
-DATA_DIR = os.environ.get('RENDER_DISK_MOUNT_PATH', '.')
-DB_PATH = os.path.join(DATA_DIR, 'users.db')
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    conn = get_db_connection()
-    
-    # Create users table with email verification
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            name TEXT,
-            business TEXT,
-            is_verified BOOLEAN DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            trial_ends_at TIMESTAMP,
-            stripe_customer_id TEXT,
-            stripe_subscription_id TEXT,
-            current_plan TEXT, -- e.g., 'BASIC', 'PREMIUM', 'PLATINUM'
-            search_count INTEGER DEFAULT 0,
-            last_search_reset TIMESTAMP
-        )
-    ''')
-    
-    # Create email verification tokens table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS email_verification_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            token TEXT UNIQUE NOT NULL,
-            expires_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # Create password reset tokens table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS password_reset_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            token TEXT UNIQUE NOT NULL,
-            expires_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # Create user settings table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS user_settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER UNIQUE NOT NULL,
-            default_radius INTEGER DEFAULT 5,
-            default_business_type TEXT,
-            remember_last_search BOOLEAN DEFAULT 0,
-            results_per_page INTEGER DEFAULT 25,
-            show_map_by_default BOOLEAN DEFAULT 1,
-            email_notifications BOOLEAN DEFAULT 1,
-            search_reminders BOOLEAN DEFAULT 0,
-            last_search_city TEXT,
-            last_search_state TEXT,
-            last_search_business_type TEXT,
-            last_search_radius INTEGER,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-
-# Initialize database
-init_db()
+    return User.query.get(int(user_id))
 
 def generate_token():
     """Generate a secure random token."""
@@ -177,23 +138,13 @@ def send_email(subject, recipients, body, html_body=None):
 
 def send_verification_email(user_id, email, name):
     """Send email verification email."""
-    conn = get_db_connection()
-    
-    # Generate verification token
     token = generate_token()
-    expires_at = datetime.now() + timedelta(hours=24)
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+    new_token = EmailVerificationToken(user_id=user_id, token=token, expires_at=expires_at)
+    db.session.add(new_token)
+    db.session.commit()
     
-    # Store token in database
-    conn.execute(
-        'INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
-        (user_id, token, expires_at)
-    )
-    conn.commit()
-    conn.close()
-    
-    # Create verification URL
-    verification_url = f"{request.host_url.rstrip('/')}/verify-email/{token}"
-    
+    verification_url = url_for('verify_email', token=token, _external=True)
     subject = "Verify Your Email - Business Lead Finder"
     body = f"""
     Hello {name or 'there'}!
@@ -230,23 +181,13 @@ def send_verification_email(user_id, email, name):
 
 def send_password_reset_email(user_id, email, name):
     """Send password reset email."""
-    conn = get_db_connection()
-    
-    # Generate reset token
     token = generate_token()
-    expires_at = datetime.now() + timedelta(hours=1)
+    expires_at = datetime.utcnow() + timedelta(hours=1)
+    new_token = PasswordResetToken(user_id=user_id, token=token, expires_at=expires_at)
+    db.session.add(new_token)
+    db.session.commit()
     
-    # Store token in database
-    conn.execute(
-        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
-        (user_id, token, expires_at)
-    )
-    conn.commit()
-    conn.close()
-    
-    # Create reset URL
-    reset_url = f"{request.host_url.rstrip('/')}/reset-password/{token}"
-    
+    reset_url = url_for('reset_password_page', token=token, _external=True)
     subject = "Password Reset - Business Lead Finder"
     body = f"""
     Hello {name or 'there'}!
@@ -283,17 +224,15 @@ def send_password_reset_email(user_id, email, name):
 
 def cleanup_expired_tokens():
     """Clean up expired tokens from database."""
-    conn = get_db_connection()
-    now = datetime.now()
+    now = datetime.utcnow()
     
     # Clean up expired email verification tokens
-    conn.execute('DELETE FROM email_verification_tokens WHERE expires_at < ?', (now,))
+    EmailVerificationToken.query.filter(EmailVerificationToken.expires_at < now).delete()
     
     # Clean up expired password reset tokens
-    conn.execute('DELETE FROM password_reset_tokens WHERE expires_at < ?', (now,))
+    PasswordResetToken.query.filter(PasswordResetToken.expires_at < now).delete()
     
-    conn.commit()
-    conn.close()
+    db.session.commit()
 
 def get_coordinates(location, api_key):
     """Get coordinates for a location using Google Geocoding API."""
@@ -501,55 +440,24 @@ def index():
 @app.route('/verify-email/<token>')
 def verify_email(token):
     """Verify email with token."""
-    try:
-        conn = get_db_connection()
-        
-        # Find the token
-        token_data = conn.execute(
-            'SELECT * FROM email_verification_tokens WHERE token = ? AND expires_at > ?',
-            (token, datetime.now())
-        ).fetchone()
-        
-        if not token_data:
-            conn.close()
-            return render_template('email_verification.html', success=False, message="Invalid or expired verification link.")
-        
-        # Mark user as verified
-        conn.execute('UPDATE users SET is_verified = 1 WHERE id = ?', (token_data['user_id'],))
-        
-        # Delete the used token
-        conn.execute('DELETE FROM email_verification_tokens WHERE token = ?', (token,))
-        
-        conn.commit()
-        conn.close()
-        
-        return render_template('email_verification.html', success=True, message="Email verified successfully! You can now log in.")
-        
-    except Exception as e:
-        return render_template('email_verification.html', success=False, message=f"An error occurred: {str(e)}")
+    token_data = EmailVerificationToken.query.filter_by(token=token).first()
+    if token_data and token_data.expires_at > datetime.utcnow():
+        user = User.query.get(token_data.user_id)
+        if user:
+            user.is_verified = True
+            db.session.delete(token_data)
+            db.session.commit()
+            return render_template('email_verification.html', success=True, message="Email verified successfully! You can now log in.")
+    return render_template('email_verification.html', success=False, message="Invalid or expired verification link.")
 
 # Password reset page
 @app.route('/reset-password/<token>')
 def reset_password_page(token):
     """Show password reset form."""
-    try:
-        conn = get_db_connection()
-        
-        # Check if token is valid
-        token_data = conn.execute(
-            'SELECT * FROM password_reset_tokens WHERE token = ? AND expires_at > ?',
-            (token, datetime.now())
-        ).fetchone()
-        
-        conn.close()
-        
-        if not token_data:
-            return render_template('password_reset.html', valid=False, message="Invalid or expired reset link.")
-        
+    token_data = PasswordResetToken.query.filter_by(token=token).first()
+    if token_data and token_data.expires_at > datetime.utcnow():
         return render_template('password_reset.html', valid=True, token=token)
-        
-    except Exception as e:
-        return render_template('password_reset.html', valid=False, message=f"An error occurred: {str(e)}")
+    return render_template('password_reset.html', valid=False, message="Invalid or expired reset link.")
 
 # Stripe configuration
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
@@ -570,229 +478,96 @@ plan_search_limits = {
 @app.route('/api/register', methods=['POST'])
 def register():
     """Register a new user and start a 14-day trial."""
-    try:
-        data = request.json
-        email = data.get('email')
-        password = data.get('password')
-        name = data.get('name', '')
-        business = data.get('business', '')
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required'}), 400
+    
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'User already exists'}), 400
+    
+    new_user = User(
+        email=email,
+        password_hash=generate_password_hash(password),
+        name=data.get('name', ''),
+        business=data.get('business', ''),
+        trial_ends_at=datetime.utcnow() + timedelta(days=14)
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    
+    if app.config['MAIL_USERNAME']:
+        send_verification_email(new_user.id, new_user.email, new_user.name)
         
-        if not email or not password:
-            return jsonify({'error': 'Email and password are required'}), 400
-        
-        conn = get_db_connection()
-        
-        # Check if user already exists
-        existing_user = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
-        if existing_user:
-            conn.close()
-            return jsonify({'error': 'User already exists'}), 400
-        
-        # Create new user
-        password_hash = generate_password_hash(password)
-        trial_ends_at = datetime.now() + timedelta(days=14)
-        cursor = conn.execute(
-            'INSERT INTO users (email, password_hash, name, business, trial_ends_at) VALUES (?, ?, ?, ?, ?)',
-            (email, password_hash, name, business, trial_ends_at)
-        )
-        user_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        # Send verification email
-        if app.config['MAIL_USERNAME'] and app.config['MAIL_PASSWORD']:
-            send_verification_email(user_id, email, name)
-        
-        # Create user object and log them in
-        user = User(user_id)
-        login_user(user)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Registration successful! Please check your email to verify your account.',
-            'user': {
-                'id': user_id,
-                'email': email,
-                'name': name,
-                'business': business,
-                'is_verified': False
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    login_user(new_user)
+    
+    return jsonify({
+        'success': True,
+        'user': {'id': new_user.id, 'email': new_user.email, 'name': new_user.name, 'is_verified': new_user.is_verified}
+    })
 
 @app.route('/api/login', methods=['POST'])
 def login():
     """Authenticate user."""
-    try:
-        data = request.json
-        email = data.get('email')
-        password = data.get('password')
-        remember = data.get('remember', False)
-        
-        if not email or not password:
-            return jsonify({'error': 'Email and password are required'}), 400
-            
-        conn = get_db_connection()
-        user_data = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
-        conn.close()
-        
-        if user_data and check_password_hash(user_data['password_hash'], password):
-            user = User(user_data['id'])
-            login_user(user, remember=remember)
-            
-            return jsonify({
-                'success': True, 
-                'user': {
-                    'id': user_data['id'],
-                    'email': user_data['email'],
-                    'name': user_data['name'],
-                    'business': user_data['business'],
-                    'is_verified': bool(user_data['is_verified'])
-                }
-            })
-        else:
-            return jsonify({'error': 'Invalid email or password'}), 401
-            
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    data = request.json
+    user = User.query.filter_by(email=data.get('email')).first()
+    if user and check_password_hash(user.password_hash, data.get('password')):
+        login_user(user, remember=data.get('remember', False))
+        return jsonify({
+            'success': True,
+            'user': {'id': user.id, 'email': user.email, 'name': user.name, 'is_verified': user.is_verified}
+        })
+    return jsonify({'error': 'Invalid email or password'}), 401
 
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def logout():
     """Log out the current user."""
     logout_user()
-    return jsonify({'success': True, 'message': 'Logout successful'})
-
-@app.route('/api/profile', methods=['GET'])
-@login_required
-def get_profile():
-    """Get the current user's profile."""
-    return jsonify({
-        'id': current_user.id,
-        'email': current_user.email,
-        'name': current_user.name,
-        'business': current_user.business,
-        'is_verified': current_user.is_verified
-    })
+    return jsonify({'success': True})
 
 @app.route('/api/profile', methods=['PUT'])
 @login_required
 def update_profile():
     """Update the current user's profile."""
-    try:
-        data = request.json
-        name = data.get('name', '')
-        business = data.get('business', '')
-        
-        conn = get_db_connection()
-        conn.execute(
-            'UPDATE users SET name = ?, business = ? WHERE id = ?',
-            (name, business, current_user.id)
-        )
-        conn.commit()
-        conn.close()
-        
-        # Update the current user object
-        current_user.name = name
-        current_user.business = business
-        
-        return jsonify({
-            'success': True,
-            'message': 'Profile updated successfully',
-            'user': {
-                'id': current_user.id,
-                'email': current_user.email,
-                'name': name,
-                'business': business,
-                'is_verified': current_user.is_verified
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    data = request.json
+    current_user.name = data.get('name', current_user.name)
+    current_user.business = data.get('business', current_user.business)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Profile updated successfully', 'user': {'name': current_user.name, 'business': current_user.business}})
 
 @app.route('/api/request-password-reset', methods=['POST'])
 def request_password_reset():
     """Request a password reset."""
-    try:
-        data = request.json
-        email = data.get('email')
-        
-        if not email:
-            return jsonify({'error': 'Email is required'}), 400
-        
-        conn = get_db_connection()
-        user_data = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
-        conn.close()
-        
-        if not user_data:
-            # Don't reveal if email exists or not for security
-            return jsonify({'success': True, 'message': 'If an account with that email exists, a password reset link has been sent.'})
-        
-        # Send password reset email
-        if app.config['MAIL_USERNAME'] and app.config['MAIL_PASSWORD']:
-            send_password_reset_email(user_data['id'], email, user_data['name'])
-        
-        return jsonify({'success': True, 'message': 'If an account with that email exists, a password reset link has been sent.'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    data = request.json
+    user = User.query.filter_by(email=data.get('email')).first()
+    if user and app.config['MAIL_USERNAME']:
+        send_password_reset_email(user.id, user.email, user.name)
+    return jsonify({'success': True, 'message': 'If an account with that email exists, a password reset link has been sent.'})
 
 @app.route('/api/reset-password/<token>', methods=['POST'])
 def reset_password(token):
     """Reset password with token."""
-    try:
+    token_data = PasswordResetToken.query.filter_by(token=token).first()
+    if token_data and token_data.expires_at > datetime.utcnow():
+        user = User.query.get(token_data.user_id)
         data = request.json
-        new_password = data.get('password')
-        
-        if not new_password:
-            return jsonify({'error': 'New password is required'}), 400
-        
-        conn = get_db_connection()
-        
-        # Find the token
-        token_data = conn.execute(
-            'SELECT * FROM password_reset_tokens WHERE token = ? AND expires_at > ?',
-            (token, datetime.now())
-        ).fetchone()
-        
-        if not token_data:
-            conn.close()
-            return jsonify({'error': 'Invalid or expired reset token'}), 400
-        
-        # Update password
-        password_hash = generate_password_hash(new_password)
-        conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', (password_hash, token_data['user_id']))
-        
-        # Delete the used token
-        conn.execute('DELETE FROM password_reset_tokens WHERE token = ?', (token,))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'Password reset successfully'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        if user and data.get('password'):
+            user.password_hash = generate_password_hash(data.get('password'))
+            db.session.delete(token_data)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Password reset successfully'})
+    return jsonify({'error': 'Invalid or expired reset token'}), 400
 
 @app.route('/api/send-verification-email', methods=['POST'])
 @login_required
 def send_verification_email_api():
     """Send verification email to current user."""
-    try:
-        if current_user.is_verified:
-            return jsonify({'error': 'Email is already verified'}), 400
-        
-        if app.config['MAIL_USERNAME'] and app.config['MAIL_PASSWORD']:
-            send_verification_email(current_user.id, current_user.email, current_user.name)
-            return jsonify({'success': True, 'message': 'Verification email sent successfully'})
-        else:
-            return jsonify({'error': 'Email service not configured'}), 500
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    if not current_user.is_verified and app.config['MAIL_USERNAME']:
+        send_verification_email(current_user.id, current_user.email, current_user.name)
+        return jsonify({'success': True, 'message': 'Verification email sent successfully'})
+    return jsonify({'error': 'Email already verified or mail not configured'}), 400
 
 @app.route('/api/check-auth')
 def check_auth():
@@ -801,11 +576,10 @@ def check_auth():
         return jsonify({
             'authenticated': True,
             'user': {
-                'id': current_user.id,
-                'email': current_user.email,
-                'name': current_user.name,
-                'business': current_user.business,
-                'is_verified': current_user.is_verified
+                'id': current_user.id, 'email': current_user.email, 'name': current_user.name,
+                'is_verified': current_user.is_verified, 'trial_ends_at': current_user.trial_ends_at.isoformat() if current_user.trial_ends_at else None,
+                'current_plan': current_user.current_plan, 'search_count': current_user.search_count,
+                'search_limit': plan_search_limits.get(current_user.current_plan, 'N/A')
             }
         })
     else:
@@ -817,15 +591,13 @@ def search():
     """Search for business leads."""
     
     # Check subscription status and search limits
-    now = datetime.now()
+    now = datetime.utcnow()
     
     # Reset monthly search count if a month has passed
-    if current_user.last_search_reset and (now - datetime.fromisoformat(current_user.last_search_reset)).days >= 30:
-        conn = get_db_connection()
-        conn.execute('UPDATE users SET search_count = 0, last_search_reset = CURRENT_TIMESTAMP WHERE id = ?', (current_user.id,))
-        conn.commit()
-        conn.close()
+    if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
         current_user.search_count = 0
+        current_user.last_search_reset = now
+        db.session.commit()
 
     # Check if user is on a paid plan
     if current_user.current_plan:
@@ -834,7 +606,7 @@ def search():
             return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
     
     # Check if user is on a trial plan
-    elif current_user.trial_ends_at and now < datetime.fromisoformat(current_user.trial_ends_at):
+    elif current_user.trial_ends_at and now < current_user.trial_ends_at:
         # Allow unlimited searches during trial, or you can set a specific trial limit
         pass
     
@@ -883,10 +655,8 @@ def search():
         leads = search_places(center['lat'], center['lng'], business_type, radius_meters, api_key)
         
         # Increment search count after a successful search
-        conn = get_db_connection()
-        conn.execute('UPDATE users SET search_count = search_count + 1 WHERE id = ?', (current_user.id,))
-        conn.commit()
-        conn.close()
+        current_user.search_count += 1
+        db.session.commit()
         
         return jsonify({
             'leads': leads,
@@ -1023,109 +793,27 @@ def export_to_google_sheets():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/settings', methods=['GET'])
+@app.route('/api/settings', methods=['GET', 'PUT'])
 @login_required
-def get_settings():
-    """Get user settings."""
-    try:
-        conn = get_db_connection()
-        settings = conn.execute('SELECT * FROM user_settings WHERE user_id = ?', (current_user.id,)).fetchone()
-        conn.close()
-        
-        if settings:
-            return jsonify({
-                'success': True,
-                'settings': {
-                    'default_radius': settings['default_radius'],
-                    'default_business_type': settings['default_business_type'],
-                    'remember_last_search': bool(settings['remember_last_search']),
-                    'results_per_page': settings['results_per_page'],
-                    'show_map_by_default': bool(settings['show_map_by_default']),
-                    'email_notifications': bool(settings['email_notifications']),
-                    'search_reminders': bool(settings['search_reminders']),
-                    'last_search_city': settings['last_search_city'],
-                    'last_search_state': settings['last_search_state'],
-                    'last_search_business_type': settings['last_search_business_type'],
-                    'last_search_radius': settings['last_search_radius']
-                }
-            })
-        else:
-            # Return default settings if none exist
-            return jsonify({
-                'success': True,
-                'settings': {
-                    'default_radius': 5,
-                    'default_business_type': '',
-                    'remember_last_search': False,
-                    'results_per_page': 25,
-                    'show_map_by_default': True,
-                    'email_notifications': True,
-                    'search_reminders': False,
-                    'last_search_city': '',
-                    'last_search_state': '',
-                    'last_search_business_type': '',
-                    'last_search_radius': 5
-                }
-            })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/settings', methods=['PUT'])
-@login_required
-def update_settings():
-    """Update user settings."""
-    try:
+def settings():
+    """Get or update user settings."""
+    settings = UserSettings.query.filter_by(user_id=current_user.id).first()
+    if not settings:
+        settings = UserSettings(user_id=current_user.id)
+        db.session.add(settings)
+    
+    if request.method == 'PUT':
         data = request.json
-        conn = get_db_connection()
-        
-        # Check if settings exist
-        existing_settings = conn.execute('SELECT id FROM user_settings WHERE user_id = ?', (current_user.id,)).fetchone()
-        
-        if existing_settings:
-            # Update existing settings
-            conn.execute('''
-                UPDATE user_settings SET 
-                    default_radius = ?, default_business_type = ?, remember_last_search = ?,
-                    results_per_page = ?, show_map_by_default = ?,
-                    email_notifications = ?, search_reminders = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ?
-            ''', (
-                data.get('default_radius', 5),
-                data.get('default_business_type', ''),
-                data.get('remember_last_search', False),
-                data.get('results_per_page', 25),
-                data.get('show_map_by_default', True),
-                data.get('email_notifications', True),
-                data.get('search_reminders', False),
-                current_user.id
-            ))
-        else:
-            # Create new settings
-            conn.execute('''
-                INSERT INTO user_settings (
-                    user_id, default_radius, default_business_type, remember_last_search,
-                    results_per_page, show_map_by_default,
-                    email_notifications, search_reminders
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                current_user.id,
-                data.get('default_radius', 5),
-                data.get('default_business_type', ''),
-                data.get('remember_last_search', False),
-                data.get('results_per_page', 25),
-                data.get('show_map_by_default', True),
-                data.get('email_notifications', True),
-                data.get('search_reminders', False)
-            ))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'Settings updated successfully'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        for key, value in data.items():
+            if hasattr(settings, key):
+                setattr(settings, key, value)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Settings updated'})
+
+    return jsonify({
+        'success': True,
+        'settings': {key: getattr(settings, key) for key in data.keys()} if settings else {}
+    })
 
 @app.route('/api/change-password', methods=['POST'])
 @login_required
@@ -1139,18 +827,11 @@ def change_password():
         if not current_password or not new_password:
             return jsonify({'error': 'Current password and new password are required'}), 400
         
-        conn = get_db_connection()
-        user_data = conn.execute('SELECT password_hash FROM users WHERE id = ?', (current_user.id,)).fetchone()
-        
-        if not user_data or not check_password_hash(user_data['password_hash'], current_password):
-            conn.close()
+        if not current_user.check_password(current_password):
             return jsonify({'error': 'Current password is incorrect'}), 401
         
-        # Update password
-        new_password_hash = generate_password_hash(new_password)
-        conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', (new_password_hash, current_user.id))
-        conn.commit()
-        conn.close()
+        current_user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
         
         return jsonify({'success': True, 'message': 'Password changed successfully'})
         
@@ -1162,29 +843,33 @@ def change_password():
 def export_user_data():
     """Export user data."""
     try:
-        conn = get_db_connection()
-        
         # Get user data
-        user_data = conn.execute('SELECT * FROM users WHERE id = ?', (current_user.id,)).fetchone()
-        settings_data = conn.execute('SELECT * FROM user_settings WHERE user_id = ?', (current_user.id,)).fetchone()
-        
-        conn.close()
-        
-        # Prepare export data (exclude sensitive information)
-        export_data = {
+        user_data = {
             'user_info': {
-                'email': user_data['email'],
-                'name': user_data['name'],
-                'business': user_data['business'],
-                'is_verified': bool(user_data['is_verified']),
-                'created_at': user_data['created_at']
+                'email': current_user.email,
+                'name': current_user.name,
+                'business': current_user.business,
+                'is_verified': current_user.is_verified,
+                'created_at': current_user.created_at.isoformat() if current_user.created_at else None
             },
-            'settings': settings_data if settings_data else {}
+            'settings': {
+                'default_radius': current_user.settings.default_radius,
+                'default_business_type': current_user.settings.default_business_type,
+                'remember_last_search': current_user.settings.remember_last_search,
+                'results_per_page': current_user.settings.results_per_page,
+                'show_map_by_default': current_user.settings.show_map_by_default,
+                'email_notifications': current_user.settings.email_notifications,
+                'search_reminders': current_user.settings.search_reminders,
+                'last_search_city': current_user.settings.last_search_city,
+                'last_search_state': current_user.settings.last_search_state,
+                'last_search_business_type': current_user.settings.last_search_business_type,
+                'last_search_radius': current_user.settings.last_search_radius
+            }
         }
         
         return jsonify({
             'success': True,
-            'data': export_data,
+            'data': user_data,
             'message': 'Data exported successfully'
         })
         
@@ -1202,17 +887,12 @@ def delete_account():
         if not password:
             return jsonify({'error': 'Password is required to delete account'}), 400
         
-        conn = get_db_connection()
-        user_data = conn.execute('SELECT password_hash FROM users WHERE id = ?', (current_user.id,)).fetchone()
-        
-        if not user_data or not check_password_hash(user_data['password_hash'], password):
-            conn.close()
+        if not current_user.check_password(password):
             return jsonify({'error': 'Password is incorrect'}), 401
         
         # Delete user data (cascade will handle related records)
-        conn.execute('DELETE FROM users WHERE id = ?', (current_user.id,))
-        conn.commit()
-        conn.close()
+        db.session.delete(current_user)
+        db.session.commit()
         
         # Logout user
         logout_user()
@@ -1228,42 +908,11 @@ def update_last_search():
     """Update last search parameters."""
     try:
         data = request.json
-        conn = get_db_connection()
-        
-        # Check if settings exist
-        existing_settings = conn.execute('SELECT id FROM user_settings WHERE user_id = ?', (current_user.id,)).fetchone()
-        
-        if existing_settings:
-            conn.execute('''
-                UPDATE user_settings SET 
-                    last_search_city = ?, last_search_state = ?, 
-                    last_search_business_type = ?, last_search_radius = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ?
-            ''', (
-                data.get('city', ''),
-                data.get('state', ''),
-                data.get('business_type', ''),
-                data.get('radius', 5),
-                current_user.id
-            ))
-        else:
-            # Create settings with last search data
-            conn.execute('''
-                INSERT INTO user_settings (
-                    user_id, last_search_city, last_search_state,
-                    last_search_business_type, last_search_radius
-                ) VALUES (?, ?, ?, ?, ?)
-            ''', (
-                current_user.id,
-                data.get('city', ''),
-                data.get('state', ''),
-                data.get('business_type', ''),
-                data.get('radius', 5)
-            ))
-        
-        conn.commit()
-        conn.close()
+        current_user.settings.last_search_city = data.get('city', '')
+        current_user.settings.last_search_state = data.get('state', '')
+        current_user.settings.last_search_business_type = data.get('business_type', '')
+        current_user.settings.last_search_radius = float(data.get('radius', 5))
+        db.session.commit()
         
         return jsonify({'success': True})
         
@@ -1337,13 +986,11 @@ def stripe_webhook():
         customer_id = session.get('customer')
         subscription_id = session.get('subscription')
         
-        conn = get_db_connection()
-        conn.execute(
-            'UPDATE users SET stripe_customer_id = ?, stripe_subscription_id = ? WHERE id = ?',
-            (customer_id, subscription_id, user_id)
-        )
-        conn.commit()
-        conn.close()
+        user = User.query.get(user_id)
+        if user:
+            user.stripe_customer_id = customer_id
+            user.stripe_subscription_id = subscription_id
+            db.session.commit()
 
     elif event['type'] in ['customer.subscription.updated', 'customer.subscription.deleted']:
         subscription = event['data']['object']
@@ -1352,19 +999,18 @@ def stripe_webhook():
         plan_id = subscription['items']['data'][0]['price']['id']
         plan_name = next((name for name, id in plan_price_ids.items() if id == plan_id), None)
         
-        conn = get_db_connection()
-        if event['type'] == 'customer.subscription.deleted':
-            conn.execute(
-                "UPDATE users SET current_plan = NULL, stripe_subscription_id = NULL, search_count = 0, last_search_reset = NULL WHERE stripe_customer_id = ?",
-                (customer_id,)
-            )
-        else:
-            conn.execute(
-                "UPDATE users SET current_plan = ?, last_search_reset = CURRENT_TIMESTAMP, search_count = 0 WHERE stripe_customer_id = ?",
-                (plan_name, customer_id)
-            )
-        conn.commit()
-        conn.close()
+        user = User.query.get(customer_id)
+        if user:
+            if event['type'] == 'customer.subscription.deleted':
+                user.current_plan = None
+                user.stripe_subscription_id = None
+                user.search_count = 0
+                user.last_search_reset = None
+            else:
+                user.current_plan = plan_name
+            user.last_search_reset = datetime.utcnow()
+            user.search_count = 0
+            db.session.commit()
 
     return 'Success', 200
 
@@ -1399,4 +1045,6 @@ def pricing():
 if __name__ == '__main__':
     # Clean up expired tokens on startup
     cleanup_expired_tokens()
+    with app.app_context():
+        db.create_all()
     app.run(debug=True) 
