@@ -1040,11 +1040,4 @@ def pricing():
         basic_price_id=plan_price_ids['BASIC'],
         premium_price_id=plan_price_ids['PREMIUM'],
         platinum_price_id=plan_price_ids['PLATINUM']
-    )
-
-if __name__ == '__main__':
-    # Clean up expired tokens on startup
-    cleanup_expired_tokens()
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True) 
+    ) 

@@ -7,7 +7,7 @@ gspread==5.7.2
 google-auth==2.16.0
 Flask-Login==0.6.2
 Flask-Mail==0.9.1
-werkzeug>=2.2.2
+werkzeug==2.2.2
 stripe==7.11.0
 Flask-SQLAlchemy==3.0.3
 psycopg2-binary==2.9.5
