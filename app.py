@@ -798,22 +798,28 @@ def export_to_google_sheets():
 @login_required
 def settings():
     """Get or update user settings."""
-    settings = UserSettings.query.filter_by(user_id=current_user.id).first()
-    if not settings:
-        settings = UserSettings(user_id=current_user.id)
-        db.session.add(settings)
+    settings_obj = UserSettings.query.filter_by(user_id=current_user.id).first()
+    
+    if not settings_obj:
+        settings_obj = UserSettings(user_id=current_user.id)
+        db.session.add(settings_obj)
+        db.session.commit()
     
     if request.method == 'PUT':
         data = request.json
         for key, value in data.items():
-            if hasattr(settings, key):
-                setattr(settings, key, value)
+            if hasattr(settings_obj, key):
+                setattr(settings_obj, key, value)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Settings updated'})
 
+    settings_dict = {
+        c.name: getattr(settings_obj, c.name).isoformat() if isinstance(getattr(settings_obj, c.name), datetime) else getattr(settings_obj, c.name)
+        for c in settings_obj.__table__.columns
+    }
     return jsonify({
         'success': True,
-        'settings': {key: getattr(settings, key) for key in data.keys()} if settings else {}
+        'settings': settings_dict
     })
 
 @app.route('/api/change-password', methods=['POST'])

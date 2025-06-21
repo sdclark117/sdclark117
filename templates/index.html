@@ -1761,8 +1761,14 @@ body {
                 manageBillingBtn.style.display = 'block';
             } else if (user.trial_ends_at) {
                 const trialEndDate = new Date(user.trial_ends_at);
-                const daysRemaining = Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24));
-                statusDiv.innerHTML = `<span class="badge bg-info">Free Trial</span> <span>${daysRemaining} days remaining</span>`;
+                const now = new Date();
+                const diffTime = trialEndDate - now;
+                if (diffTime > 0) {
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    statusDiv.innerHTML = `<span class="badge bg-info">FREE TRIAL</span> <span>${diffDays} days remaining</span>`;
+                } else {
+                    statusDiv.innerHTML = 'Free Trial Expired';
+                }
                 manageBillingBtn.style.display = 'none';
             } else {
                 statusDiv.innerHTML = `<a href="/pricing" class="btn btn-primary">Choose a Plan</a>`;
