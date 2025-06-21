@@ -599,21 +599,20 @@ def search():
     """Search for business leads, with limits for both guests and authenticated users."""
     
     # Handle search limits based on authentication
-    if current_user.is_authenticated:
-        if not current_user.is_admin:  # Admins bypass all search limits
-            now = datetime.utcnow()
-            if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
-                current_user.search_count = 0
-                current_user.last_search_reset = now
-                db.session.commit()
+    if current_user.is_authenticated and not current_user.is_admin:
+        now = datetime.utcnow()
+        if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
+            current_user.search_count = 0
+            current_user.last_search_reset = now
+            db.session.commit()
 
-            if current_user.current_plan:
-                limit = plan_search_limits.get(current_user.current_plan, 0)
-                if current_user.search_count >= limit:
-                    return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
-            elif not (current_user.trial_ends_at and now < current_user.trial_ends_at):
-                 return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
-    else:
+        if current_user.current_plan:
+            limit = plan_search_limits.get(current_user.current_plan, 0)
+            if current_user.search_count >= limit:
+                return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
+        elif not (current_user.trial_ends_at and now < current_user.trial_ends_at):
+             return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
+    elif not current_user.is_authenticated:
         # New logic for guest users
         if 'guest_search_count' not in session:
             session['guest_search_count'] = 0
@@ -653,8 +652,10 @@ def search():
             max_reviews = None
 
             if max_reviews_str:
-                if (current_user.is_authenticated and current_user.is_admin) or \
-                   (current_user.is_authenticated and current_user.current_plan in ['PREMIUM', 'PLATINUM']):
+                if not current_user.is_authenticated or \
+                   (not current_user.is_admin and current_user.current_plan not in ['PREMIUM', 'PLATINUM']):
+                    pass  # Silently ignore for users without access
+                else:
                     try:
                         max_reviews = int(max_reviews_str)
                     except (ValueError, TypeError):
@@ -680,11 +681,10 @@ def search():
         unique_leads = list({lead['place_id']: lead for lead in all_leads}.values())
 
         # Increment search count and limit results
-        if current_user.is_authenticated:
-            if not current_user.is_admin:  # Admins don't have their searches counted
-                current_user.search_count += 1
-                db.session.commit()
-        else:
+        if current_user.is_authenticated and not current_user.is_admin:
+            current_user.search_count += 1
+            db.session.commit()
+        elif not current_user.is_authenticated:
             session['guest_search_count'] = session.get('guest_search_count', 0) + 1
             unique_leads = unique_leads[:15] # Limit results for guests
         
