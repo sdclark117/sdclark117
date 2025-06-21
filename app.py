@@ -1280,7 +1280,11 @@ def create_checkout_session():
         )
         return jsonify({'session_id': checkout_session.id})
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        print(f"STRIPE CHECKOUT ERROR: {str(e)}")
+        error_message = str(e)
+        if hasattr(e, 'user_message'):
+            error_message = e.user_message
+        return jsonify({'error': f"Stripe Error: {error_message}"}), 400
 
 @app.route('/api/create-portal-session', methods=['POST'])
 @login_required
