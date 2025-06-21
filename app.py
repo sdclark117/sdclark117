@@ -42,7 +42,7 @@ mail = Mail(app)
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'index'
 
 # User class for Flask-Login
 class User(UserMixin):
