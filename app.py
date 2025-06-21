@@ -600,8 +600,7 @@ def search():
     
     # Handle search limits based on authentication
     if current_user.is_authenticated:
-        if not current_user.is_admin: # Admins bypass all search limits
-            # Existing logic for authenticated users
+        if not current_user.is_admin:  # Admins bypass all search limits
             now = datetime.utcnow()
             if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
                 current_user.search_count = 0
@@ -614,46 +613,10 @@ def search():
                     return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
             elif not (current_user.trial_ends_at and now < current_user.trial_ends_at):
                  return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
-    else:
-        # New logic for guest users
-        if 'guest_search_count' not in session:
-            session['guest_search_count'] = 0
-        
-        if session.get('guest_search_count', 0) >= 5:
-            return jsonify({
-                'error': 'You have reached your limit of 5 free searches. Please create an account to continue.',
-                'prompt_register': True
-            }), 403
-
-    # The rest of the search logic remains largely the same
-    try:
-        api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-        if not api_key:
-            raise Exception("Google Maps API key is not configured")
-            
-        data = request.json
-        if not data:
-            raise Exception("No data provided in request")
-            
-        searches = data.get('searches')
-        if not searches:
-            # Fallback for old request format for a single search
-            searches = [data]
-
-        all_leads = []
-        all_centers = []
-        
-        for search_params in searches:
-            city = search_params.get('city', '').strip()
-            state = search_params.get('state', '').strip()
-            business_type = search_params.get('business_type', '').strip()
-            radius = float(search_params.get('radius', 5))
-            lat = search_params.get('lat')
-            lng = search_params.get('lng')
-            max_reviews_str = search_params.get('max_reviews')
             max_reviews = None
 
             if max_reviews_str:
+                # Admins should have access to premium features
                 if (current_user.is_authenticated and current_user.current_plan in ['PREMIUM', 'PLATINUM']) or \
                    (current_user.is_authenticated and current_user.is_admin):
                     try:
@@ -682,7 +645,7 @@ def search():
 
         # Increment search count and limit results
         if current_user.is_authenticated:
-            if not current_user.is_admin: # Admins don't have their searches counted
+            if not current_user.is_admin:  # Admins don't have their searches counted
                 current_user.search_count += 1
                 db.session.commit()
         else:

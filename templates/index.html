@@ -1619,7 +1619,7 @@ body {
                     document.getElementById('loginBtn').style.display = 'none';
                     
                     const plan = data.user.current_plan;
-                    if (plan === 'PREMIUM' || plan === 'PLATINUM') {
+                    if (data.user.is_admin || plan === 'PREMIUM' || plan === 'PLATINUM') {
                         document.getElementById('maxReviewsContainer').style.display = 'block';
                     }
                 } else {
@@ -1748,6 +1748,12 @@ body {
 
             manageBtn.style.display = 'none';
             upgradeBtn.style.display = 'none';
+
+            if (user.is_admin) {
+                currentPlanSpan.textContent = 'Admin Access';
+                trialEndsSpan.textContent = 'Unlimited';
+                return; // Stop here for admins
+            }
 
             if (user.current_plan) {
                 currentPlanSpan.textContent = user.current_plan.charAt(0).toUpperCase() + user.current_plan.slice(1).toLowerCase();
