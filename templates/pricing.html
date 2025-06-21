@@ -36,6 +36,22 @@
             color: var(--text-color) !important;
             opacity: 0.85;
         }
+        .pricing-card-title {
+            color: var(--text-color);
+        }
+        .pricing-card-title small {
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+        .card-popular {
+            border: 2px solid #FFD700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+        .most-popular-badge {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #FFD700;
+        }
     </style>
 </head>
 <body>
@@ -78,8 +94,9 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="card mb-4 rounded-3 shadow-sm">
+                    <div class="card mb-4 rounded-3 shadow-sm card-popular">
                         <div class="card-header py-3">
+                            <span class="most-popular-badge">MOST POPULAR</span>
                             <h4 class="my-0 fw-normal">PREMIUM</h4>
                         </div>
                         <div class="card-body">
