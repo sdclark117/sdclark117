@@ -490,7 +490,7 @@ def register():
     
     new_user = User(
         email=email,
-        password_hash=generate_password_hash(password),
+        password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
         name=data.get('name', ''),
         business=data.get('business', ''),
         trial_ends_at=datetime.utcnow() + timedelta(days=14)
@@ -555,7 +555,7 @@ def reset_password(token):
         user = User.query.get(token_data.user_id)
         data = request.json
         if user and data.get('password'):
-            user.password_hash = generate_password_hash(data.get('password'))
+            user.password_hash = generate_password_hash(data.get('password'), method='pbkdf2:sha256')
             db.session.delete(token_data)
             db.session.commit()
             return jsonify({'success': True, 'message': 'Password reset successfully'})
@@ -831,7 +831,7 @@ def change_password():
         if not current_user.check_password(current_password):
             return jsonify({'error': 'Current password is incorrect'}), 401
         
-        current_user.password_hash = generate_password_hash(new_password)
+        current_user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Password changed successfully'})
