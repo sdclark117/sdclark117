@@ -440,8 +440,8 @@ plan_price_ids = {
 
 plan_search_limits = {
     'BASIC': 50,
-    'PREMIUM': 100,
-    'PLATINUM': float('inf')
+    'PREMIUM': 150,
+    'PLATINUM': 500
 }
 
 # Authentication routes
