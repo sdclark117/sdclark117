@@ -1261,14 +1261,25 @@ body {
             }
         }
 
-        document.getElementById('manageSubscriptionBtn').addEventListener('click', async function() {
-            const response = await fetch('/api/create-portal-session', { method: 'POST' });
-            const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                alert(data.error || 'Could not open billing portal.');
-            }
+        document.getElementById('manageSubscriptionBtn').addEventListener('click', function() {
+            fetch('/api/create-portal-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert(data.error || 'Could not open subscription management.');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating portal session:', error);
+                alert('An error occurred. Please try again.');
+            });
         });
 
         // Handle login form submission
@@ -1731,42 +1742,6 @@ body {
             e.preventDefault();
             await saveSettings();
         });
-
-        const trialEndsAt = data.user.trial_ends_at ? new Date(data.user.trial_ends_at).toLocaleDateString() : 'N/A';
-        document.getElementById('trialEndsAt').textContent = trialEndsAt;
-
-        const plan = data.user.current_plan;
-        document.getElementById('currentPlan').textContent = plan ? plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase() : 'None';
-        
-        if (plan === 'PREMIUM' || plan === 'PLATINUM') {
-            document.getElementById('maxReviewsContainer').style.display = 'block';
-        }
-    </script>
-    
-    <script>
-        document.getElementById('manageSubscriptionBtn').addEventListener('click', function() {
-            fetch('/api/create-portal-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.url) {
-                    window.location.href = data.url;
-                } else {
-                    showError(data.error || 'Could not open subscription management.');
-                }
-            })
-            .catch(error => {
-                console.error('Error creating portal session:', error);
-                showError('An error occurred. Please try again.');
-            });
-        });
-
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     </script>
 </body>
-</html> 
+</html>
