@@ -1302,6 +1302,7 @@ body {
                     currentUser = data.user;
                     isAuthenticated = true;
                     updateAuthButton();
+                    checkAuthStatus();
                     
                     // Close modal and show success message
                     const authModal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
