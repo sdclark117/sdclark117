@@ -99,6 +99,13 @@ class User(db.Model, UserMixin):
     current_plan = db.Column(db.String(50))
     search_count = db.Column(db.Integer, default=0)
     last_search_reset = db.Column(db.DateTime)
+    
+    # Relationship to UserSettings
+    settings = db.relationship('UserSettings', backref='user', uselist=False, cascade='all, delete-orphan')
+
+    def check_password(self, password):
+        """Check if the provided password matches the stored hash."""
+        return check_password_hash(self.password_hash, password)
 
 class EmailVerificationToken(db.Model):
     __tablename__ = 'email_verification_tokens'
@@ -362,6 +369,15 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
                             'business_type': format_business_types(place_details.get('types')),
                             'business_status': place.get('business_status')
                         })
+            
+            # Check for next page token
+            next_page_token = results.get('next_page_token')
+            if not next_page_token:
+                break
+                
+            # Wait before requesting next page (Google API requirement)
+            time.sleep(2)
+            params['pagetoken'] = next_page_token
         
         return all_leads
         
@@ -595,7 +611,6 @@ def check_auth():
         return jsonify({'authenticated': False})
 
 @app.route('/api/search', methods=['POST'])
-@login_required
 def search():
     """Search for business leads, with limits for both guests and authenticated users."""
     
@@ -893,17 +908,17 @@ def export_user_data():
                 'created_at': current_user.created_at.isoformat() if current_user.created_at else None
             },
             'settings': {
-                'default_radius': current_user.settings.default_radius,
-                'default_business_type': current_user.settings.default_business_type,
-                'remember_last_search': current_user.settings.remember_last_search,
-                'results_per_page': current_user.settings.results_per_page,
-                'show_map_by_default': current_user.settings.show_map_by_default,
-                'email_notifications': current_user.settings.email_notifications,
-                'search_reminders': current_user.settings.search_reminders,
-                'last_search_city': current_user.settings.last_search_city,
-                'last_search_state': current_user.settings.last_search_state,
-                'last_search_business_type': current_user.settings.last_search_business_type,
-                'last_search_radius': current_user.settings.last_search_radius
+                'default_radius': current_user.settings.default_radius if current_user.settings else 5,
+                'default_business_type': current_user.settings.default_business_type if current_user.settings else None,
+                'remember_last_search': current_user.settings.remember_last_search if current_user.settings else False,
+                'results_per_page': current_user.settings.results_per_page if current_user.settings else 25,
+                'show_map_by_default': current_user.settings.show_map_by_default if current_user.settings else True,
+                'email_notifications': current_user.settings.email_notifications if current_user.settings else True,
+                'search_reminders': current_user.settings.search_reminders if current_user.settings else False,
+                'last_search_city': current_user.settings.last_search_city if current_user.settings else None,
+                'last_search_state': current_user.settings.last_search_state if current_user.settings else None,
+                'last_search_business_type': current_user.settings.last_search_business_type if current_user.settings else None,
+                'last_search_radius': current_user.settings.last_search_radius if current_user.settings else None
             }
         }
         
@@ -948,6 +963,12 @@ def update_last_search():
     """Update last search parameters."""
     try:
         data = request.json
+        
+        # Ensure user has settings
+        if not current_user.settings:
+            current_user.settings = UserSettings(user_id=current_user.id)
+            db.session.add(current_user.settings)
+        
         current_user.settings.last_search_city = data.get('city', '')
         current_user.settings.last_search_state = data.get('state', '')
         current_user.settings.last_search_business_type = data.get('business_type', '')
@@ -1039,7 +1060,7 @@ def stripe_webhook():
         plan_id = subscription['items']['data'][0]['price']['id']
         plan_name = next((name for name, id in plan_price_ids.items() if id == plan_id), None)
         
-        user = User.query.get(customer_id)
+        user = User.query.filter_by(stripe_customer_id=customer_id).first()
         if user:
             if event['type'] == 'customer.subscription.deleted':
                 user.current_plan = None
