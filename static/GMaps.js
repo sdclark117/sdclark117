@@ -9,7 +9,6 @@ function initMap() {
     map = new google.maps.Map(document.getElementById("map"), {
         zoom: 12,
         center: initialLocation,
-        mapId: 'BUSINESS_LEAD_FINDER_MAP' // Add a map ID for styling
     });
 
     infoWindow = new google.maps.InfoWindow();
