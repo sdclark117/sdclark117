@@ -407,14 +407,6 @@ def get_place_details(place_id, api_key):
 
 def is_potential_lead(place):
     """Check if a place meets the criteria for a potential lead."""
-    # Check if the place has a website
-    if 'website' in place:
-        return False
-    
-    # Check if the place is operational
-    if place.get('business_status') != 'OPERATIONAL':
-        return False
-    
     return True
 
 def format_opening_hours(hours):
