@@ -302,7 +302,6 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
     """Search for places using Google Places API and filter by reviews."""
     all_leads = []
     
-    # Initial search to get a list of places
     try:
         url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
         
@@ -318,31 +317,24 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
         }
         print(f"Searching places with params: {params}")  # Debug print
         
-        response = requests.get(url, params=params)
-        print(f"Places API Response status: {response.status_code}")  # Debug print
-        data = response.json()
-        print(f"Places API Response data: {data}")  # Debug print
-        
-        if data.get('status') == 'REQUEST_DENIED':
-            error_message = data.get('error_message', 'No error message provided')
-            print(f"Places API request denied. Error message: {error_message}")  # Debug print
-            raise Exception(f"Places API request denied: {error_message}")
-            
-        if data.get('status') != 'OK':
-            error_msg = f"Places search failed: {data.get('status')}"
-            if data.get('error_message'):
-                error_msg += f" - {data.get('error_message')}"
-            print(f"Error: {error_msg}")  # Debug print
-            raise Exception(error_msg)
-        
         # Process results page by page
         while True:
             response = requests.get(url, params=params)
+            print(f"Places API Response status: {response.status_code}")  # Debug print
             results = response.json()
+            print(f"Places API Response data: {results}")  # Debug print
             
+            if results.get('status') == 'REQUEST_DENIED':
+                error_message = results.get('error_message', 'No error message provided')
+                print(f"Places API request denied. Error message: {error_message}")  # Debug print
+                raise Exception(f"Places API request denied: {error_message}")
+                
             if results.get('status') != 'OK' and results.get('status') != 'ZERO_RESULTS':
-                print(f"Places API Error: {results.get('status')} - {results.get('error_message', '')}")
-                break
+                error_msg = f"Places search failed: {results.get('status')}"
+                if results.get('error_message'):
+                    error_msg += f" - {results.get('error_message')}"
+                print(f"Error: {error_msg}")  # Debug print
+                raise Exception(error_msg)
 
             for place in results.get('results', []):
                 if is_potential_lead(place):
@@ -364,7 +356,7 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
                             'rating': place_details.get('rating'),
                             'website': place_details.get('website', ''),
                             'phone': place_details.get('formatted_phone_number', ''),
-                            'opening_hours': format_opening_hours(place_details.get('opening_hours', {}).get('weekday_text')),
+                            'opening_hours': format_opening_hours(place_details.get('opening_hours')),
                             'reviews': place_details.get('user_ratings_total'),
                             'business_type': format_business_types(place_details.get('types')),
                             'business_status': place.get('business_status')
@@ -411,7 +403,9 @@ def is_potential_lead(place):
 
 def format_opening_hours(hours):
     """Format opening hours into a readable string."""
-    if not hours or 'weekday_text' not in hours:
+    if not hours:
+        return 'Not available'
+    if 'weekday_text' not in hours:
         return 'Not available'
     return '\n'.join(hours['weekday_text'])
 
