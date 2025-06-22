@@ -336,18 +336,24 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
                 print(f"Error: {error_msg}")  # Debug print
                 raise Exception(error_msg)
 
+            print(f"Number of results from API: {len(results.get('results', []))}")  # Debug print
+            
             for place in results.get('results', []):
+                print(f"Processing place: {place.get('name', 'Unknown')}")  # Debug print
                 if is_potential_lead(place):
+                    print(f"Place {place.get('name', 'Unknown')} passed is_potential_lead check")  # Debug print
                     time.sleep(0.1)  # Small delay to avoid hitting rate limits
                     place_details = get_place_details(place.get('place_id'), api_key)
                     
                     if place_details:
+                        print(f"Got place details for: {place_details.get('name', 'Unknown')}")  # Debug print
                         # Filter by maximum number of reviews
                         review_count = place_details.get('user_ratings_total')
                         if max_reviews is not None and review_count is not None and review_count > max_reviews:
+                            print(f"Skipping {place_details.get('name', 'Unknown')} due to review count: {review_count} > {max_reviews}")  # Debug print
                             continue
 
-                        all_leads.append({
+                        lead_data = {
                             'place_id': place.get('place_id'),
                             'name': place_details.get('name'),
                             'address': place_details.get('formatted_address', place.get('vicinity', '')),
@@ -360,17 +366,27 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
                             'reviews': place_details.get('user_ratings_total'),
                             'business_type': format_business_types(place_details.get('types')),
                             'business_status': place.get('business_status')
-                        })
+                        }
+                        all_leads.append(lead_data)
+                        print(f"Added lead: {lead_data['name']}")  # Debug print
+                    else:
+                        print(f"No place details for: {place.get('name', 'Unknown')}")  # Debug print
+                else:
+                    print(f"Place {place.get('name', 'Unknown')} failed is_potential_lead check")  # Debug print
+            
+            print(f"Total leads so far: {len(all_leads)}")  # Debug print
             
             # Check for next page token
             next_page_token = results.get('next_page_token')
             if not next_page_token:
+                print("No next page token, ending search")  # Debug print
                 break
                 
             # Wait before requesting next page (Google API requirement)
             time.sleep(2)
             params['pagetoken'] = next_page_token
         
+        print(f"Final total leads: {len(all_leads)}")  # Debug print
         return all_leads
         
     except requests.exceptions.RequestException as e:
@@ -681,6 +697,8 @@ def search():
 
         # Remove duplicates
         unique_leads = list({lead['place_id']: lead for lead in all_leads}.values())
+        print(f"Total leads before deduplication: {len(all_leads)}")  # Debug print
+        print(f"Total leads after deduplication: {len(unique_leads)}")  # Debug print
 
         # Increment search count and limit results
         if current_user.is_authenticated and not current_user.is_admin:
@@ -689,14 +707,19 @@ def search():
         elif not current_user.is_authenticated:
             session['guest_search_count'] = session.get('guest_search_count', 0) + 1
             unique_leads = unique_leads[:15] # Limit results for guests
+            print(f"Limited to 15 results for guest user: {len(unique_leads)}")  # Debug print
         
         # Determine the primary center for the map
         map_center = all_centers[0] if all_centers else None
 
-        return jsonify({
+        response_data = {
             'leads': unique_leads,
             'center': map_center
-        })
+        }
+        print(f"Returning response with {len(unique_leads)} leads")  # Debug print
+        print(f"Response data: {response_data}")  # Debug print
+
+        return jsonify(response_data)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 400
