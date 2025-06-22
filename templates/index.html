@@ -1231,6 +1231,7 @@ body {
             if (user.is_admin) {
                 currentPlanSpan.textContent = 'Admin Access';
                 trialEndsSpan.textContent = 'Unlimited';
+                document.getElementById('maxReviewsContainer').style.display = 'block';
                 const adminLink = `<a href="/admin/dashboard" class="btn btn-warning mt-2">Admin Dashboard</a>`;
                 statusDiv.insertAdjacentHTML('beforeend', adminLink);
                 return; // Exit here for admins, preventing other logic from running
@@ -1245,7 +1246,7 @@ body {
                 const now = new Date();
                 const diffTime = trialEndDate - now;
                 if (diffTime > 0) {
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     currentPlanSpan.textContent = 'Free Trial';
                     trialEndsSpan.textContent = `${diffDays} days remaining`;
                     upgradeBtn.style.display = 'block';
