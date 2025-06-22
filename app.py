@@ -5,7 +5,6 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import json
-import requests
 from datetime import datetime, timedelta
 import pandas as pd
 from io import BytesIO
@@ -24,6 +23,7 @@ from functools import wraps
 import click
 from flask.cli import with_appcontext
 from flask_migrate import Migrate
+import googlemaps
 
 # Load environment variables
 load_dotenv()
@@ -73,15 +73,12 @@ login_manager.login_view = 'index'
 @login_manager.unauthorized_handler
 def unauthorized_callback():
     """Handle unauthorized access attempts."""
-    # If the request is an API call, return a JSON error
     if request.path.startswith('/api/'):
         return jsonify(error='Authentication required to access this endpoint.'), 401
     
-    # Otherwise, it's a browser navigation, so redirect to the login page
     flash('You must be logged in to view this page.')
     return redirect(url_for('index'))
 
-# User class for Flask-Login
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -100,11 +97,12 @@ class User(db.Model, UserMixin):
     search_count = db.Column(db.Integer, default=0)
     last_search_reset = db.Column(db.DateTime)
     
-    # Relationship to UserSettings
     settings = db.relationship('UserSettings', backref='user', uselist=False, cascade='all, delete-orphan')
 
+    def __init__(self, **kwargs):
+        super(User, self).__init__(**kwargs)
+
     def check_password(self, password):
-        """Check if the provided password matches the stored hash."""
         return check_password_hash(self.password_hash, password)
 
 class EmailVerificationToken(db.Model):
@@ -115,6 +113,11 @@ class EmailVerificationToken(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    def __init__(self, user_id, token, expires_at):
+        self.user_id = user_id
+        self.token = token
+        self.expires_at = expires_at
+
 class PasswordResetToken(db.Model):
     __tablename__ = 'password_reset_tokens'
     id = db.Column(db.Integer, primary_key=True)
@@ -122,6 +125,11 @@ class PasswordResetToken(db.Model):
     token = db.Column(db.String(128), unique=True, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, user_id, token, expires_at):
+        self.user_id = user_id
+        self.token = token
+        self.expires_at = expires_at
 
 class UserSettings(db.Model):
     __tablename__ = 'user_settings'
@@ -142,15 +150,12 @@ class UserSettings(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Load user from database."""
     return User.query.get(int(user_id))
 
 def generate_token():
-    """Generate a secure random token."""
     return secrets.token_urlsafe(32)
 
 def send_email(subject, recipients, body, html_body=None):
-    """Send an email using Flask-Mail."""
     try:
         msg = Message(subject, recipients=recipients)
         msg.body = body
@@ -163,7 +168,6 @@ def send_email(subject, recipients, body, html_body=None):
         return False
 
 def send_verification_email(user_id, email, name):
-    """Send email verification email."""
     token = generate_token()
     expires_at = datetime.utcnow() + timedelta(hours=24)
     new_token = EmailVerificationToken(user_id=user_id, token=token, expires_at=expires_at)
@@ -172,41 +176,12 @@ def send_verification_email(user_id, email, name):
     
     verification_url = url_for('verify_email', token=token, _external=True)
     subject = "Verify Your Email - Business Lead Finder"
-    body = f"""
-    Hello {name or 'there'}!
-    
-    Thank you for registering with Business Lead Finder. Please verify your email address by clicking the link below:
-    
-    {verification_url}
-    
-    This link will expire in 24 hours.
-    
-    If you didn't create this account, you can safely ignore this email.
-    
-    Best regards,
-    Business Lead Finder Team
-    """
-    
-    html_body = f"""
-    <html>
-    <body>
-        <h2>Welcome to Business Lead Finder!</h2>
-        <p>Hello {name or 'there'}!</p>
-        <p>Thank you for registering with Business Lead Finder. Please verify your email address by clicking the button below:</p>
-        <p><a href="{verification_url}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
-        <p>Or copy and paste this link into your browser: <a href="{verification_url}">{verification_url}</a></p>
-        <p>This link will expire in 24 hours.</p>
-        <p>If you didn't create this account, you can safely ignore this email.</p>
-        <br>
-        <p>Best regards,<br>Business Lead Finder Team</p>
-    </body>
-    </html>
-    """
+    html_body = render_template('email_verification.html', name=name, verification_url=verification_url)
+    body = f"Hello {name or 'there'}! Please verify your email by clicking this link: {verification_url}"
     
     return send_email(subject, [email], body, html_body)
 
 def send_password_reset_email(user_id, email, name):
-    """Send password reset email."""
     token = generate_token()
     expires_at = datetime.utcnow() + timedelta(hours=1)
     new_token = PasswordResetToken(user_id=user_id, token=token, expires_at=expires_at)
@@ -215,906 +190,526 @@ def send_password_reset_email(user_id, email, name):
     
     reset_url = url_for('reset_password_page', token=token, _external=True)
     subject = "Password Reset - Business Lead Finder"
-    body = f"""
-    Hello {name or 'there'}!
-    
-    You requested a password reset for your Business Lead Finder account. Click the link below to reset your password:
-    
-    {reset_url}
-    
-    This link will expire in 1 hour.
-    
-    If you didn't request this password reset, you can safely ignore this email.
-    
-    Best regards,
-    Business Lead Finder Team
-    """
-    
-    html_body = f"""
-    <html>
-    <body>
-        <h2>Password Reset Request</h2>
-        <p>Hello {name or 'there'}!</p>
-        <p>You requested a password reset for your Business Lead Finder account. Click the button below to reset your password:</p>
-        <p><a href="{reset_url}" style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-        <p>Or copy and paste this link into your browser: <a href="{reset_url}">{reset_url}</a></p>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this password reset, you can safely ignore this email.</p>
-        <br>
-        <p>Best regards,<br>Business Lead Finder Team</p>
-    </body>
-    </html>
-    """
+    html_body = render_template('password_reset.html', name=name, reset_url=reset_url)
+    body = f"Hello {name or 'there'}! Please reset your password by clicking this link: {reset_url}"
     
     return send_email(subject, [email], body, html_body)
 
 def cleanup_expired_tokens():
-    """Clean up expired tokens from database."""
-    now = datetime.utcnow()
-    
-    # Clean up expired email verification tokens
-    EmailVerificationToken.query.filter(EmailVerificationToken.expires_at < now).delete()
-    
-    # Clean up expired password reset tokens
-    PasswordResetToken.query.filter(PasswordResetToken.expires_at < now).delete()
-    
+    EmailVerificationToken.query.filter(EmailVerificationToken.expires_at < datetime.utcnow()).delete()
+    PasswordResetToken.query.filter(PasswordResetToken.expires_at < datetime.utcnow()).delete()
     db.session.commit()
 
-def get_coordinates(location, api_key):
-    """Get coordinates for a location using Google Geocoding API."""
+def get_coordinates(location: str, api_key: str) -> Union[dict, None]:
+    gmaps = googlemaps.Client(key=api_key)
     try:
-        url = "https://maps.googleapis.com/maps/api/geocode/json"
-        params = {
-            'address': location,
-            'key': api_key
-        }
-        print(f"Geocoding URL: {url}")  # Debug print
-        print(f"Geocoding params: {params}")  # Debug print
-        
-        response = requests.get(url, params=params)
-        print(f"Geocoding response status: {response.status_code}")  # Debug print
-        data = response.json()
-        print(f"Geocoding response data: {data}")  # Debug print
-        
-        if data.get('status') == 'REQUEST_DENIED':
-            error_message = data.get('error_message', 'No error message provided')
-            print(f"Geocoding request denied. Error message: {error_message}")  # Debug print
-            raise Exception(f"Geocoding request denied: {error_message}")
-            
-        if data.get('status') != 'OK':
-            error_msg = f"Geocoding failed: {data.get('status')}"
-            if data.get('error_message'):
-                error_msg += f" - {data.get('error_message')}"
-            print(f"Error: {error_msg}")  # Debug print
-            raise Exception(error_msg)
-            
-        location = data['results'][0]['geometry']['location']
-        return location
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Geocoding request exception: {str(e)}")  # Debug print
-        raise Exception(f"Network error: {str(e)}")
+        geocode_result = gmaps.geocode(location)
+        if geocode_result:
+            return geocode_result[0]['geometry']['location']
     except Exception as e:
-        print(f"Error in geocoding: {e}")
-        return None
+        print(f"Error during geocoding: {e}")
+    return None
 
 def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
-    """Search for places using Google Places API and filter by reviews."""
+    gmaps = googlemaps.Client(key=api_key)
     all_leads = []
-    
-    try:
-        url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-        
-        # Convert business type to a format Google Places API understands
-        # Remove any spaces and convert to lowercase
-        business_type = business_type.lower().strip()
-        
-        params = {
-            'location': f"{lat},{lng}",
-            'radius': radius,
-            'keyword': business_type,  # Use keyword instead of type for more flexible searching
-            'key': api_key
-        }
-        print(f"Searching places with params: {params}")  # Debug print
-        
-        # Process results page by page
-        while True:
-            response = requests.get(url, params=params)
-            print(f"Places API Response status: {response.status_code}")  # Debug print
-            results = response.json()
-            print(f"Places API Response data: {results}")  # Debug print
-            
-            if results.get('status') == 'REQUEST_DENIED':
-                error_message = results.get('error_message', 'No error message provided')
-                print(f"Places API request denied. Error message: {error_message}")  # Debug print
-                raise Exception(f"Places API request denied: {error_message}")
-                
-            if results.get('status') != 'OK' and results.get('status') != 'ZERO_RESULTS':
-                error_msg = f"Places search failed: {results.get('status')}"
-                if results.get('error_message'):
-                    error_msg += f" - {results.get('error_message')}"
-                print(f"Error: {error_msg}")  # Debug print
-                raise Exception(error_msg)
+    seen_place_ids = set()
 
-            print(f"Number of results from API: {len(results.get('results', []))}")  # Debug print
+    try:
+        places_result = gmaps.places_nearby(
+            location=(lat, lng),
+            radius=radius,
+            keyword=business_type,
+            language='en'
+        )
+    except Exception as e:
+        print(f"Error calling Google Places API: {e}")
+        return [], {'lat': lat, 'lng': lng}
+
+    while True:
+        api_response_data = places_result
+        if not api_response_data or api_response_data.get('status') != 'OK':
+            break 
             
-            for place in results.get('results', []):
-                print(f"Processing place: {place.get('name', 'Unknown')}")  # Debug print
-                if is_potential_lead(place):
-                    print(f"Place {place.get('name', 'Unknown')} passed is_potential_lead check")  # Debug print
-                    time.sleep(0.1)  # Small delay to avoid hitting rate limits
-                    place_details = get_place_details(place.get('place_id'), api_key)
-                    
-                    if place_details:
-                        print(f"Got place details for: {place_details.get('name', 'Unknown')}")  # Debug print
-                        # Filter by maximum number of reviews
-                        review_count = place_details.get('user_ratings_total')
-                        if max_reviews is not None and review_count is not None and review_count > max_reviews:
-                            print(f"Skipping {place_details.get('name', 'Unknown')} due to review count: {review_count} > {max_reviews}")  # Debug print
-                            continue
+        current_results = api_response_data.get('results', [])
+
+        for place in current_results:
+            place_id = place.get('place_id')
+            if place_id in seen_place_ids:
+                continue
+            
+            seen_place_ids.add(place_id)
+            
+            if is_potential_lead(place):
+                try:
+                    details = get_place_details(place_id, api_key)
+                    if details:
+                        user_ratings_total = details.get('user_ratings_total')
+                        if max_reviews is not None and user_ratings_total is not None:
+                            if user_ratings_total > max_reviews:
+                                continue
 
                         lead_data = {
-                            'place_id': place.get('place_id'),
-                            'name': place_details.get('name'),
-                            'address': place_details.get('formatted_address', place.get('vicinity', '')),
-                            'lat': place['geometry']['location']['lat'],
-                            'lng': place['geometry']['location']['lng'],
-                            'rating': place_details.get('rating'),
-                            'website': place_details.get('website', ''),
-                            'phone': place_details.get('formatted_phone_number', ''),
-                            'opening_hours': format_opening_hours(place_details.get('opening_hours')),
-                            'reviews': place_details.get('user_ratings_total'),
-                            'business_type': format_business_types(place_details.get('types')),
+                            'place_id': place_id,
+                            'name': details.get('name'),
+                            'address': details.get('formatted_address'),
+                            'lat': details['geometry']['location']['lat'],
+                            'lng': details['geometry']['location']['lng'],
+                            'rating': details.get('rating'),
+                            'website': details.get('website'),
+                            'phone': details.get('formatted_phone_number'),
+                            'opening_hours': format_opening_hours(details.get('opening_hours', {})),
+                            'reviews': user_ratings_total,
+                            'business_type': format_business_types(details.get('types', [])),
                             'business_status': place.get('business_status')
                         }
                         all_leads.append(lead_data)
-                        print(f"Added lead: {lead_data['name']}")  # Debug print
-                    else:
-                        print(f"No place details for: {place.get('name', 'Unknown')}")  # Debug print
-                else:
-                    print(f"Place {place.get('name', 'Unknown')} failed is_potential_lead check")  # Debug print
-            
-            print(f"Total leads so far: {len(all_leads)}")  # Debug print
-            
-            # Check for next page token
-            next_page_token = results.get('next_page_token')
-            if not next_page_token:
-                print("No next page token, ending search")  # Debug print
-                break
-                
-            # Wait before requesting next page (Google API requirement)
-            time.sleep(2)
-            params['pagetoken'] = next_page_token
-        
-        print(f"Final total leads: {len(all_leads)}")  # Debug print
-        return all_leads
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Places API request exception: {str(e)}")  # Debug print
-        raise Exception(f"Network error: {str(e)}")
-    except Exception as e:
-        print(f"Unexpected error in search_places: {str(e)}")  # Debug print
-        raise
+                except Exception as e:
+                    print(f"Error processing place details for {place.get('name')}: {e}")
 
-def get_place_details(place_id, api_key):
-    """Get detailed information about a place using Google Places API."""
-    url = f"https://maps.googleapis.com/maps/api/place/details/json"
-    params = {
-        'place_id': place_id,
-        'fields': 'name,formatted_address,formatted_phone_number,rating,user_ratings_total,price_level,types,opening_hours,website,geometry',
-        'key': api_key
-    }
+        next_page_token = api_response_data.get('next_page_token')
+        if not next_page_token:
+            break
+        
+        time.sleep(2)
+        
+        try:
+            places_result = gmaps.places_nearby(page_token=next_page_token)
+        except Exception as e:
+            print(f"Error fetching next page from Google Places API: {e}")
+            break
+
+    final_leads = list({lead['place_id']: lead for lead in all_leads}.values())
     
-    response = requests.get(url, params=params)
-    data = response.json()
-    
-    if data['status'] != 'OK':
-        raise Exception(f"Place details failed: {data['status']}")
-    
-    return data['result']
+    return final_leads, {'lat': lat, 'lng': lng}
+
+def get_place_details(place_id: str, api_key: str) -> Union[dict, None]:
+    gmaps = googlemaps.Client(key=api_key)
+    try:
+        fields = ['name', 'formatted_address', 'formatted_phone_number', 'website',
+                  'rating', 'user_ratings_total', 'opening_hours', 'geometry',
+                  'place_id', 'business_status', 'types']
+        
+        details = gmaps.place(place_id=place_id, fields=fields, language='en')
+        return details.get('result')
+    except Exception as e:
+        print(f"Error getting place details: {e}")
+        return None
 
 def is_potential_lead(place):
-    """Check if a place meets the criteria for a potential lead."""
-    return True
+    return place.get('business_status') == 'OPERATIONAL'
 
-def format_opening_hours(hours):
-    """Format opening hours into a readable string."""
-    if not hours:
+def format_opening_hours(hours_data):
+    if not hours_data or not hours_data.get('weekday_text'):
         return 'Not available'
-    if 'weekday_text' not in hours:
-        return 'Not available'
-    return '\n'.join(hours['weekday_text'])
+    return '\n'.join(hours_data['weekday_text'])
 
 def format_business_types(types):
-    """Format business types into a readable string."""
     if not types:
-        return 'Not available'
-    return ', '.join(types)
+        return 'N/A'
+    return ', '.join(t.replace('_', ' ').title() for t in types)
 
 @app.route('/')
 def index():
-    """Render the main page."""
-    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-    print(f"API Key present: {bool(api_key)}")  # Debug print
-    if not api_key:
-        print("Warning: Google Maps API key is not configured")  # Debug print
-        return render_template('index.html', api_key='')
-    return render_template('index.html', api_key=api_key)
+    return render_template('index.html')
 
-# Email verification page
 @app.route('/verify-email/<token>')
 def verify_email(token):
-    """Verify email with token."""
-    token_data = EmailVerificationToken.query.filter_by(token=token).first()
-    if token_data and token_data.expires_at > datetime.utcnow():
-        user = User.query.get(token_data.user_id)
-        if user:
-            user.is_verified = True
-            db.session.delete(token_data)
-            db.session.commit()
-            return render_template('email_verification.html', success=True, message="Email verified successfully! You can now log in.")
-    return render_template('email_verification.html', success=False, message="Invalid or expired verification link.")
+    verification_record = EmailVerificationToken.query.filter_by(token=token).first()
+    if verification_record and verification_record.expires_at > datetime.utcnow():
+        user = User.query.get(verification_record.user_id)
+        user.is_verified = True
+        db.session.delete(verification_record)
+        db.session.commit()
+        flash('Email verified successfully! You can now log in.', 'success')
+    else:
+        flash('Invalid or expired verification link.', 'danger')
+    return redirect(url_for('index'))
 
-# Password reset page
 @app.route('/reset-password/<token>')
 def reset_password_page(token):
-    """Show password reset form."""
-    token_data = PasswordResetToken.query.filter_by(token=token).first()
-    if token_data and token_data.expires_at > datetime.utcnow():
-        return render_template('password_reset.html', valid=True, token=token)
-    return render_template('password_reset.html', valid=False, message="Invalid or expired reset link.")
+    reset_record = PasswordResetToken.query.filter_by(token=token).first()
+    if reset_record and reset_record.expires_at > datetime.utcnow():
+        return render_template('password_reset.html', token=token)
+    else:
+        flash('Invalid or expired password reset link.', 'danger')
+        return redirect(url_for('index'))
 
-# Stripe configuration
-stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
-stripe_webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET')
-plan_price_ids = {
-    'BASIC': os.environ.get('STRIPE_BASIC_PLAN_PRICE_ID'),
-    'PREMIUM': os.environ.get('STRIPE_PREMIUM_PLAN_PRICE_ID'),
-    'PLATINUM': os.environ.get('STRIPE_PLATINUM_PLAN_PRICE_ID')
-}
-
-plan_search_limits = {
-    'BASIC': 50,
-    'PREMIUM': 150,
-    'PLATINUM': 500
-}
-
-# Authentication routes
 @app.route('/api/register', methods=['POST'])
 def register():
-    """Register a new user and start a 14-day trial."""
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
-    if not email or not password:
-        return jsonify({'error': 'Email and password are required'}), 400
-    
-    if User.query.filter_by(email=email).first():
-        return jsonify({'error': 'User already exists'}), 400
-    
-    owner_emails = [email.strip() for email in os.environ.get('OWNER_EMAILS', '').split(',') if email.strip()]
-    is_admin = email in owner_emails
+    data = request.get_json()
+    if not data or not all(k in data for k in ['email', 'password', 'name']):
+        return jsonify(error='Missing data'), 400
 
+    email = data['email'].lower().strip()
+    if User.query.filter_by(email=email).first():
+        return jsonify(error='Email already exists'), 409
+        
+    password_hash = generate_password_hash(data['password'])
+    
     new_user = User(
         email=email,
-        password_hash=generate_password_hash(password, method='pbkdf2:sha256'),
-        name=data.get('name', ''),
-        business=data.get('business', ''),
-        phone=data.get('phone', ''),
-        is_admin=is_admin
+        password_hash=password_hash,
+        name=data['name'].strip(),
+        trial_ends_at=datetime.utcnow() + timedelta(days=7)
     )
-
-    # All users, including admins, get a trial period initially
-    new_user.trial_ends_at = datetime.utcnow() + timedelta(days=14)
+    
     db.session.add(new_user)
     db.session.commit()
     
-    if app.config['MAIL_USERNAME']:
-        send_verification_email(new_user.id, new_user.email, new_user.name)
-        
-    login_user(new_user)
+    send_verification_email(new_user.id, new_user.email, new_user.name)
+    login_user(new_user, remember=True)
     
-    return jsonify({
-        'success': True,
-        'user': {'id': new_user.id, 'email': new_user.email, 'name': new_user.name, 'is_verified': new_user.is_verified}
-    })
+    return jsonify(message='Registration successful!'), 201
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """Authenticate user."""
-    data = request.json
-    user = User.query.filter_by(email=data.get('email')).first()
-    if user and check_password_hash(user.password_hash, data.get('password')):
+    data = request.get_json()
+    if not data or not data.get('email') or not data.get('password'):
+        return jsonify(error="Missing email or password"), 400
+
+    user = User.query.filter_by(email=data['email'].lower().strip()).first()
+
+    if user and user.check_password(data['password']):
         login_user(user, remember=data.get('remember', False))
-        return jsonify({
-            'success': True,
-            'user': {'id': user.id, 'email': user.email, 'name': user.name, 'is_verified': user.is_verified}
-        })
-    return jsonify({'error': 'Invalid email or password'}), 401
+        return jsonify(message="Login successful"), 200
+    
+    return jsonify(error="Invalid email or password"), 401
 
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def logout():
-    """Log out the current user."""
     logout_user()
-    return jsonify({'success': True})
+    return jsonify(message="Logout successful"), 200
 
 @app.route('/api/profile', methods=['PUT'])
 @login_required
 def update_profile():
-    """Update user's profile information."""
-    data = request.json
+    data = request.get_json()
+    if not data:
+        return jsonify(error="Invalid data"), 400
+        
     current_user.name = data.get('name', current_user.name)
     current_user.business = data.get('business', current_user.business)
     current_user.phone = data.get('phone', current_user.phone)
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Profile updated successfully', 'user': {
-        'name': current_user.name,
-        'email': current_user.email,
-        'business': current_user.business,
-        'phone': current_user.phone,
-        'is_verified': current_user.is_verified,
-        'current_plan': current_user.current_plan,
-        'trial_ends_at': current_user.trial_ends_at.isoformat() if current_user.trial_ends_at else None,
-        'is_admin': current_user.is_admin
-    }})
+    
+    return jsonify(message="Profile updated successfully"), 200
 
 @app.route('/api/request-password-reset', methods=['POST'])
 def request_password_reset():
-    """Request a password reset."""
-    data = request.json
-    user = User.query.filter_by(email=data.get('email')).first()
-    if user and app.config['MAIL_USERNAME']:
+    data = request.get_json()
+    email = data.get('email', '').lower().strip()
+    user = User.query.filter_by(email=email).first()
+    if user:
         send_password_reset_email(user.id, user.email, user.name)
-    return jsonify({'success': True, 'message': 'If an account with that email exists, a password reset link has been sent.'})
+    return jsonify(message="If an account with that email exists, a reset link has been sent."), 200
 
 @app.route('/api/reset-password/<token>', methods=['POST'])
 def reset_password(token):
-    """Reset password with token."""
-    token_data = PasswordResetToken.query.filter_by(token=token).first()
-    if token_data and token_data.expires_at > datetime.utcnow():
-        user = User.query.get(token_data.user_id)
-        data = request.json
-        if user and data.get('password'):
-            user.password_hash = generate_password_hash(data.get('password'), method='pbkdf2:sha256')
-            db.session.delete(token_data)
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Password reset successfully'})
-    return jsonify({'error': 'Invalid or expired reset token'}), 400
+    reset_record = PasswordResetToken.query.filter_by(token=token).first()
+    if not (reset_record and reset_record.expires_at > datetime.utcnow()):
+        return jsonify(error='Invalid or expired token.'), 400
+        
+    data = request.get_json()
+    password = data.get('password')
+    if not password:
+        return jsonify(error='Password is required.'), 400
+        
+    user = User.query.get(reset_record.user_id)
+    user.password_hash = generate_password_hash(password)
+    db.session.delete(reset_record)
+    db.session.commit()
+    
+    return jsonify(message='Password has been reset successfully.'), 200
 
 @app.route('/api/send-verification-email', methods=['POST'])
 @login_required
 def send_verification_email_api():
-    """Send verification email to current user."""
-    if not current_user.is_verified and app.config['MAIL_USERNAME']:
-        send_verification_email(current_user.id, current_user.email, current_user.name)
-        return jsonify({'success': True, 'message': 'Verification email sent successfully'})
-    return jsonify({'error': 'Email already verified or mail not configured'}), 400
+    if current_user.is_verified:
+        return jsonify(error='Your email is already verified.'), 400
+    send_verification_email(current_user.id, current_user.email, current_user.name)
+    return jsonify(message='Verification email sent.'), 200
 
 @app.route('/api/check-auth')
 def check_auth():
-    """Check if a user is authenticated and return user info."""
     if current_user.is_authenticated:
         return jsonify({
-            'authenticated': True,
+            'is_logged_in': True,
             'user': {
-                'id': current_user.id,
-                'email': current_user.email,
                 'name': current_user.name,
+                'email': current_user.email,
                 'is_verified': current_user.is_verified,
-                'trial_ends_at': current_user.trial_ends_at.isoformat() if current_user.trial_ends_at else None,
-                'current_plan': current_user.current_plan,
-                'search_count': current_user.search_count,
-                'search_limit': plan_search_limits.get(current_user.current_plan, 'N/A'),
-                'is_admin': current_user.is_admin
+                'current_plan': current_user.current_plan
             }
         })
-    else:
-        return jsonify({'authenticated': False})
+    return jsonify({'is_logged_in': False})
 
 @app.route('/api/search', methods=['POST'])
+@login_required
 def search():
-    """Search for business leads, with limits for both guests and authenticated users."""
+    data = request.get_json()
+    if not data:
+        return jsonify(error='No data provided'), 400
+
+    business_type = data.get('business_type')
+    radius = data.get('radius', 5000)
+    max_reviews = data.get('max_reviews')
     
-    # Handle search limits based on authentication
-    if current_user.is_authenticated and not current_user.is_admin:
-        now = datetime.utcnow()
-        if current_user.last_search_reset and (now - current_user.last_search_reset).days >= 30:
-            current_user.search_count = 0
-            current_user.last_search_reset = now
-            db.session.commit()
-
-        if current_user.current_plan:
-            limit = plan_search_limits.get(current_user.current_plan, 0)
-            if current_user.search_count >= limit:
-                return jsonify({'error': 'You have reached your monthly search limit. Please upgrade your plan.'}), 403
-        elif not (current_user.trial_ends_at and now < current_user.trial_ends_at):
-             return jsonify({'error': 'Your free trial has ended. Please choose a plan to continue searching.'}), 403
-    elif not current_user.is_authenticated:
-        # New logic for guest users
-        if 'guest_search_count' not in session:
-            session['guest_search_count'] = 0
-        
-        if session.get('guest_search_count', 0) >= 5:
-            return jsonify({
-                'error': 'You have reached your limit of 5 free searches. Please create an account to continue.',
-                'prompt_register': True
-            }), 403
-
-    # The rest of the search logic remains largely the same
     try:
-        api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-        if not api_key:
-            raise Exception("Google Maps API key is not configured")
+        if max_reviews:
+            max_reviews = int(max_reviews)
+    except (ValueError, TypeError):
+        max_reviews = None
             
-        data = request.json
-        if not data:
-            raise Exception("No data provided in request")
-            
-        searches = data.get('searches')
-        if not searches:
-            # Fallback for old request format for a single search
-            searches = [data]
+    lat = data.get('lat')
+    lng = data.get('lng')
 
-        all_leads = []
-        all_centers = []
+    if not (lat and lng):
+        city = data.get('city')
+        state = data.get('state')
+        if not (city and state and business_type):
+            return jsonify(error='City, State, and Business Type are required.'), 400
         
-        for search_params in searches:
-            city = search_params.get('city', '').strip()
-            state = search_params.get('state', '').strip()
-            business_type = search_params.get('business_type', '').strip()
-            radius = float(search_params.get('radius', 5))
-            lat = search_params.get('lat')
-            lng = search_params.get('lng')
-            max_reviews_str = search_params.get('max_reviews')
-            max_reviews = None
+        location_query = f"{city}, {state}"
+        coords = get_coordinates(location_query, app.config['GOOGLE_API_KEY'])
+        if not coords:
+            return jsonify(error='Could not find coordinates for the specified location.'), 400
+        lat, lng = coords['lat'], coords['lng']
+    
+    if not business_type:
+        return jsonify(error='Business type is required'), 400
 
-            if max_reviews_str:
-                if not current_user.is_authenticated or \
-                   (not current_user.is_admin and current_user.current_plan not in ['PREMIUM', 'PLATINUM']):
-                    pass  # Silently ignore for users without access
-                else:
-                    try:
-                        max_reviews = int(max_reviews_str)
-                    except (ValueError, TypeError):
-                        max_reviews = None # Ignore if value is invalid
-            
-            if not business_type:
-                raise Exception("Business type is required")
-                
-            if lat is not None and lng is not None:
-                center = {'lat': float(lat), 'lng': float(lng)}
-            elif city:
-                location = f"{city}, {state}" if state else city
-                center = get_coordinates(location, api_key)
-            else:
-                raise Exception("Either city or coordinates must be provided")
-            
-            radius_meters = radius * 1609.34
-            leads = search_places(center['lat'], center['lng'], business_type, radius_meters, api_key, max_reviews=max_reviews)
-            all_leads.extend(leads)
-            all_centers.append(center)
+    current_user.search_count = getattr(current_user, 'search_count', 0) + 1
+    db.session.commit()
 
-        # Remove duplicates
-        unique_leads = list({lead['place_id']: lead for lead in all_leads}.values())
-        print(f"Total leads before deduplication: {len(all_leads)}")  # Debug print
-        print(f"Total leads after deduplication: {len(unique_leads)}")  # Debug print
-
-        # Increment search count and limit results
-        if current_user.is_authenticated and not current_user.is_admin:
-            current_user.search_count += 1
-            db.session.commit()
-        elif not current_user.is_authenticated:
-            session['guest_search_count'] = session.get('guest_search_count', 0) + 1
-            unique_leads = unique_leads[:15] # Limit results for guests
-            print(f"Limited to 15 results for guest user: {len(unique_leads)}")  # Debug print
+    try:
+        leads, center = search_places(lat, lng, business_type, radius, app.config['GOOGLE_API_KEY'], max_reviews=max_reviews)
         
-        # Determine the primary center for the map
-        map_center = all_centers[0] if all_centers else None
-
-        response_data = {
-            'leads': unique_leads,
-            'center': map_center
-        }
-        print(f"Returning response with {len(unique_leads)} leads")  # Debug print
-        print(f"Response data: {response_data}")  # Debug print
-
-        return jsonify(response_data)
+        session['last_search_results'] = leads
         
+        return jsonify({
+            'results': leads,
+            'center': center
+        })
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        print(f"An error occurred during search: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify(error='An unexpected error occurred during the search.'), 500
 
 @app.route('/download', methods=['POST'])
 @login_required
 def download():
-    try:
-        data = request.json
-        if not data or 'leads' not in data:
-            raise Exception("No leads data provided")
-            
-        leads = data['leads']
-        if not leads:
-            raise Exception("No leads to export")
-            
-        # Create DataFrame
+    leads = session.get('last_search_results')
+    if not leads:
+        return "No leads to download.", 400
+
+    file_format = request.form.get('format', 'csv')
+    if file_format == 'csv':
         df = pd.DataFrame(leads)
-        
-        # Create Excel file
+        output = BytesIO()
+        df.to_csv(output, index=False, encoding='utf-8')
+        output.seek(0)
+        return send_file(output, mimetype='text/csv', as_attachment=True, download_name='leads.csv')
+    elif file_format == 'xlsx':
+        df = pd.DataFrame(leads)
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Leads')
-            
-            # Get workbook and worksheet
-            workbook = writer.book
-            worksheet = writer.sheets['Leads']
-            
-            # Style the header
-            header_font = Font(bold=True, color='FFFFFF')
-            header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
-            header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            
-            for cell in worksheet[1]:
-                cell.font = header_font
-                cell.fill = header_fill
-                cell.alignment = header_alignment
-            
-            # Style the data
-            data_alignment = Alignment(vertical='center', wrap_text=True)
-            border = Border(
-                left=Side(style='thin'),
-                right=Side(style='thin'),
-                top=Side(style='thin'),
-                bottom=Side(style='thin')
-            )
-            
-            for row in worksheet.iter_rows(min_row=2):
-                for cell in row:
-                    cell.alignment = data_alignment
-                    cell.border = border
-            
-            # Adjust column widths
-            for column in worksheet.columns:
-                max_length = 0
-                column_letter = get_column_letter(column[0].column)
-                
-                for cell in column:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                
-                adjusted_width = (max_length + 2)
-                worksheet.column_dimensions[column_letter].width = adjusted_width
-            
         output.seek(0)
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=f'business_leads_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-        )
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name='leads.xlsx')
+    return "Invalid format", 400
+
 
 @app.route('/export-to-google-sheets', methods=['POST'])
 @login_required
 def export_to_google_sheets():
-    """Export leads to a new Google Sheet."""
+    leads = session.get('last_search_results')
+    if not leads:
+        return jsonify(error='No leads data to export.'), 400
+
     try:
-        data = request.json
-        leads = data.get('leads')
-        
-        if not leads:
-            return jsonify({'error': 'No leads data provided'}), 400
-            
-        client = get_gspread_client()
-        
-        # Create a new spreadsheet
-        business_type = leads[0].get('search_query', 'business').replace(" ", "_")
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        sheet_title = f"leads_{business_type}_{timestamp}"
-        
-        folder_id = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
-        
-        spreadsheet = client.create(sheet_title, folder_id=folder_id)
+        gc = get_gspread_client()
+        spreadsheet = gc.create(f"Leads - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         worksheet = spreadsheet.get_worksheet(0)
         
-        # Prepare header and rows
-        headers = ["Name", "Address", "Phone", "Website", "Rating", "Reviews", "Opening Hours"]
-        rows = []
-        for lead in leads:
-            opening_hours = "\n".join(lead.get('opening_hours', [])) if lead.get('opening_hours') else 'N/A'
-            rows.append([
-                lead.get('name', 'N/A'),
-                lead.get('address', 'N/A'),
-                lead.get('phone', 'N/A'),
-                lead.get('website', 'N/A'),
-                lead.get('rating', 'N/A'),
-                lead.get('reviews', 'N/A'),
-                opening_hours
-            ])
+        df = pd.DataFrame(leads)
+        worksheet.update([df.columns.values.tolist()] + df.values.tolist())
         
-        # Write data to worksheet
-        worksheet.append_row(headers)
-        worksheet.append_rows(rows)
+        spreadsheet.share(current_user.email, perm_type='user', role='writer')
         
-        # Share the spreadsheet so anyone with the link can view
-        spreadsheet.share(None, perm_type='anyone', role='reader')
-        
-        return jsonify({
-            'success': True,
-            'sheet_url': spreadsheet.url
-        })
-        
+        return jsonify(message='Successfully exported to Google Sheets!', url=spreadsheet.url), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Google Sheets export error: {e}")
+        return jsonify(error=f'Failed to export to Google Sheets: {e}'), 500
 
 @app.route('/api/settings', methods=['GET', 'PUT'])
 @login_required
 def settings():
-    """Get or update user settings."""
-    settings_obj = UserSettings.query.filter_by(user_id=current_user.id).first()
-    
-    if not settings_obj:
-        settings_obj = UserSettings(user_id=current_user.id)
-        db.session.add(settings_obj)
-        db.session.commit()
-    
+    user_settings = current_user.settings or UserSettings(user_id=current_user.id)
     if request.method == 'PUT':
         data = request.json
         for key, value in data.items():
-            if hasattr(settings_obj, key):
-                setattr(settings_obj, key, value)
+            if hasattr(user_settings, key):
+                setattr(user_settings, key, value)
+        db.session.add(user_settings)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Settings updated'})
-
-    settings_dict = {
-        c.name: getattr(settings_obj, c.name).isoformat() if isinstance(getattr(settings_obj, c.name), datetime) else getattr(settings_obj, c.name)
-        for c in settings_obj.__table__.columns
-    }
+        return jsonify(message='Settings updated successfully.')
+    
     return jsonify({
-        'success': True,
-        'settings': settings_dict
+        'default_radius': user_settings.default_radius,
+        'default_business_type': user_settings.default_business_type,
+        'remember_last_search': user_settings.remember_last_search,
+        'results_per_page': user_settings.results_per_page,
+        'show_map_by_default': user_settings.show_map_by_default,
+        'email_notifications': user_settings.email_notifications,
+        'search_reminders': user_settings.search_reminders,
+        'last_search_city': user_settings.last_search_city,
+        'last_search_state': user_settings.last_search_state,
+        'last_search_business_type': user_settings.last_search_business_type,
+        'last_search_radius': user_settings.last_search_radius,
     })
 
 @app.route('/api/change-password', methods=['POST'])
 @login_required
 def change_password():
-    """Change user password."""
-    try:
-        data = request.json
-        current_password = data.get('current_password')
-        new_password = data.get('new_password')
-        
-        if not current_password or not new_password:
-            return jsonify({'error': 'Current password and new password are required'}), 400
-        
-        if not current_user.check_password(current_password):
-            return jsonify({'error': 'Current password is incorrect'}), 401
-        
-        current_user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
-        db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Password changed successfully'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    data = request.json
+    if not current_user.check_password(data.get('current_password', '')):
+        return jsonify(error='Invalid current password.'), 400
+    new_password = data.get('new_password')
+    if not new_password or len(new_password) < 8:
+        return jsonify(error='New password must be at least 8 characters long.'), 400
+    current_user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+    return jsonify(message='Password updated successfully.')
 
 @app.route('/api/export-data', methods=['GET'])
 @login_required
 def export_user_data():
-    """Export user data."""
-    try:
-        # Get user data
-        user_data = {
-            'user_info': {
-                'email': current_user.email,
-                'name': current_user.name,
-                'business': current_user.business,
-                'is_verified': current_user.is_verified,
-                'created_at': current_user.created_at.isoformat() if current_user.created_at else None
-            },
-            'settings': {
-                'default_radius': current_user.settings.default_radius if current_user.settings else 5,
-                'default_business_type': current_user.settings.default_business_type if current_user.settings else None,
-                'remember_last_search': current_user.settings.remember_last_search if current_user.settings else False,
-                'results_per_page': current_user.settings.results_per_page if current_user.settings else 25,
-                'show_map_by_default': current_user.settings.show_map_by_default if current_user.settings else True,
-                'email_notifications': current_user.settings.email_notifications if current_user.settings else True,
-                'search_reminders': current_user.settings.search_reminders if current_user.settings else False,
-                'last_search_city': current_user.settings.last_search_city if current_user.settings else None,
-                'last_search_state': current_user.settings.last_search_state if current_user.settings else None,
-                'last_search_business_type': current_user.settings.last_search_business_type if current_user.settings else None,
-                'last_search_radius': current_user.settings.last_search_radius if current_user.settings else None
-            }
-        }
-        
-        return jsonify({
-            'success': True,
-            'data': user_data,
-            'message': 'Data exported successfully'
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    user_data = {
+        "profile": {
+            "name": current_user.name,
+            "email": current_user.email,
+            "business": current_user.business,
+            "phone": current_user.phone
+        },
+        "settings": {
+            'default_radius': current_user.settings.default_radius,
+            'default_business_type': current_user.settings.default_business_type,
+        } if current_user.settings else {}
+    }
+    
+    output = BytesIO()
+    output.write(json.dumps(user_data, indent=4).encode('utf-8'))
+    output.seek(0)
+    
+    return send_file(output, mimetype='application/json', as_attachment=True, download_name='user_data.json')
 
 @app.route('/api/delete-account', methods=['POST'])
 @login_required
 def delete_account():
-    """Delete user account."""
-    try:
-        data = request.json
-        password = data.get('password')
-        
-        if not password:
-            return jsonify({'error': 'Password is required to delete account'}), 400
-        
-        if not current_user.check_password(password):
-            return jsonify({'error': 'Password is incorrect'}), 401
-        
-        # Delete user data (cascade will handle related records)
-        db.session.delete(current_user)
-        db.session.commit()
-        
-        # Logout user
-        logout_user()
-        
-        return jsonify({'success': True, 'message': 'Account deleted successfully'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    data = request.json
+    if not current_user.check_password(data.get('password', '')):
+        return jsonify(error='Invalid password.'), 400
+    
+    # Optional: Cancel Stripe subscription before deleting
+    if current_user.stripe_subscription_id:
+        try:
+            stripe.Subscription.delete(current_user.stripe_subscription_id)
+        except stripe.error.StripeError as e:
+            print(f"Stripe subscription cancellation failed for user {current_user.id}: {e}")
+            # Decide if this should prevent account deletion
+    
+    db.session.delete(current_user)
+    db.session.commit()
+    logout_user()
+    
+    return jsonify(message='Your account has been permanently deleted.')
 
 @app.route('/api/update-last-search', methods=['POST'])
 @login_required
 def update_last_search():
-    """Update last search parameters."""
-    try:
-        data = request.json
-        
-        # Ensure user has settings
-        if not current_user.settings:
-            current_user.settings = UserSettings(user_id=current_user.id)
-            db.session.add(current_user.settings)
-        
-        current_user.settings.last_search_city = data.get('city', '')
-        current_user.settings.last_search_state = data.get('state', '')
-        current_user.settings.last_search_business_type = data.get('business_type', '')
-        current_user.settings.last_search_radius = float(data.get('radius', 5))
-        db.session.commit()
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    data = request.json
+    settings = current_user.settings or UserSettings(user_id=current_user.id)
+    settings.last_search_city = data.get('city')
+    settings.last_search_state = data.get('state')
+    settings.last_search_business_type = data.get('business_type')
+    settings.last_search_radius = data.get('radius')
+    db.session.add(settings)
+    db.session.commit()
+    return jsonify(success=True)
 
 @app.route('/api/create-checkout-session', methods=['POST'])
 @login_required
 def create_checkout_session():
-    """Create a new Stripe checkout session for a subscription."""
+    data = request.json
     try:
-        data = request.json
-        price_id = data.get('price_id')
-        
-        if not price_id:
-            return jsonify({'error': 'Price ID is required'}), 400
-            
         checkout_session = stripe.checkout.Session.create(
-            client_reference_id=current_user.id,
-            customer_email=current_user.email,
+            customer=current_user.stripe_customer_id,
             payment_method_types=['card'],
-            line_items=[{
-                'price': price_id,
-                'quantity': 1,
-            }],
+            line_items=[{'price': data['priceId'], 'quantity': 1}],
             mode='subscription',
-            success_url=request.host_url + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=request.host_url,
+            success_url=url_for('index', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('pricing', _external=True),
         )
-        return jsonify({'session_id': checkout_session.id})
+        return jsonify({'id': checkout_session.id})
     except Exception as e:
-        print(f"STRIPE CHECKOUT ERROR: {str(e)}")
-        error_message = str(e)
-        if hasattr(e, 'user_message'):
-            error_message = e.user_message
-        return jsonify({'error': f"Stripe Error: {error_message}"}), 400
+        return jsonify(error=str(e)), 403
 
 @app.route('/api/create-portal-session', methods=['POST'])
 @login_required
 def create_portal_session():
-    """Create a new Stripe customer portal session."""
     try:
-        if not current_user.stripe_customer_id:
-            return jsonify({'error': 'User does not have a Stripe customer ID'}), 400
-            
         portal_session = stripe.billing_portal.Session.create(
             customer=current_user.stripe_customer_id,
-            return_url=request.host_url,
+            return_url=url_for('index', _external=True),
         )
         return jsonify({'url': portal_session.url})
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify(error=str(e)), 403
 
 @app.route('/stripe-webhook', methods=['POST'])
 def stripe_webhook():
-    """Handle webhook events from Stripe."""
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
+    endpoint_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
     
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, stripe_webhook_secret
-        )
-    except (ValueError, stripe.error.SignatureVerificationError) as e:
-        return 'Invalid payload or signature', 400
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+    except ValueError:
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError:
+        return 'Invalid signature', 400
 
-    # Handle the event
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        user_id = session.get('client_reference_id')
-        customer_id = session.get('customer')
-        subscription_id = session.get('subscription')
-        
-        user = User.query.get(user_id)
-        if user:
-            user.stripe_customer_id = customer_id
-            user.stripe_subscription_id = subscription_id
-            db.session.commit()
-
-    elif event['type'] in ['customer.subscription.updated', 'customer.subscription.deleted']:
+    if event['type'] == 'customer.subscription.updated' or event['type'] == 'customer.subscription.created':
         subscription = event['data']['object']
         customer_id = subscription['customer']
-        
-        plan_id = subscription['items']['data'][0]['price']['id']
-        plan_name = next((name for name, id in plan_price_ids.items() if id == plan_id), None)
-        
         user = User.query.filter_by(stripe_customer_id=customer_id).first()
         if user:
-            if event['type'] == 'customer.subscription.deleted':
-                user.current_plan = None
-                user.stripe_subscription_id = None
-                user.search_count = 0
-                user.last_search_reset = None
-            else:
-                user.current_plan = plan_name
-            user.last_search_reset = datetime.utcnow()
-            user.search_count = 0
+            user.stripe_subscription_id = subscription['id']
+            user.current_plan = subscription['items']['data'][0]['price']['lookup_key']
             db.session.commit()
-
+            
     return 'Success', 200
 
-# Google Sheets API setup
 def get_gspread_client():
-    """Get gspread client using service account credentials."""
-    creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
-    if not creds_json:
-        raise ValueError("GOOGLE_CREDENTIALS_JSON environment variable not set.")
-    
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS_JSON')
     creds_dict = json.loads(creds_json)
-    scopes = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
-    ]
-    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-    client = gspread.authorize(creds)
-    return client
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+    return gspread.authorize(creds)
 
 @app.route('/pricing')
-@login_required
 def pricing():
-    """Render the pricing page."""
-    return render_template('pricing.html', 
-                           stripe_publishable_key=os.environ.get('STRIPE_PUBLISHABLE_KEY'),
-                           basic_price_id=plan_price_ids['BASIC'],
-                           premium_price_id=plan_price_ids['PREMIUM'],
-                           platinum_price_id=plan_price_ids['PLATINUM'])
+    return render_template('pricing.html')
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            flash("You do not have permission to access this page.", "error")
+        if not current_user.is_admin:
+            flash("You do not have permission to access this page.", "danger")
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
@@ -1123,6 +718,8 @@ def admin_required(f):
 @login_required
 @admin_required
 def admin_dashboard():
-    """Display the admin dashboard with subscribed users."""
-    subscribed_users = User.query.filter(User.current_plan.isnot(None)).all()
-    return render_template('admin_dashboard.html', users=subscribed_users) 
+    users = User.query.all()
+    return render_template('admin_dashboard.html', users=users)
+
+if __name__ == '__main__':
+    app.run(debug=True) 
