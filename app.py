@@ -594,7 +594,8 @@ def check_auth():
     else:
         return jsonify({'authenticated': False})
 
-@app.route('/search', methods=['POST'])
+@app.route('/api/search', methods=['POST'])
+@login_required
 def search():
     """Search for business leads, with limits for both guests and authenticated users."""
     
