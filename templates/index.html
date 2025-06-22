@@ -1093,11 +1093,6 @@ body {
                     updateSubscriptionStatus(data.user);
                     document.getElementById('profileBtn').style.display = 'flex';
                     document.getElementById('loginBtn').style.display = 'none';
-                    
-                    const plan = data.user.current_plan;
-                    if (data.user.is_admin || plan === 'PREMIUM' || plan === 'PLATINUM') {
-                        document.getElementById('maxReviewsContainer').style.display = 'block';
-                    }
                 } else {
                     currentUser = null;
                     isAuthenticated = false;
@@ -1241,6 +1236,9 @@ body {
                 currentPlanSpan.textContent = user.current_plan.charAt(0).toUpperCase() + user.current_plan.slice(1).toLowerCase();
                 trialEndsSpan.textContent = 'N/A';
                 manageBtn.style.display = 'block';
+                if (user.current_plan === 'PREMIUM' || user.current_plan === 'PLATINUM') {
+                    document.getElementById('maxReviewsContainer').style.display = 'block';
+                }
             } else if (user.trial_ends_at) {
                 const trialEndDate = new Date(user.trial_ends_at);
                 const now = new Date();
