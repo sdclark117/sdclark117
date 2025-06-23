@@ -43,7 +43,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SECURE'] = True
-app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY')
+app.config['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY')
 
 # Email configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -218,7 +218,6 @@ def get_coordinates(location: str, api_key: str) -> Optional[Dict[str, float]]:
     if not api_key:
         print("No Google API key provided")
         return None
-        
     gmaps = googlemaps.Client(key=api_key)
     try:
         geocode_result = gmaps.geocode(location)
@@ -229,14 +228,9 @@ def get_coordinates(location: str, api_key: str) -> Optional[Dict[str, float]]:
     return None
 
 def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
-    """
-    Search for places using Google Places API and filter them based on user settings.
-    This function now handles pagination to fetch more than the initial 20 results.
-    """
     if not api_key:
         print("No Google API key provided")
         return [], {'lat': lat, 'lng': lng}
-        
     gmaps = googlemaps.Client(key=api_key)
     all_leads = []
     seen_place_ids = set()
@@ -315,6 +309,7 @@ def get_place_details(place_id: str, api_key: str) -> Optional[Dict[str, Any]]:
         return None
         
     gmaps = googlemaps.Client(key=api_key)
+    print("GOOGLE_API_KEY in use:", api_key)
     try:
         fields = ['name', 'formatted_address', 'formatted_phone_number', 'website',
                   'rating', 'user_ratings_total', 'opening_hours', 'geometry',
