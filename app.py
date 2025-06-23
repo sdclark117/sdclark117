@@ -309,20 +309,24 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
     return final_leads, {'lat': lat, 'lng': lng}
 
 def get_place_details(place_id: str, api_key: str) -> Optional[Dict[str, Any]]:
-    if not api_key:
-        return None
-        
     gmaps = googlemaps.Client(key=api_key)
-    print("GOOGLE_API_KEY in use:", api_key)
+    # The 'types' field is deprecated and causes an error. It has been removed.
+    fields = [
+        'name', 'formatted_address', 'international_phone_number', 'website',
+        'rating', 'user_ratings_total', 'opening_hours', 'geometry'
+    ]
     try:
-        fields = ['name', 'formatted_address', 'formatted_phone_number', 'website',
-                  'rating', 'user_ratings_total', 'opening_hours', 'geometry',
-                  'place_id', 'business_status', 'types']
-        
-        details = gmaps.place(place_id=place_id, fields=fields, language='en')
-        return details.get('result')
+        place_details = gmaps.place(place_id=place_id, fields=fields)
+        if place_details and place_details.get('result'):
+            return place_details['result']
+        else:
+            app.logger.warning(f"Could not get details for place_id: {place_id}")
+            return None
+    except googlemaps.exceptions.ApiError as e:
+        app.logger.error(f"API Error getting place details for {place_id}: {e}")
+        return None
     except Exception as e:
-        print(f"Error getting place details: {e}")
+        app.logger.error(f"Unexpected error getting place details for {place_id}: {e}")
         return None
 
 def is_potential_lead(place):
@@ -340,10 +344,8 @@ def format_business_types(types):
 
 @app.route('/')
 def index():
-    # TEMPORARY DEBUGGING: Hardcode the API key to test frontend loading
-    # Replace "YOUR_API_KEY_HERE" with your actual Google Maps API key
-    google_maps_api_key = "AIzaSyBJgbbwQA-t2Mq2ITPIqfsu3ADT7CsLado"
-    # google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
+    # Restore the use of the environment variable for the API key
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
     return render_template('index.html', google_maps_api_key=google_maps_api_key)
 
 @app.route('/verify-email/<token>')
