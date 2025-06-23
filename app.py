@@ -24,6 +24,8 @@ import click
 from flask.cli import with_appcontext
 from flask_migrate import Migrate
 import googlemaps
+import logging
+import sys
 
 print("--- Flask App Starting ---")
 
@@ -56,6 +58,17 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('GMAIL_USERNAME')
 mail = Mail(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+# Set Flask logger to output INFO level logs and flush to stdout
+app.logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.INFO)
+# Prevent duplicate handlers
+if not any(isinstance(h, logging.StreamHandler) for h in app.logger.handlers):
+    app.logger.addHandler(handler)
+
+# Add a test log to confirm logging is working
+app.logger.info("=== TEST LOG: Flask logging is working and set to INFO level ===")
 
 @click.command('init-db')
 @with_appcontext
@@ -337,13 +350,13 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
 
 def get_place_details(place_id: str, api_key: str) -> Optional[Dict[str, Any]]:
     gmaps = googlemaps.Client(key=api_key)
-    # The 'types' field is deprecated and causes an error. It has been removed.
     fields = [
         'name', 'formatted_address', 'international_phone_number', 'website',
         'rating', 'user_ratings_total', 'opening_hours', 'geometry'
     ]
     try:
-        place_details = gmaps.place(place_id=place_id, fields=fields)
+        # The linter may not recognize this method, but it is correct for googlemaps.Client
+        place_details = gmaps.place(place_id=place_id, fields=fields)  # type: ignore[attr-defined]
         if place_details and place_details.get('result'):
             return place_details['result']
         else:
