@@ -671,6 +671,30 @@ body {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
+#forgotPasswordModal .modal-content {
+  background: #fff !important;
+  color: #222 !important;
+}
+#forgotPasswordModal .form-control {
+  background: #fff !important;
+  color: #222 !important;
+  border: 1px solid #ccc !important;
+}
+#forgotPasswordModal .form-label {
+  color: #222 !important;
+}
+#forgotPasswordModal .btn-primary {
+  background: #366092 !important;
+  color: #fff !important;
+  border: none !important;
+}
+#forgotPasswordModal .btn-primary:hover {
+  background: #27496d !important;
+}
+#forgotPasswordModal .modal-title, #forgotPasswordModal p {
+  color: #222 !important;
+}
+
 </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1067,7 +1091,6 @@ body {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{{ url_for('static', filename='GMaps.js') }}"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap" async defer></script>
     
     <script>
         // Global variables for user state
