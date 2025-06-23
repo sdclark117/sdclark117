@@ -303,6 +303,7 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
         try:
             places_result = gmaps.places_nearby(page_token=next_page_token)
         except Exception as e:
+            print(f"Error fetching next page from Google Places API: {e}")
             break
 
     final_leads = list({lead['place_id']: lead for lead in all_leads}.values())
