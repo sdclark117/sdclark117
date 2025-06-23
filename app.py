@@ -231,6 +231,31 @@ def get_coordinates(location_query: str, api_key: str) -> Optional[Dict[str, flo
         app.logger.error(f"An unexpected error occurred during geocoding for query '{location_query}': {e}")
         return None
 
+# Add this near the top of app.py, after imports
+CATEGORY_FALLBACKS = {
+    'food': 'restaurant',
+    'shop': 'store',
+    'shopping': 'store',
+    'drinks': 'bar',
+    'coffee': 'cafe',
+    'eat': 'restaurant',
+    'groceries': 'supermarket',
+    'market': 'supermarket',
+    'gas': 'gas_station',
+    'gas station': 'gas_station',
+    'pharmacy': 'pharmacy',
+    'doctor': 'doctor',
+    'health': 'hospital',
+    'fitness': 'gym',
+    'workout': 'gym',
+    'hotel': 'lodging',
+    'stay': 'lodging',
+    'car': 'car_repair',
+    'auto': 'car_repair',
+    'mechanic': 'car_repair',
+    # Add more as needed
+}
+
 def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
     if not api_key:
         print("No Google API key provided")
@@ -239,12 +264,15 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
     all_leads = []
     seen_place_ids = set()
 
+    # Fallback to a broader category if needed
+    search_term = CATEGORY_FALLBACKS.get(str(business_type).strip().lower(), business_type)
+
     # Initial search request
     try:
         places_result = gmaps.places_nearby(
             location=(lat, lng),
             radius=radius,
-            keyword=business_type,
+            keyword=search_term,
             language='en'
         )
     except Exception as e:
