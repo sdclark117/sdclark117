@@ -210,11 +210,16 @@ def get_coordinates(location: str, api_key: str) -> Union[dict, None]:
         print(f"Error during geocoding: {e}")
     return None
 
-def search_places(lat, lng, business_type, radius, api_key, max_reviews=None):
+def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
+    """
+    Search for places using Google Places API and filter them based on user settings.
+    This function now handles pagination to fetch more than the initial 20 results.
+    """
     gmaps = googlemaps.Client(key=api_key)
     all_leads = []
     seen_place_ids = set()
 
+    # Initial search request
     try:
         places_result = gmaps.places_nearby(
             location=(lat, lng),
@@ -459,8 +464,10 @@ def search():
     try:
         if max_reviews:
             max_reviews = int(max_reviews)
+        else:
+            max_reviews = 100  # Default to 100 if not specified
     except (ValueError, TypeError):
-        max_reviews = None
+        max_reviews = 100  # Default to 100 if conversion fails
             
     lat = data.get('lat')
     lng = data.get('lng')
