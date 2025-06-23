@@ -566,14 +566,26 @@ def search():
     if not business_type:
         return jsonify(error='Business type is required'), 400
 
+    # --- GUEST SEARCH LIMITS ---
+    # If the user is not authenticated (guest), limit to 5 searches per session, 15 results per search
+    if not current_user.is_authenticated or current_user.current_plan is None:
+        session.setdefault('guest_search_count', 0)
+        if session['guest_search_count'] >= 5:
+            return jsonify(error='Guest users are limited to 5 searches. Please sign up or log in for more.'), 403
+        session['guest_search_count'] += 1
+        max_results = 15
+    else:
+        max_results = None  # No limit for authenticated users with a plan
+
     current_user.search_count = getattr(current_user, 'search_count', 0) + 1
     db.session.commit()
 
     try:
         leads, center = search_places(lat, lng, business_type, radius_meters, app.config['GOOGLE_API_KEY'], max_reviews=max_reviews)
-        
+        # Limit results for guests
+        if max_results is not None:
+            leads = leads[:max_results]
         session['last_search_results'] = leads
-        
         return jsonify({
             'results': leads,
             'center': center
