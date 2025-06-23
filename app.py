@@ -12,7 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from dotenv import load_dotenv
-from typing import Union, BinaryIO
+from typing import Union, BinaryIO, Optional, Dict, Any, List
 import secrets
 import urllib.parse
 import gspread
@@ -24,6 +24,8 @@ import click
 from flask.cli import with_appcontext
 from flask_migrate import Migrate
 import googlemaps
+
+print("--- Flask App Starting ---")
 
 # Load environment variables
 load_dotenv()
@@ -196,11 +198,27 @@ def send_password_reset_email(user_id, email, name):
     return send_email(subject, [email], body, html_body)
 
 def cleanup_expired_tokens():
-    EmailVerificationToken.query.filter(EmailVerificationToken.expires_at < datetime.utcnow()).delete()
-    PasswordResetToken.query.filter(PasswordResetToken.expires_at < datetime.utcnow()).delete()
+    # Fix the database query syntax by using a different approach
+    now = datetime.utcnow()
+    expired_verification_tokens = EmailVerificationToken.query.filter(
+        EmailVerificationToken.expires_at < now
+    ).all()
+    for token in expired_verification_tokens:
+        db.session.delete(token)
+    
+    expired_reset_tokens = PasswordResetToken.query.filter(
+        PasswordResetToken.expires_at < now
+    ).all()
+    for token in expired_reset_tokens:
+        db.session.delete(token)
+    
     db.session.commit()
 
-def get_coordinates(location: str, api_key: str) -> Union[dict, None]:
+def get_coordinates(location: str, api_key: str) -> Optional[Dict[str, float]]:
+    if not api_key:
+        print("No Google API key provided")
+        return None
+        
     gmaps = googlemaps.Client(key=api_key)
     try:
         geocode_result = gmaps.geocode(location)
@@ -215,6 +233,10 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
     Search for places using Google Places API and filter them based on user settings.
     This function now handles pagination to fetch more than the initial 20 results.
     """
+    if not api_key:
+        print("No Google API key provided")
+        return [], {'lat': lat, 'lng': lng}
+        
     gmaps = googlemaps.Client(key=api_key)
     all_leads = []
     seen_place_ids = set()
@@ -281,14 +303,16 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
         try:
             places_result = gmaps.places_nearby(page_token=next_page_token)
         except Exception as e:
-            print(f"Error fetching next page from Google Places API: {e}")
             break
 
     final_leads = list({lead['place_id']: lead for lead in all_leads}.values())
     
     return final_leads, {'lat': lat, 'lng': lng}
 
-def get_place_details(place_id: str, api_key: str) -> Union[dict, None]:
+def get_place_details(place_id: str, api_key: str) -> Optional[Dict[str, Any]]:
+    if not api_key:
+        return None
+        
     gmaps = googlemaps.Client(key=api_key)
     try:
         fields = ['name', 'formatted_address', 'formatted_phone_number', 'website',
@@ -323,10 +347,13 @@ def verify_email(token):
     verification_record = EmailVerificationToken.query.filter_by(token=token).first()
     if verification_record and verification_record.expires_at > datetime.utcnow():
         user = User.query.get(verification_record.user_id)
-        user.is_verified = True
-        db.session.delete(verification_record)
-        db.session.commit()
-        flash('Email verified successfully! You can now log in.', 'success')
+        if user:
+            user.is_verified = True
+            db.session.delete(verification_record)
+            db.session.commit()
+            flash('Email verified successfully! You can now log in.', 'success')
+        else:
+            flash('User not found.', 'danger')
     else:
         flash('Invalid or expired verification link.', 'danger')
     return redirect(url_for('index'))
@@ -404,6 +431,9 @@ def update_profile():
 @app.route('/api/request-password-reset', methods=['POST'])
 def request_password_reset():
     data = request.get_json()
+    if not data:
+        return jsonify(error="No data provided"), 400
+        
     email = data.get('email', '').lower().strip()
     user = User.query.filter_by(email=email).first()
     if user:
@@ -417,16 +447,21 @@ def reset_password(token):
         return jsonify(error='Invalid or expired token.'), 400
         
     data = request.get_json()
+    if not data:
+        return jsonify(error="No data provided"), 400
+        
     password = data.get('password')
     if not password:
         return jsonify(error='Password is required.'), 400
         
     user = User.query.get(reset_record.user_id)
-    user.password_hash = generate_password_hash(password)
-    db.session.delete(reset_record)
-    db.session.commit()
-    
-    return jsonify(message='Password has been reset successfully.'), 200
+    if user:
+        user.password_hash = generate_password_hash(password)
+        db.session.delete(reset_record)
+        db.session.commit()
+        return jsonify(message='Password has been reset successfully.'), 200
+    else:
+        return jsonify(error='User not found.'), 404
 
 @app.route('/api/send-verification-email', methods=['POST'])
 @login_required
@@ -458,8 +493,16 @@ def search():
         return jsonify(error='No data provided'), 400
 
     business_type = data.get('business_type')
-    radius = data.get('radius', 5000)
+    radius_miles = data.get('radius', 3) # Default to 3 miles
     max_reviews = data.get('max_reviews')
+    
+    try:
+        radius_miles = int(radius_miles)
+    except (ValueError, TypeError):
+        radius_miles = 3 # Default to 3 if conversion fails
+        
+    # Convert miles to meters
+    radius_meters = radius_miles * 1609.34
     
     try:
         if max_reviews:
@@ -491,7 +534,7 @@ def search():
     db.session.commit()
 
     try:
-        leads, center = search_places(lat, lng, business_type, radius, app.config['GOOGLE_API_KEY'], max_reviews=max_reviews)
+        leads, center = search_places(lat, lng, business_type, radius_meters, app.config['GOOGLE_API_KEY'], max_reviews=max_reviews)
         
         session['last_search_results'] = leads
         
@@ -502,8 +545,6 @@ def search():
 
     except Exception as e:
         print(f"An error occurred during search: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify(error='An unexpected error occurred during the search.'), 500
 
 @app.route('/download', methods=['POST'])
@@ -522,9 +563,23 @@ def download():
         return send_file(output, mimetype='text/csv', as_attachment=True, download_name='leads.csv')
     elif file_format == 'xlsx':
         df = pd.DataFrame(leads)
+        # Fix for pandas ExcelWriter with BytesIO - use a different approach
+        workbook = Workbook()
+        worksheet = workbook.active
+        if worksheet:
+            worksheet.title = 'Leads'
+            
+            # Write headers
+            for col, header in enumerate(df.columns, 1):
+                worksheet.cell(row=1, column=col, value=header)
+            
+            # Write data
+            for row_idx, row_data in enumerate(df.values, 2):
+                for col_idx, value in enumerate(row_data, 1):
+                    worksheet.cell(row=row_idx, column=col_idx, value=value)
+        
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Leads')
+        workbook.save(output)
         output.seek(0)
         return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name='leads.xlsx')
     return "Invalid format", 400
@@ -555,9 +610,18 @@ def export_to_google_sheets():
 @app.route('/api/settings', methods=['GET', 'PUT'])
 @login_required
 def settings():
-    user_settings = current_user.settings or UserSettings(user_id=current_user.id)
+    user_settings = current_user.settings
+    if not user_settings:
+        user_settings = UserSettings()
+        user_settings.user_id = current_user.id
+        db.session.add(user_settings)
+        db.session.commit()
+        
     if request.method == 'PUT':
-        data = request.json
+        data = request.get_json()
+        if not data:
+            return jsonify(error="No data provided"), 400
+            
         for key, value in data.items():
             if hasattr(user_settings, key):
                 setattr(user_settings, key, value)
@@ -582,7 +646,10 @@ def settings():
 @app.route('/api/change-password', methods=['POST'])
 @login_required
 def change_password():
-    data = request.json
+    data = request.get_json()
+    if not data:
+        return jsonify(error="No data provided"), 400
+        
     if not current_user.check_password(data.get('current_password', '')):
         return jsonify(error='Invalid current password.'), 400
     new_password = data.get('new_password')
@@ -603,9 +670,9 @@ def export_user_data():
             "phone": current_user.phone
         },
         "settings": {
-            'default_radius': current_user.settings.default_radius,
-            'default_business_type': current_user.settings.default_business_type,
-        } if current_user.settings else {}
+            'default_radius': current_user.settings.default_radius if current_user.settings else None,
+            'default_business_type': current_user.settings.default_business_type if current_user.settings else None,
+        }
     }
     
     output = BytesIO()
@@ -617,7 +684,10 @@ def export_user_data():
 @app.route('/api/delete-account', methods=['POST'])
 @login_required
 def delete_account():
-    data = request.json
+    data = request.get_json()
+    if not data:
+        return jsonify(error="No data provided"), 400
+        
     if not current_user.check_password(data.get('password', '')):
         return jsonify(error='Invalid password.'), 400
     
@@ -625,7 +695,7 @@ def delete_account():
     if current_user.stripe_subscription_id:
         try:
             stripe.Subscription.delete(current_user.stripe_subscription_id)
-        except stripe.error.StripeError as e:
+        except Exception as e:
             print(f"Stripe subscription cancellation failed for user {current_user.id}: {e}")
             # Decide if this should prevent account deletion
     
@@ -638,25 +708,36 @@ def delete_account():
 @app.route('/api/update-last-search', methods=['POST'])
 @login_required
 def update_last_search():
-    data = request.json
-    settings = current_user.settings or UserSettings(user_id=current_user.id)
-    settings.last_search_city = data.get('city')
-    settings.last_search_state = data.get('state')
-    settings.last_search_business_type = data.get('business_type')
-    settings.last_search_radius = data.get('radius')
-    db.session.add(settings)
+    data = request.get_json()
+    if not data:
+        return jsonify(error="No data provided"), 400
+        
+    user_settings = current_user.settings
+    if not user_settings:
+        user_settings = UserSettings()
+        user_settings.user_id = current_user.id
+        db.session.add(user_settings)
+        
+    user_settings.last_search_city = data.get('city')
+    user_settings.last_search_state = data.get('state')
+    user_settings.last_search_business_type = data.get('business_type')
+    user_settings.last_search_radius = data.get('radius')
+    db.session.add(user_settings)
     db.session.commit()
     return jsonify(success=True)
 
 @app.route('/api/create-checkout-session', methods=['POST'])
 @login_required
 def create_checkout_session():
-    data = request.json
+    data = request.get_json()
+    if not data:
+        return jsonify(error="No data provided"), 400
+        
     try:
         checkout_session = stripe.checkout.Session.create(
             customer=current_user.stripe_customer_id,
             payment_method_types=['card'],
-            line_items=[{'price': data['priceId'], 'quantity': 1}],
+            line_items=[{'price': data.get('priceId'), 'quantity': 1}],
             mode='subscription',
             success_url=url_for('index', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('pricing', _external=True),
@@ -687,7 +768,7 @@ def stripe_webhook():
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError:
         return 'Invalid payload', 400
-    except stripe.error.SignatureVerificationError:
+    except Exception:
         return 'Invalid signature', 400
 
     if event['type'] == 'customer.subscription.updated' or event['type'] == 'customer.subscription.created':
@@ -704,6 +785,9 @@ def stripe_webhook():
 def get_gspread_client():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS_JSON')
+    if not creds_json:
+        raise ValueError("GOOGLE_SHEETS_CREDENTIALS_JSON environment variable not set")
+        
     creds_dict = json.loads(creds_json)
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     return gspread.authorize(creds)
