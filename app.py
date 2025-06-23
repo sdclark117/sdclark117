@@ -217,9 +217,11 @@ def cleanup_expired_tokens():
 def get_coordinates(location_query: str, api_key: str) -> Optional[Dict[str, float]]:
     gmaps = googlemaps.Client(key=api_key)
     try:
+        app.logger.info(f"Geocoding location query: '{location_query}'")
         geocode_result = gmaps.geocode(location_query)
         if geocode_result:
             location = geocode_result[0]['geometry']['location']
+            app.logger.info(f"Geocoding result for '{location_query}': {location}")
             return {'lat': location['lat'], 'lng': location['lng']}
         else:
             app.logger.warning(f"Geocoding returned no results for query: '{location_query}'")
@@ -266,6 +268,7 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
 
     # Fallback to a broader category if needed
     search_term = CATEGORY_FALLBACKS.get(str(business_type).strip().lower(), business_type)
+    app.logger.info(f"Searching places: lat={lat}, lng={lng}, radius={radius}, business_type='{business_type}', search_term='{search_term}', max_reviews={max_reviews}")
 
     # Initial search request
     try:
@@ -276,23 +279,23 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
             language='en'
         )
     except Exception as e:
-        print(f"Error calling Google Places API: {e}")
+        app.logger.error(f"Error calling Google Places API: {e}")
         return [], {'lat': lat, 'lng': lng}
+
+    total_google_results = 0
+    total_after_filter = 0
 
     while True:
         api_response_data = places_result
         if not api_response_data or api_response_data.get('status') != 'OK':
             break 
-            
         current_results = api_response_data.get('results', [])
-
+        total_google_results += len(current_results)
         for place in current_results:
             place_id = place.get('place_id')
             if place_id in seen_place_ids:
                 continue
-            
             seen_place_ids.add(place_id)
-            
             if is_potential_lead(place):
                 try:
                     details = get_place_details(place_id, api_key)
@@ -301,7 +304,6 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
                         if max_reviews is not None and user_ratings_total is not None:
                             if user_ratings_total > max_reviews:
                                 continue
-
                         lead_data = {
                             'place_id': place_id,
                             'name': details.get('name'),
@@ -317,23 +319,20 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
                             'business_status': place.get('business_status')
                         }
                         all_leads.append(lead_data)
+                        total_after_filter += 1
                 except Exception as e:
-                    print(f"Error processing place details for {place.get('name')}: {e}")
-
+                    app.logger.error(f"Error processing place details for {place.get('name')}: {e}")
         next_page_token = api_response_data.get('next_page_token')
         if not next_page_token:
             break
-        
         time.sleep(2)
-        
         try:
             places_result = gmaps.places_nearby(page_token=next_page_token)
         except Exception as e:
-            print(f"Error fetching next page from Google Places API: {e}")
+            app.logger.error(f"Error fetching next page from Google Places API: {e}")
             break
-
     final_leads = list({lead['place_id']: lead for lead in all_leads}.values())
-    
+    app.logger.info(f"Total Google results: {total_google_results}, After filtering: {total_after_filter}, Final unique leads: {len(final_leads)}")
     return final_leads, {'lat': lat, 'lng': lng}
 
 def get_place_details(place_id: str, api_key: str) -> Optional[Dict[str, Any]]:
