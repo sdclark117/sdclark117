@@ -35,6 +35,27 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
 
+# Logging setup: immediately after app creation
+app.logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.INFO)
+if not any(isinstance(h, logging.StreamHandler) for h in app.logger.handlers):
+    app.logger.addHandler(handler)
+
+# Gunicorn integration
+if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+
+# Test log and flush
+app.logger.info("=== TEST LOG: Flask logging is working and set to INFO level ===")
+for h in app.logger.handlers:
+    try:
+        h.flush()
+    except Exception:
+        pass
+
 # Database Configuration
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith("postgres://"):
@@ -58,17 +79,6 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('GMAIL_USERNAME')
 mail = Mail(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-# Set Flask logger to output INFO level logs and flush to stdout
-app.logger.setLevel(logging.INFO)
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.INFO)
-# Prevent duplicate handlers
-if not any(isinstance(h, logging.StreamHandler) for h in app.logger.handlers):
-    app.logger.addHandler(handler)
-
-# Add a test log to confirm logging is working
-app.logger.info("=== TEST LOG: Flask logging is working and set to INFO level ===")
 
 @click.command('init-db')
 @with_appcontext
