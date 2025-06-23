@@ -214,18 +214,22 @@ def cleanup_expired_tokens():
     
     db.session.commit()
 
-def get_coordinates(location: str, api_key: str) -> Optional[Dict[str, float]]:
-    if not api_key:
-        print("No Google API key provided")
-        return None
+def get_coordinates(location_query: str, api_key: str) -> Optional[Dict[str, float]]:
     gmaps = googlemaps.Client(key=api_key)
     try:
-        geocode_result = gmaps.geocode(location)
+        geocode_result = gmaps.geocode(location_query)
         if geocode_result:
-            return geocode_result[0]['geometry']['location']
+            location = geocode_result[0]['geometry']['location']
+            return {'lat': location['lat'], 'lng': location['lng']}
+        else:
+            app.logger.warning(f"Geocoding returned no results for query: '{location_query}'")
+            return None
+    except googlemaps.exceptions.ApiError as e:
+        app.logger.error(f"Geocoding API error for query '{location_query}': {e}")
+        return None
     except Exception as e:
-        print(f"Error during geocoding: {e}")
-    return None
+        app.logger.error(f"An unexpected error occurred during geocoding for query '{location_query}': {e}")
+        return None
 
 def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
     if not api_key:
@@ -516,17 +520,19 @@ def search():
     lng = data.get('lng')
 
     if not (lat and lng):
+        if not (data.get('city') and data.get('state')):
+            return jsonify({'error': 'Either a map pin or city/state is required.'}), 400
+        
         city = data.get('city')
         state = data.get('state')
-        if not (city and state and business_type):
-            return jsonify(error='City, State, and Business Type are required.'), 400
-        
         location_query = f"{city}, {state}"
-        coords = get_coordinates(location_query, app.config['GOOGLE_API_KEY'])
-        if not coords:
+        coords_dict = get_coordinates(location_query, app.config['GOOGLE_API_KEY'])
+        if not coords_dict:
             return jsonify(error='Could not find coordinates for the specified location.'), 400
-        lat, lng = coords['lat'], coords['lng']
-    
+        lat, lng = coords_dict['lat'], coords_dict['lng']
+
+    coords = (lat, lng)
+
     if not business_type:
         return jsonify(error='Business type is required'), 400
 
