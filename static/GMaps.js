@@ -123,7 +123,7 @@ function displayResults(results) {
             <td>${place.name || 'N/A'}</td>
             <td>${place.address || 'N/A'}</td>
             <td>${place.phone || 'N/A'}</td>
-            <td>${place.website ? `<a href="${place.website}" target="_blank">View</a>` : 'N/A'}</td>
+            <td>${place.website ? `<a href="${place.website}" target="_blank">${place.website}</a>` : 'N/A'}</td>
             <td>${place.rating || 'N/A'}</td>
             <td>${place.reviews || 'N/A'}</td>
             <td>${place.opening_hours || 'N/A'}</td>
