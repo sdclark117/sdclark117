@@ -336,7 +336,8 @@ def format_business_types(types):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
+    return render_template('index.html', google_maps_api_key=google_maps_api_key)
 
 @app.route('/verify-email/<token>')
 def verify_email(token):
