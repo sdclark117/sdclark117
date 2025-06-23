@@ -336,11 +336,14 @@ def format_business_types(types):
 
 @app.route('/')
 def index():
-    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
+    # TEMPORARY DEBUGGING: Hardcode the API key to test frontend loading
+    # Replace "YOUR_API_KEY_HERE" with your actual Google Maps API key
+    google_maps_api_key = "AIzaSyBJgbbwQA-t2Mq2ITPIqfsu3ADT7CsLado"
+    # google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
     return render_template('index.html', google_maps_api_key=google_maps_api_key)
 
 @app.route('/verify-email/<token>')
-def verify_email(token):
+def verify_email(token: str):
     verification_record = EmailVerificationToken.query.filter_by(token=token).first()
     if verification_record and verification_record.expires_at > datetime.utcnow():
         user = User.query.get(verification_record.user_id)
