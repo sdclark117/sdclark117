@@ -421,8 +421,8 @@ def search_places(lat, lng, business_type, radius, api_key, max_reviews=100):
                     app.logger.error(
                         (
                             "Error processing place details for '"
-                            + str(place.get('name'))[:40]
-                            + str(place.get('name'))[40:]
+                            + str(place.get("name"))[:40]
+                            + str(place.get("name"))[40:]
                             + "': "
                             + str(e)[:40]
                             + str(e)[40:]
@@ -478,9 +478,7 @@ def get_place_details(place_id: str, api_key: str) -> Optional[Dict[str, Any]]:
         )
         return None
     except Exception as e:
-        app.logger.error(
-            f"Unexpected error getting place details for {place_id}: {e}"
-        )
+        app.logger.error(f"Unexpected error getting place details for {place_id}: {e}")
         return None
 
 
@@ -809,11 +807,7 @@ def search():
 
     except Exception as e:
         app.logger.error(
-            (
-                "An error occurred during search: "
-                + str(e)[:40]
-                + str(e)[40:]
-            )
+            ("An error occurred during search: " + str(e)[:40] + str(e)[40:])
         )
         return jsonify(error="An unexpected error occurred during the search."), 500
 
@@ -867,13 +861,7 @@ def download():
             )
         return "Invalid format", 400
     except Exception as e:
-        app.logger.error(
-            (
-                "Error downloading file: "
-                + str(e)[:40]
-                + str(e)[40:]
-            )
-        )
+        app.logger.error(("Error downloading file: " + str(e)[:40] + str(e)[40:]))
         return "An error occurred while downloading the file.", 500
 
 
@@ -902,13 +890,7 @@ def export_to_google_sheets():
             200,
         )
     except Exception as e:
-        app.logger.error(
-            (
-                "Google Sheets export error: "
-                + str(e)[:40]
-                + str(e)[40:]
-            )
-        )
+        app.logger.error(("Google Sheets export error: " + str(e)[:40] + str(e)[40:]))
         return jsonify(error=f"Failed to export to Google Sheets: {e}"), 500
 
 
@@ -952,13 +934,7 @@ def settings():
             }
         )
     except Exception as e:
-        app.logger.error(
-            (
-                "Error in settings: "
-                + str(e)[:40]
-                + str(e)[40:]
-            )
-        )
+        app.logger.error(("Error in settings: " + str(e)[:40] + str(e)[40:]))
         db.session.rollback()
         return jsonify(error="An error occurred while processing settings."), 500
 
