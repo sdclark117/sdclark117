@@ -48,5 +48,6 @@ def main():
     if input("Run code formatters (black, isort)? [y/N]: ").lower() == "y":
         run_formatters()
 
+
 if __name__ == "__main__":
     main() 
