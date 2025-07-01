@@ -2,7 +2,7 @@
 import fnmatch
 import os
 import shutil
-import subprocess
+import subprocess  # nosec
 
 CLEAN_PATTERNS = [
     "__pycache__",
@@ -38,9 +38,9 @@ def clean_files(root_dir="."):
 
 def run_formatters():
     print("Running black...")
-    subprocess.run(["black", "."])
+    subprocess.run(["black", "."])  # nosec
     print("Running isort...")
-    subprocess.run(["isort", "."])
+    subprocess.run(["isort", "."])  # nosec
 
 
 def main():
