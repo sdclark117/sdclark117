@@ -15,26 +15,11 @@ import gspread
 import pandas as pd
 import stripe
 from dotenv import load_dotenv
-from flask import (
-    Flask,
-    flash,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    send_file,
-    session,
-    url_for,
-)
+from flask import (Flask, flash, jsonify, redirect, render_template, request,
+                   send_file, session, url_for)
 from flask.cli import with_appcontext
-from flask_login import (
-    LoginManager,
-    UserMixin,
-    current_user,
-    login_required,
-    login_user,
-    logout_user,
-)
+from flask_login import (LoginManager, UserMixin, current_user, login_required,
+                         login_user, logout_user)
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy

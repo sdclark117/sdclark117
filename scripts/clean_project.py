@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import fnmatch
 import os
 import shutil
-import fnmatch
 import subprocess
 
 CLEAN_PATTERNS = [
