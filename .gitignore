@@ -91,4 +91,15 @@ ENV/
 *.sln
 
 # Other
-.DS_Store 
+.DS_Store
+
+# Sample data files
+leads_*.csv
+leads_*.xlsx
+
+# Test files
+test_*.py
+*_test.py
+
+# Development files
+get-pip.py 
