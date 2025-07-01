@@ -2,6 +2,7 @@ let map;
 let marker;
 let allMarkers = [];
 let infoWindow;
+let radiusCircle;
 
 function initMap() {
     const initialLocation = { lat: 40.7128, lng: -74.0060 }; // Default to New York City
@@ -38,6 +39,14 @@ function clearPin() {
         marker.setMap(null);
         marker = null;
     }
+    clearRadiusCircle();
+}
+
+function clearRadiusCircle() {
+    if (radiusCircle) {
+        radiusCircle.setMap(null);
+        radiusCircle = null;
+    }
 }
 
 async function performSearch(event) {
@@ -47,6 +56,7 @@ async function performSearch(event) {
     const resultsTableBody = document.querySelector("#resultsTable tbody");
     resultsTableBody.innerHTML = ''; // Clear previous results
     clearAllMarkers();
+    clearRadiusCircle();
 
     const city = document.getElementById('city').value;
     const state = document.getElementById('state').value;
@@ -98,7 +108,7 @@ async function performSearch(event) {
         if (data.error) {
             showAlert(data.error);
         } else if (data.results && data.results.length > 0) {
-            displayResults(data.results);
+            displayResults(data.results, data.center, radius);
             document.getElementById('exportBtn').disabled = false;
         } else {
             showAlert('No results found.');
@@ -113,9 +123,35 @@ async function performSearch(event) {
     }
 }
 
-function displayResults(results) {
+function displayResults(results, center, radius) {
     const resultsTableBody = document.querySelector("#resultsTable tbody");
     const bounds = new google.maps.LatLngBounds();
+    
+    // Center map on search area and show radius
+    if (center && center.lat && center.lng) {
+        const centerPosition = { lat: center.lat, lng: center.lng };
+        
+        // Center the map on the search area
+        map.setCenter(centerPosition);
+        
+        // Draw radius circle
+        if (radius && !isNaN(radius)) {
+            const radiusMeters = parseFloat(radius) * 1609.34; // Convert miles to meters
+            radiusCircle = new google.maps.Circle({
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#FF0000',
+                fillOpacity: 0.1,
+                map: map,
+                center: centerPosition,
+                radius: radiusMeters,
+            });
+            
+            // Extend bounds to include the radius circle
+            bounds.extend(centerPosition);
+        }
+    }
 
     results.forEach(place => {
         const row = resultsTableBody.insertRow();
@@ -129,20 +165,28 @@ function displayResults(results) {
             <td>${place.opening_hours || 'N/A'}</td>
         `;
 
-        if (place.location) {
-            const position = { lat: place.location.lat, lng: place.location.lng };
+        // Create marker for each business
+        if (place.lat && place.lng) {
+            const position = { lat: place.lat, lng: place.lng };
             const placeMarker = new google.maps.Marker({
                 position,
                 map,
-                title: place.name
+                title: place.name,
+                icon: {
+                    url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    scaledSize: new google.maps.Size(32, 32)
+                }
             });
 
             placeMarker.addListener('click', () => {
                 const content = `
-                    <h5>${place.name}</h5>
-                    <p>${place.address}</p>
-                    <p>Rating: ${place.rating} (${place.reviews} reviews)</p>
-                    ${place.website ? `<a href="${place.website}" target="_blank">Website</a>` : ''}
+                    <div style="max-width: 300px;">
+                        <h5 style="margin: 0 0 10px 0; color: #333;">${place.name}</h5>
+                        <p style="margin: 5px 0; color: #666;"><strong>Address:</strong> ${place.address}</p>
+                        <p style="margin: 5px 0; color: #666;"><strong>Phone:</strong> ${place.phone || 'N/A'}</p>
+                        <p style="margin: 5px 0; color: #666;"><strong>Rating:</strong> ${place.rating || 'N/A'} (${place.reviews || '0'} reviews)</p>
+                        ${place.website ? `<p style="margin: 5px 0;"><a href="${place.website}" target="_blank" style="color: #007bff;">Visit Website</a></p>` : ''}
+                    </div>
                 `;
                 infoWindow.setContent(content);
                 infoWindow.open(map, placeMarker);
@@ -153,8 +197,14 @@ function displayResults(results) {
         }
     });
 
-    if (allMarkers.length > 0) {
+    // Fit map to show all markers and radius
+    if (allMarkers.length > 0 || radiusCircle) {
         map.fitBounds(bounds);
+        
+        // Add some padding to the bounds
+        const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+            map.setZoom(Math.min(map.getZoom(), 15)); // Don't zoom in too much
+        });
     }
 }
 
