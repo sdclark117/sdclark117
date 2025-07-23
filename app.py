@@ -386,10 +386,10 @@ def get_coordinates(location_query: str, api_key: str) -> Optional[Dict[str, flo
     try:
         app.logger.info(f"Geocoding location query: '{location_query}'")
         geocode_result = gmaps.geocode(location_query)  # type: ignore
-        
+
         # Log the raw response for debugging
         app.logger.info(f"Geocoding raw response: {geocode_result}")
-        
+
         if geocode_result:
             location = geocode_result[0]["geometry"]["location"]
             app.logger.info(f"Geocoding result for '{location_query}': {location}")
@@ -851,7 +851,9 @@ def search():
             # Log the geocoding attempt
             app.logger.info(f"Attempting to geocode: '{location_query}'")
             app.logger.info(f"API key available: {bool(app.config['GOOGLE_API_KEY'])}")
-            app.logger.info(f"Environment variable GOOGLE_MAPS_API_KEY: {bool(os.environ.get('GOOGLE_MAPS_API_KEY'))}")
+            app.logger.info(
+                f"Environment variable GOOGLE_MAPS_API_KEY: {bool(os.environ.get('GOOGLE_MAPS_API_KEY'))}"
+            )
 
             coords_dict = get_coordinates(location_query, app.config["GOOGLE_API_KEY"])
             if not coords_dict:
