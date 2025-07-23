@@ -843,17 +843,18 @@ def search():
             city = data.get("city")
             state = data.get("state")
             location_query = f"{city}, {state}"
-            
+
             # Log the geocoding attempt
             app.logger.info(f"Attempting to geocode: '{location_query}'")
             app.logger.info(f"API key available: {bool(app.config['GOOGLE_API_KEY'])}")
-            
+
             coords_dict = get_coordinates(location_query, app.config["GOOGLE_API_KEY"])
             if not coords_dict:
                 app.logger.error(f"Geocoding failed for: '{location_query}'")
                 return (
                     jsonify(
-                        error=f"Could not find coordinates for '{location_query}'. Please check the city and state spelling."
+                        error=f"Could not find coordinates for '{location_query}'. "
+                        "Please check the city and state spelling."
                     ),
                     400,
                 )
