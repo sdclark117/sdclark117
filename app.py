@@ -46,7 +46,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
+secret_key = os.getenv("SECRET_KEY")
+if not secret_key:
+    # Generate a secure random key if none is provided
+    secret_key = secrets.token_hex(32)
+    print("WARNING: No SECRET_KEY environment variable set. Generated a temporary key.")
+    print("Please set SECRET_KEY environment variable for production use.")
+app.secret_key = secret_key
 
 # Logging setup
 app.logger.setLevel(logging.INFO)
