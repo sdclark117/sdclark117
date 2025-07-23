@@ -174,6 +174,22 @@ class PasswordResetToken(db.Model):
         self.expires_at = expires_at
 
 
+class GuestUsage(db.Model):
+    __tablename__ = "guest_usage"
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False, index=True)  # IPv6 compatible
+    user_agent = db.Column(db.String(500))
+    search_count = db.Column(db.Integer, default=0)
+    first_visit = db.Column(db.DateTime, default=datetime.utcnow)
+    last_visit = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, ip_address, user_agent):
+        self.ip_address = ip_address
+        self.user_agent = user_agent
+
+
 class UserSettings(db.Model):
     __tablename__ = "user_settings"
     id = db.Column(db.Integer, primary_key=True)
@@ -203,6 +219,43 @@ def load_user(user_id):
 
 def generate_token():
     return secrets.token_urlsafe(32)
+
+
+def get_client_ip():
+    """Get the client's IP address, handling proxies."""
+    # Check for forwarded headers first (common with proxies)
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    elif request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP')
+    elif request.headers.get('X-Client-IP'):
+        return request.headers.get('X-Client-IP')
+    else:
+        return request.remote_addr
+
+
+def get_or_create_guest_usage():
+    """Get or create guest usage tracking for the current IP."""
+    if current_user.is_authenticated:
+        return None
+    
+    ip_address = get_client_ip()
+    user_agent = request.headers.get('User-Agent', '')
+    
+    # Try to find existing guest usage
+    guest_usage = GuestUsage.query.filter_by(ip_address=ip_address).first()
+    
+    if guest_usage:
+        # Update last visit
+        guest_usage.last_visit = datetime.utcnow()
+        db.session.commit()
+        return guest_usage
+    else:
+        # Create new guest usage record
+        guest_usage = GuestUsage(ip_address=ip_address, user_agent=user_agent)
+        db.session.add(guest_usage)
+        db.session.commit()
+        return guest_usage
 
 
 def send_email(subject, recipients, body, html_body=None):
@@ -288,6 +341,30 @@ def cleanup_expired_tokens():
         )
     except Exception as e:
         app.logger.error(f"Error cleaning up expired tokens: {e}")
+        db.session.rollback()
+
+
+def reset_guest_usage_daily():
+    """Reset guest usage counts daily to allow new free searches."""
+    try:
+        # Reset search counts for guest usage older than 24 hours
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        
+        guest_usage_to_reset = GuestUsage.query.filter(
+            GuestUsage.updated_at < yesterday
+        ).all()
+        
+        for guest_usage in guest_usage_to_reset:
+            guest_usage.search_count = 0
+            guest_usage.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        if guest_usage_to_reset:
+            app.logger.info(f"Reset search counts for {len(guest_usage_to_reset)} guest IPs")
+            
+    except Exception as e:
+        app.logger.error(f"Error resetting guest usage: {e}")
         db.session.rollback()
 
 
@@ -778,18 +855,36 @@ def search():
             return jsonify(error="Business type is required"), 400
 
         # --- GUEST SEARCH LIMITS ---
-        # If the user is not authenticated (guest), limit to 5 searches per session, 15 results per search
+        # Track guest usage by IP address to prevent abuse
         if not current_user.is_authenticated or current_user.current_plan is None:
-            session.setdefault("guest_search_count", 0)
-            if session["guest_search_count"] >= 5:
-                return (
-                    jsonify(
-                        error="Guest users are limited to 5 searches. Please sign up or log in for more."
-                    ),
-                    403,
-                )
-            session["guest_search_count"] += 1
-            max_results = 15
+            guest_usage = get_or_create_guest_usage()
+            
+            if guest_usage:
+                # Check if guest has exceeded daily limit (5 searches per day)
+                if guest_usage.search_count >= 5:
+                    return (
+                        jsonify(
+                            error="You've reached the daily limit of 5 free searches. Please sign up or log in for unlimited searches."
+                        ),
+                        403,
+                    )
+                
+                # Increment search count for this IP
+                guest_usage.search_count += 1
+                db.session.commit()
+                max_results = 15
+            else:
+                # Fallback to session-based tracking if database tracking fails
+                session.setdefault("guest_search_count", 0)
+                if session["guest_search_count"] >= 5:
+                    return (
+                        jsonify(
+                            error="Guest users are limited to 5 searches. Please sign up or log in for more."
+                        ),
+                        403,
+                    )
+                session["guest_search_count"] += 1
+                max_results = 15
         else:
             max_results = None  # No limit for authenticated users with a plan
 
@@ -1202,13 +1297,14 @@ _cleanup_counter = 0
 
 @app.before_request
 def before_request():
-    """Run before each request to clean up expired tokens occasionally."""
+    """Run before each request to clean up expired tokens and reset guest usage occasionally."""
     global _cleanup_counter
     # Only clean up tokens occasionally (every 100 requests) to avoid performance impact
     _cleanup_counter += 1
 
     if _cleanup_counter % 100 == 0:
         cleanup_expired_tokens()
+        reset_guest_usage_daily()
 
 
 if __name__ == "__main__":
