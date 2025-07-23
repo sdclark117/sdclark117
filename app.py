@@ -677,14 +677,31 @@ def login():
     """Log in a user."""
     try:
         data = request.get_json()
+        app.logger.info(f"Login attempt - data received: {bool(data)}")
+        
         if not data or not data.get("email") or not data.get("password"):
+            app.logger.warning("Login failed - missing email or password")
             return jsonify(error="Missing email or password"), 400
 
-        user = User.query.filter_by(email=data["email"].lower().strip()).first()
+        email = data["email"].lower().strip()
+        password = data["password"]
+        app.logger.info(f"Login attempt for email: {email}")
 
-        if user and user.check_password(data["password"]):
-            login_user(user, remember=data.get("remember", False))
-            return jsonify(message="Login successful"), 200
+        user = User.query.filter_by(email=email).first()
+        app.logger.info(f"User found: {bool(user)}")
+
+        if user:
+            password_check = user.check_password(password)
+            app.logger.info(f"Password check result: {password_check}")
+            
+            if password_check:
+                login_user(user, remember=data.get("remember", False))
+                app.logger.info(f"Login successful for user: {user.email}")
+                return jsonify(message="Login successful"), 200
+            else:
+                app.logger.warning(f"Login failed - incorrect password for user: {email}")
+        else:
+            app.logger.warning(f"Login failed - user not found: {email}")
 
         return jsonify(error="Invalid email or password"), 401
     except Exception as e:
