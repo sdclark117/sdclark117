@@ -678,7 +678,7 @@ def login():
     try:
         data = request.get_json()
         app.logger.info(f"Login attempt - data received: {bool(data)}")
-        
+
         if not data or not data.get("email") or not data.get("password"):
             app.logger.warning("Login failed - missing email or password")
             return jsonify(error="Missing email or password"), 400
@@ -693,13 +693,15 @@ def login():
         if user:
             password_check = user.check_password(password)
             app.logger.info(f"Password check result: {password_check}")
-            
+
             if password_check:
                 login_user(user, remember=data.get("remember", False))
                 app.logger.info(f"Login successful for user: {user.email}")
                 return jsonify(message="Login successful"), 200
             else:
-                app.logger.warning(f"Login failed - incorrect password for user: {email}")
+                app.logger.warning(
+                    f"Login failed - incorrect password for user: {email}"
+                )
         else:
             app.logger.warning(f"Login failed - user not found: {email}")
 
