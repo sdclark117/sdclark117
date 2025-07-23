@@ -378,26 +378,30 @@ def get_coordinates(location_query: str, api_key: str) -> Optional[Dict[str, flo
         app.logger.error("No Google API key provided for geocoding")
         return None
 
+    # Log API key info (without exposing the full key)
+    api_key_preview = api_key[:10] + "..." if len(api_key) > 10 else api_key
+    app.logger.info(f"Using API key: {api_key_preview}")
+
     gmaps = googlemaps.Client(key=api_key)
     try:
         app.logger.info(f"Geocoding location query: '{location_query}'")
         geocode_result = gmaps.geocode(location_query)  # type: ignore
+        
+        # Log the raw response for debugging
+        app.logger.info(f"Geocoding raw response: {geocode_result}")
+        
         if geocode_result:
             location = geocode_result[0]["geometry"]["location"]
             app.logger.info(f"Geocoding result for '{location_query}': {location}")
             return {"lat": location["lat"], "lng": location["lng"]}
         else:
             app.logger.warning(
-                (
-                    "Geocoding returned no results for query: '"
-                    + location_query[:40]
-                    + location_query[40:]
-                    + "'"
-                )
+                f"Geocoding returned no results for query: '{location_query}'"
             )
             return None
     except googlemaps.exceptions.ApiError as e:
         app.logger.error(f"Geocoding API error for query '{location_query}': {e}")
+        app.logger.error(f"API Error details: {str(e)}")
         return None
     except Exception as e:
         app.logger.error(
@@ -847,6 +851,7 @@ def search():
             # Log the geocoding attempt
             app.logger.info(f"Attempting to geocode: '{location_query}'")
             app.logger.info(f"API key available: {bool(app.config['GOOGLE_API_KEY'])}")
+            app.logger.info(f"Environment variable GOOGLE_MAPS_API_KEY: {bool(os.environ.get('GOOGLE_MAPS_API_KEY'))}")
 
             coords_dict = get_coordinates(location_query, app.config["GOOGLE_API_KEY"])
             if not coords_dict:
