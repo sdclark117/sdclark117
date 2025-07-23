@@ -859,7 +859,9 @@ def search():
                     400,
                 )
             lat, lng = coords_dict["lat"], coords_dict["lng"]
-            app.logger.info(f"Successfully geocoded '{location_query}' to lat={lat}, lng={lng}")
+            app.logger.info(
+                f"Successfully geocoded '{location_query}' to lat={lat}, lng={lng}"
+            )
 
         # coords = (lat, lng)  # Removed unused variable
 
