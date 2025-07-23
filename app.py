@@ -722,7 +722,6 @@ def check_auth():
 
 
 @app.route("/api/search", methods=["POST"])
-@login_required
 def search():
     """Search for business leads."""
     try:
@@ -794,8 +793,10 @@ def search():
         else:
             max_results = None  # No limit for authenticated users with a plan
 
-        current_user.search_count = getattr(current_user, "search_count", 0) + 1
-        db.session.commit()
+        # Only update search count for authenticated users
+        if current_user.is_authenticated:
+            current_user.search_count = getattr(current_user, "search_count", 0) + 1
+            db.session.commit()
 
         leads, center = search_places(
             lat,
