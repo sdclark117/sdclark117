@@ -183,7 +183,9 @@ class GuestUsage(db.Model):
     first_visit = db.Column(db.DateTime, default=datetime.utcnow)
     last_visit = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     def __init__(self, ip_address, user_agent):
         self.ip_address = ip_address
@@ -224,12 +226,12 @@ def generate_token():
 def get_client_ip():
     """Get the client's IP address, handling proxies."""
     # Check for forwarded headers first (common with proxies)
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    elif request.headers.get('X-Real-IP'):
-        return request.headers.get('X-Real-IP')
-    elif request.headers.get('X-Client-IP'):
-        return request.headers.get('X-Client-IP')
+    if request.headers.get("X-Forwarded-For"):
+        return request.headers.get("X-Forwarded-For").split(",")[0].strip()
+    elif request.headers.get("X-Real-IP"):
+        return request.headers.get("X-Real-IP")
+    elif request.headers.get("X-Client-IP"):
+        return request.headers.get("X-Client-IP")
     else:
         return request.remote_addr
 
@@ -238,13 +240,13 @@ def get_or_create_guest_usage():
     """Get or create guest usage tracking for the current IP."""
     if current_user.is_authenticated:
         return None
-    
+
     ip_address = get_client_ip()
-    user_agent = request.headers.get('User-Agent', '')
-    
+    user_agent = request.headers.get("User-Agent", "")
+
     # Try to find existing guest usage
     guest_usage = GuestUsage.query.filter_by(ip_address=ip_address).first()
-    
+
     if guest_usage:
         # Update last visit
         guest_usage.last_visit = datetime.utcnow()
@@ -349,20 +351,22 @@ def reset_guest_usage_daily():
     try:
         # Reset search counts for guest usage older than 24 hours
         yesterday = datetime.utcnow() - timedelta(days=1)
-        
+
         guest_usage_to_reset = GuestUsage.query.filter(
             GuestUsage.updated_at < yesterday
         ).all()
-        
+
         for guest_usage in guest_usage_to_reset:
             guest_usage.search_count = 0
             guest_usage.updated_at = datetime.utcnow()
-        
+
         db.session.commit()
-        
+
         if guest_usage_to_reset:
-            app.logger.info(f"Reset search counts for {len(guest_usage_to_reset)} guest IPs")
-            
+            app.logger.info(
+                f"Reset search counts for {len(guest_usage_to_reset)} guest IPs"
+            )
+
     except Exception as e:
         app.logger.error(f"Error resetting guest usage: {e}")
         db.session.rollback()
@@ -858,17 +862,18 @@ def search():
         # Track guest usage by IP address to prevent abuse
         if not current_user.is_authenticated or current_user.current_plan is None:
             guest_usage = get_or_create_guest_usage()
-            
+
             if guest_usage:
                 # Check if guest has exceeded daily limit (5 searches per day)
                 if guest_usage.search_count >= 5:
                     return (
                         jsonify(
-                            error="You've reached the daily limit of 5 free searches. Please sign up or log in for unlimited searches."
+                            error="You've reached the daily limit of 5 free searches. "
+                            "Please sign up or log in for unlimited searches."
                         ),
                         403,
                     )
-                
+
                 # Increment search count for this IP
                 guest_usage.search_count += 1
                 db.session.commit()
