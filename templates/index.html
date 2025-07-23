@@ -1321,8 +1321,8 @@ body {
                 
                 const data = await response.json();
                 
-                if (data.success) {
-                    currentUser = data.user;
+                if (response.ok && data.message) {
+                    // Login successful
                     isAuthenticated = true;
                     updateAuthButton();
                     checkAuthStatus();
@@ -1371,8 +1371,8 @@ body {
                 
                 const data = await response.json();
                 
-                if (data.success) {
-                    currentUser = data.user;
+                if (response.ok && data.message) {
+                    // Registration successful
                     isAuthenticated = true;
                     updateAuthButton();
                     
