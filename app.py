@@ -1313,7 +1313,7 @@ def admin_required(f):
         app.logger.info(f"Admin check for user: {current_user.email}")
         app.logger.info(f"User is_admin: {current_user.is_admin}")
         app.logger.info(f"User current_plan: {current_user.current_plan}")
-        
+
         if not current_user.is_admin:
             app.logger.warning(f"Admin access denied for user: {current_user.email}")
             flash("You do not have permission to access this page.", "danger")
@@ -1333,7 +1333,7 @@ def admin_dashboard():
         app.logger.info(f"Admin dashboard accessed by user: {current_user.email}")
         app.logger.info(f"User is_admin: {current_user.is_admin}")
         app.logger.info(f"User current_plan: {current_user.current_plan}")
-        
+
         users = User.query.all()
         return render_template("admin_dashboard.html", users=users)
     except Exception as e:
