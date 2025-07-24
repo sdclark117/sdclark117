@@ -160,12 +160,12 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ price_id: priceId }),
+                body: JSON.stringify({ priceId: priceId }),
             })
             .then(response => response.json())
             .then(session => {
-                if (session.session_id) {
-                    return stripe.redirectToCheckout({ sessionId: session.session_id });
+                if (session.id) {
+                    return stripe.redirectToCheckout({ sessionId: session.id });
                 } else {
                     alert(session.error || 'An error occurred.');
                 }

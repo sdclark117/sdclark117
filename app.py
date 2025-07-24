@@ -1227,7 +1227,6 @@ def update_last_search():
 
 
 @app.route("/api/create-checkout-session", methods=["POST"])
-@login_required
 def create_checkout_session():
     """Create Stripe checkout session."""
     try:
@@ -1235,8 +1234,29 @@ def create_checkout_session():
         if not data:
             return jsonify(error="No data provided"), 400
 
+        # Check if user is authenticated
+        if current_user.is_authenticated:
+            # User is logged in, use their customer ID
+            customer_id = current_user.stripe_customer_id
+            if not customer_id:
+                # Create Stripe customer for authenticated user
+                customer = stripe.Customer.create(
+                    email=current_user.email,
+                    name=current_user.name
+                )
+                current_user.stripe_customer_id = customer.id
+                db.session.commit()
+                customer_id = customer.id
+        else:
+            # Guest user, create temporary customer
+            customer = stripe.Customer.create(
+                email="guest@example.com",  # Will be updated after signup
+                name="Guest User"
+            )
+            customer_id = customer.id
+
         checkout_session = stripe.checkout.Session.create(
-            customer=current_user.stripe_customer_id,
+            customer=customer_id,
             payment_method_types=["card"],
             line_items=[{"price": data.get("priceId"), "quantity": 1}],
             mode="subscription",
@@ -1318,7 +1338,20 @@ def get_gspread_client():
 @app.route("/pricing")
 def pricing():
     """Display pricing page."""
-    return render_template("pricing.html")
+    # Get Stripe publishable key from environment
+    stripe_publishable_key = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    
+    # These would normally come from your Stripe dashboard
+    # For now, using placeholder values
+    basic_price_id = os.getenv("STRIPE_BASIC_PRICE_ID", "price_basic")
+    premium_price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID", "price_premium") 
+    platinum_price_id = os.getenv("STRIPE_PLATINUM_PRICE_ID", "price_platinum")
+    
+    return render_template("pricing.html", 
+                         stripe_publishable_key=stripe_publishable_key,
+                         basic_price_id=basic_price_id,
+                         premium_price_id=premium_price_id,
+                         platinum_price_id=platinum_price_id)
 
 
 def admin_required(f):
