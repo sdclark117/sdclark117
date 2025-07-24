@@ -242,7 +242,7 @@ class PageVisits(db.Model):
     unique_visitors = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     __table_args__ = (db.UniqueConstraint('date', 'page'),)
 
 
@@ -309,26 +309,26 @@ def track_page_visit(page_name):
         today = datetime.utcnow().date()
         ip_address = get_client_ip()
         user_agent = request.headers.get("User-Agent", "")
-        
+
         # Get or create page visit record for today
         page_visit = PageVisits.query.filter_by(date=today, page=page_name).first()
         if not page_visit:
             page_visit = PageVisits(date=today, page=page_name)
             db.session.add(page_visit)
-        
+
         # Increment total visits
         page_visit.visits += 1
-        
+
         # Check if this is a unique visitor (by IP)
         existing_activity = UserActivity.query.filter_by(
             date=db.func.date(UserActivity.created_at),
             ip_address=ip_address,
             page=page_name
         ).first()
-        
+
         if not existing_activity:
             page_visit.unique_visitors += 1
-        
+
         # Record user activity
         activity = UserActivity(
             user_id=current_user.id if current_user.is_authenticated else None,
@@ -338,7 +338,7 @@ def track_page_visit(page_name):
             user_agent=user_agent
         )
         db.session.add(activity)
-        
+
         db.session.commit()
     except Exception as e:
         app.logger.error(f"Error tracking page visit: {e}")
@@ -350,7 +350,7 @@ def track_user_action(action, page_name=None):
     try:
         ip_address = get_client_ip()
         user_agent = request.headers.get("User-Agent", "")
-        
+
         activity = UserActivity(
             user_id=current_user.id if current_user.is_authenticated else None,
             ip_address=ip_address,
@@ -369,28 +369,28 @@ def update_daily_analytics():
     """Update daily analytics summary."""
     try:
         today = datetime.utcnow().date()
-        
+
         # Get or create analytics record for today
         analytics = SiteAnalytics.query.filter_by(date=today).first()
         if not analytics:
             analytics = SiteAnalytics(date=today)
             db.session.add(analytics)
-        
+
         # Count total visits today
         total_visits = UserActivity.query.filter(
             db.func.date(UserActivity.created_at) == today
         ).count()
-        
+
         # Count unique visitors today
         unique_visitors = db.session.query(
             db.func.count(db.func.distinct(UserActivity.ip_address))
         ).filter(
             db.func.date(UserActivity.created_at) == today
         ).scalar()
-        
+
         # Count registered users
         registered_users = User.query.count()
-        
+
         # Count active users today (users who performed actions)
         active_users = db.session.query(
             db.func.count(db.func.distinct(UserActivity.user_id))
@@ -398,19 +398,19 @@ def update_daily_analytics():
             db.func.date(UserActivity.created_at) == today,
             UserActivity.user_id.isnot(None)
         ).scalar()
-        
+
         # Count searches performed today
         searches_performed = UserActivity.query.filter(
             db.func.date(UserActivity.created_at) == today,
             UserActivity.action == 'search'
         ).count()
-        
+
         # Count exports performed today
         exports_performed = UserActivity.query.filter(
             db.func.date(UserActivity.created_at) == today,
             UserActivity.action == 'export'
         ).count()
-        
+
         # Update analytics
         analytics.total_visits = total_visits
         analytics.unique_visitors = unique_visitors or 0
@@ -418,7 +418,7 @@ def update_daily_analytics():
         analytics.active_users = active_users or 0
         analytics.searches_performed = searches_performed
         analytics.exports_performed = exports_performed
-        
+
         db.session.commit()
     except Exception as e:
         app.logger.error(f"Error updating daily analytics: {e}")
@@ -430,19 +430,19 @@ def get_analytics_data(days=30):
     try:
         end_date = datetime.utcnow().date()
         start_date = end_date - timedelta(days=days)
-        
+
         # Get site analytics
         site_analytics = SiteAnalytics.query.filter(
             SiteAnalytics.date >= start_date,
             SiteAnalytics.date <= end_date
         ).order_by(SiteAnalytics.date).all()
-        
+
         # Get page visits
         page_visits = PageVisits.query.filter(
             PageVisits.date >= start_date,
             PageVisits.date <= end_date
         ).order_by(PageVisits.date).all()
-        
+
         # Get user activity summary
         user_activity = db.session.query(
             UserActivity.action,
@@ -451,7 +451,7 @@ def get_analytics_data(days=30):
             db.func.date(UserActivity.created_at) >= start_date,
             db.func.date(UserActivity.created_at) <= end_date
         ).group_by(UserActivity.action).all()
-        
+
         return {
             'site_analytics': site_analytics,
             'page_visits': page_visits,
@@ -808,7 +808,7 @@ def index():
 
     # Get or create guest usage tracking
     guest_usage = get_or_create_guest_usage()
-    
+
     # Track page visit
     track_page_visit('index')
 
@@ -1177,10 +1177,10 @@ def search():
         if max_results is not None:
             leads = leads[:max_results]
         session["last_search_results"] = leads
-        
+
         # Track search action
         track_user_action('search', 'search_page')
-        
+
         return jsonify({"results": leads, "center": center})
 
     except Exception as e:
@@ -1207,7 +1207,7 @@ def download():
             output.seek(0)
             # Track export action
             track_user_action('export', 'csv_download')
-            
+
             return send_file(
                 output,
                 mimetype="text/csv",
@@ -1236,7 +1236,7 @@ def download():
             output.seek(0)
             # Track export action
             track_user_action('export', 'xlsx_download')
-            
+
             return send_file(
                 output,
                 mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1610,26 +1610,26 @@ def admin_dashboard():
 
         # Track admin dashboard visit
         track_page_visit('admin_dashboard')
-        
+
         # Get analytics data for the last 30 days
         analytics_data = get_analytics_data(30)
-        
+
         # Get user statistics
         total_users = User.query.count()
         active_users_today = UserActivity.query.filter(
             db.func.date(UserActivity.created_at) == datetime.utcnow().date(),
             UserActivity.user_id.isnot(None)
         ).distinct(UserActivity.user_id).count()
-        
+
         # Get plan distribution
         plan_distribution = db.session.query(
             User.current_plan,
             db.func.count(User.id).label('count')
         ).group_by(User.current_plan).all()
-        
+
         users = User.query.all()
-        
-        return render_template("admin_dashboard.html", 
+
+        return render_template("admin_dashboard.html",
                              users=users,
                              analytics_data=analytics_data,
                              total_users=total_users,
