@@ -1505,10 +1505,16 @@ body {
                 'support': 'For support:\n• Email: support@businessleadfinder.com\n• Check our FAQ section\n• Use the contact form\nWe typically respond within 24 hours!'
             };
             
-            // Check if user is admin
+            // Check if user is admin or platinum
             const isAdmin = currentUser && currentUser.is_admin;
+            const isPlatinum = currentUser && currentUser.current_plan === 'PLATINUM';
             
             const lowerMessage = userMessage.toLowerCase();
+            
+            // Platinum AI Assistant - Enhanced capabilities
+            if (isPlatinum) {
+                return generatePlatinumAIResponse(userMessage);
+            }
             
             // Check for keywords and return appropriate response
             if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
@@ -1537,6 +1543,130 @@ body {
             } else {
                 return "I'm here to help with your business lead finding needs! You can ask me about:\n• How to search for leads\n• Pricing and plans\n• Export features\n• Account management\n• Support options\nWhat would you like to know?";
             }
+        }
+        
+        function generatePlatinumAIResponse(userMessage) {
+            const lowerMessage = userMessage.toLowerCase();
+            
+            // Platinum AI can perform automated searches
+            if (lowerMessage.includes('search for') || lowerMessage.includes('find') || lowerMessage.includes('look for')) {
+                return handlePlatinumSearch(userMessage);
+            }
+            
+            // Platinum AI can vet and analyze results
+            if (lowerMessage.includes('vet') || lowerMessage.includes('analyze') || lowerMessage.includes('quality')) {
+                return handlePlatinumVetting(userMessage);
+            }
+            
+            // Platinum AI can provide advanced insights
+            if (lowerMessage.includes('insight') || lowerMessage.includes('analysis') || lowerMessage.includes('recommend')) {
+                return handlePlatinumInsights(userMessage);
+            }
+            
+            // Enhanced responses for Platinum users
+            const platinumResponses = {
+                'hello': 'Hello! I\'m your Platinum AI Assistant. I can help you with:\n• Automated business lead searches\n• Result vetting and analysis\n• Advanced insights and recommendations\n• Custom search strategies\nWhat would you like me to help you with today?',
+                'help': 'As your Platinum AI Assistant, I can:\n• Search for business leads automatically\n• Vet and analyze search results\n• Provide advanced insights\n• Create custom search strategies\n• Export results to Google Sheets\n• Monitor lead quality and potential\nJust tell me what you\'re looking for!',
+                'search': 'I can perform automated searches for you! Just tell me:\n• What type of business you\'re looking for\n• The location or area\n• Any specific criteria (reviews, ratings, etc.)\nI\'ll search, vet the results, and provide you with the best leads.',
+                'pricing': 'You\'re on our Platinum plan ($500/mo) which includes:\n• 500 searches per month\n• AI-powered lead vetting\n• Advanced analytics\n• Phone & email support\n• Automated search capabilities\n• Priority processing',
+                'admin': 'I\'m sorry, I don\'t have information about admin features. If you need assistance with your account or the platform, please contact our support team.',
+                'export': 'I can automatically export your search results to Google Sheets! Just ask me to search for something, and I\'ll handle the export process for you.',
+                'filter': 'I can apply advanced filtering during searches, including:\n• Review count analysis\n• Rating thresholds\n• Business type matching\n• Location optimization\n• Quality scoring\nJust tell me your criteria!',
+                'trial': 'You\'re on our Platinum plan, so you have full access to all features including AI-powered searches and vetting.',
+                'support': 'For Platinum support:\n• Priority phone support\n• Dedicated account manager\n• 24/7 email support\n• Custom training sessions\nContact: platinum-support@businessleadfinder.com'
+            };
+            
+            if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+                return platinumResponses.hello;
+            } else if (lowerMessage.includes('help')) {
+                return platinumResponses.help;
+            } else if (lowerMessage.includes('search') || lowerMessage.includes('find')) {
+                return platinumResponses.search;
+            } else if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('plan')) {
+                return platinumResponses.pricing;
+            } else if (lowerMessage.includes('admin')) {
+                return platinumResponses.admin;
+            } else if (lowerMessage.includes('export') || lowerMessage.includes('google')) {
+                return platinumResponses.export;
+            } else if (lowerMessage.includes('filter') || lowerMessage.includes('review')) {
+                return platinumResponses.filter;
+            } else if (lowerMessage.includes('trial') || lowerMessage.includes('free')) {
+                return platinumResponses.trial;
+            } else if (lowerMessage.includes('support') || lowerMessage.includes('contact')) {
+                return platinumResponses.support;
+            } else {
+                return "I'm your Platinum AI Assistant! I can help you with:\n• Automated business lead searches\n• Advanced result vetting and analysis\n• Custom search strategies\n• Quality scoring and insights\n• Automated exports\nJust tell me what you're looking for!";
+            }
+        }
+        
+        function handlePlatinumSearch(userMessage) {
+            // Extract search parameters from user message
+            const searchTerms = extractSearchTerms(userMessage);
+            
+            if (!searchTerms.location || !searchTerms.businessType) {
+                return "I'd be happy to search for business leads for you! Please tell me:\n• What type of business you're looking for\n• The location or area\n• Any specific criteria (optional)\n\nFor example: 'Search for restaurants in New York' or 'Find coffee shops in Los Angeles'";
+            }
+            
+            return `I'll search for ${searchTerms.businessType} in ${searchTerms.location} for you!\n\n🔍 **Search Parameters:**\n• Business Type: ${searchTerms.businessType}\n• Location: ${searchTerms.location}\n• Radius: ${searchTerms.radius || '5 miles'}\n• Max Reviews: ${searchTerms.maxReviews || 'No limit'}\n\nI'll analyze the results and provide you with the best leads, including:\n• Quality scoring\n• Partnership potential\n• Contact information\n• Business insights\n\nWould you like me to proceed with this search?`;
+        }
+        
+        function handlePlatinumVetting(userMessage) {
+            return "I can vet and analyze search results for you! I'll evaluate each business based on:\n\n📊 **Vetting Criteria:**\n• Review count and quality\n• Rating consistency\n• Business age and stability\n• Partnership potential\n• Contact accessibility\n• Market positioning\n\n🔍 **Analysis Includes:**\n• Quality score (1-10)\n• Partnership likelihood\n• Risk assessment\n• Growth potential\n• Contact readiness\n\nJust ask me to search for something, and I'll provide fully vetted results!";
+        }
+        
+        function handlePlatinumInsights(userMessage) {
+            return "I can provide advanced insights and recommendations! Here's what I analyze:\n\n📈 **Market Insights:**\n• Industry trends in your target area\n• Competition analysis\n• Market saturation levels\n• Growth opportunities\n\n🎯 **Lead Quality Analysis:**\n• Partnership potential scoring\n• Contact readiness assessment\n• Business stability indicators\n• Expansion opportunities\n\n📊 **Strategic Recommendations:**\n• Best approach strategies\n• Optimal contact timing\n• Partnership proposal suggestions\n• Risk mitigation strategies\n\nJust tell me what you're looking for, and I'll provide comprehensive insights!";
+        }
+        
+        function extractSearchTerms(userMessage) {
+            const terms = {
+                location: '',
+                businessType: '',
+                radius: '5',
+                maxReviews: null
+            };
+            
+            // Extract location (common patterns)
+            const locationPatterns = [
+                /(?:in|at|near|around)\s+([A-Za-z\s,]+?)(?:\s|$)/i,
+                /(?:search|find|look)\s+(?:for\s+)?[^in]*?\s+(?:in|at|near)\s+([A-Za-z\s,]+?)(?:\s|$)/i
+            ];
+            
+            for (const pattern of locationPatterns) {
+                const match = userMessage.match(pattern);
+                if (match) {
+                    terms.location = match[1].trim();
+                    break;
+                }
+            }
+            
+            // Extract business type
+            const businessPatterns = [
+                /(?:search|find|look)\s+(?:for\s+)?([^in]*?)(?:\s+in|\s+at|\s+near|$)/i,
+                /(?:restaurants?|coffee\s+shops?|gyms?|salons?|dentists?|lawyers?|accountants?|plumbers?|electricians?|contractors?|real\s+estate|insurance|banks?|pharmacies?|doctors?|dentists?|veterinarians?|pet\s+shops?|bookstores?|libraries?|schools?|universities?|hospitals?|clinics?|spas?|massage|yoga|fitness|gyms?|studios?|shops?|stores?|businesses?|companies?|offices?)/gi
+            ];
+            
+            for (const pattern of businessPatterns) {
+                const match = userMessage.match(pattern);
+                if (match) {
+                    terms.businessType = match[1] || match[0];
+                    break;
+                }
+            }
+            
+            // Extract radius
+            const radiusMatch = userMessage.match(/(\d+)\s*(?:mile|miles|mi)/i);
+            if (radiusMatch) {
+                terms.radius = radiusMatch[1];
+            }
+            
+            // Extract max reviews
+            const reviewMatch = userMessage.match(/(\d+)\s*(?:review|reviews)/i);
+            if (reviewMatch) {
+                terms.maxReviews = reviewMatch[1];
+            }
+            
+            return terms;
         }
         
         // Handle Enter key in chat input
