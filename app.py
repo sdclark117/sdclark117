@@ -825,7 +825,7 @@ def check_auth():
         app.logger.info(f"🔧 Check-auth for user: {current_user.email}")
         app.logger.info(f"🔧 User is_admin: {current_user.is_admin}")
         app.logger.info(f"🔧 User current_plan: {current_user.current_plan}")
-        
+
         return jsonify(
             {
                 "is_logged_in": True,
