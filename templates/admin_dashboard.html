@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - User Management</title>
+    <title>Admin Dashboard - Analytics & User Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #212529;
@@ -13,72 +15,529 @@
             --border-color: #495057;
             --header-bg: #1a1d20;
             --header-text: #ffffff;
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
         }
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
         }
         .table {
             background-color: var(--card-bg);
             border-color: var(--border-color);
+            color: var(--text-color);
         }
         .table thead th {
             background-color: var(--header-bg);
             color: #fff;
             font-weight: bold;
+            border-color: var(--border-color);
         }
         .table tbody tr {
             color: var(--text-color);
+            border-color: var(--border-color);
         }
         .table-striped>tbody>tr:nth-of-type(odd)>* {
             color: var(--text-color);
         }
-        .card-header {
-            font-size: 1.25rem;
-            color: #fff;
+        .stats-card {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            border: none;
         }
+        .stats-card.success {
+            background: linear-gradient(135deg, var(--success-color), #146c43);
+        }
+        .stats-card.warning {
+            background: linear-gradient(135deg, var(--warning-color), #b45309);
+        }
+        .stats-card.danger {
+            background: linear-gradient(135deg, var(--danger-color), #b02a37);
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+        .nav-tabs .nav-link {
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        .nav-tabs .nav-link.active {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--primary-color);
+        }
+        .badge {
+            font-size: 0.8rem;
+        }
+        .plan-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .plan-basic { background-color: #6c757d; }
+        .plan-premium { background-color: #ffc107; color: #000; }
+        .plan-platinum { background-color: #e5e4e2; color: #000; }
+        .plan-admin { background-color: #dc3545; }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Admin Dashboard</h1>
-            <a href="/" class="btn btn-secondary">Back to Main Site</a>
+            <h1><i class="bi bi-graph-up"></i> Admin Dashboard</h1>
+            <a href="/" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Main Site
+            </a>
         </div>
-        
-        <div class="card" style="background-color: var(--card-bg);">
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <div class="stats-number">{{ total_users }}</div>
+                        <div class="stats-label">Total Users</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card success">
+                    <div class="card-body text-center">
+                        <div class="stats-number">{{ active_users_today }}</div>
+                        <div class="stats-label">Active Today</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card warning">
+                    <div class="card-body text-center">
+                        <div class="stats-number">{{ analytics_data.site_analytics|length }}</div>
+                        <div class="stats-label">Days Tracked</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card danger">
+                    <div class="card-body text-center">
+                        <div class="stats-number">{{ analytics_data.user_activity|length }}</div>
+                        <div class="stats-label">Action Types</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plan Distribution -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-pie-chart"></i> Plan Distribution
+                    </div>
+                    <div class="card-body">
+                        <canvas id="planChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-activity"></i> User Activity (Last 30 Days)
+                    </div>
+                    <div class="card-body">
+                        <canvas id="activityChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Charts -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-graph-up"></i> Site Analytics (Last 30 Days)
+                    </div>
+                    <div class="card-body">
+                        <canvas id="analyticsChart" width="800" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-bar-chart"></i> Page Visits
+                    </div>
+                    <div class="card-body">
+                        <canvas id="pageVisitsChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="card">
             <div class="card-header">
-                Subscribed Users
+                <ul class="nav nav-tabs card-header-tabs" id="userTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                            <i class="bi bi-people"></i> All Users
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab">
+                            <i class="bi bi-clock-history"></i> Recent Activity
+                        </button>
+                    </li>
+                </ul>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-dark">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Plan</th>
-                                <th>Subscription Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for user in users %}
-                            <tr>
-                                <td>{{ user.name or 'N/A' }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>{{ user.phone or 'N/A' }}</td>
-                                <td>{{ user.current_plan }}</td>
-                                <td>
-                                    <span class="badge bg-success">Active</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="tab-content" id="userTabContent">
+                    <!-- Users Tab -->
+                    <div class="tab-pane fade show active" id="users" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Plan</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.name or 'N/A' }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>
+                                            <span class="badge plan-badge plan-{{ user.current_plan.lower() if user.current_plan else 'basic' }}">
+                                                {{ user.current_plan or 'BASIC' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if user.is_verified %}
+                                                <span class="badge bg-success">Verified</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Unverified</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="viewUserDetails({{ user.id }})">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Tab -->
+                    <div class="tab-pane fade" id="activity" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>Action</th>
+                                        <th>Count</th>
+                                        <th>Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for activity in analytics_data.user_activity %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-primary">{{ activity.action }}</span>
+                                        </td>
+                                        <td>{{ activity.count }}</td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ (activity.count / analytics_data.user_activity|sum(attribute='count') * 100)|round(1) }}%">
+                                                    {{ (activity.count / analytics_data.user_activity|sum(attribute='count') * 100)|round(1) }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Plan Distribution Chart
+        const planData = {
+            labels: [
+                {% for plan in plan_distribution %}
+                    '{{ plan.current_plan or "BASIC" }}'{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for plan in plan_distribution %}
+                        {{ plan.count }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    '#6c757d', // Basic
+                    '#ffc107', // Premium
+                    '#e5e4e2', // Platinum
+                    '#dc3545'  // Admin
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        };
+
+        new Chart(document.getElementById('planChart'), {
+            type: 'doughnut',
+            data: planData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ffffff'
+                        }
+                    }
+                }
+            }
+        });
+
+        // User Activity Chart
+        const activityData = {
+            labels: [
+                {% for activity in analytics_data.user_activity %}
+                    '{{ activity.action }}'{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Actions',
+                data: [
+                    {% for activity in analytics_data.user_activity %}
+                        {{ activity.count }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        new Chart(document.getElementById('activityChart'), {
+            type: 'bar',
+            data: activityData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ffffff'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Site Analytics Chart
+        const analyticsData = {
+            labels: [
+                {% for analytics in analytics_data.site_analytics %}
+                    '{{ analytics.date.strftime("%m/%d") }}'{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Total Visits',
+                data: [
+                    {% for analytics in analytics_data.site_analytics %}
+                        {{ analytics.total_visits }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                borderColor: 'rgba(13, 110, 253, 1)',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Unique Visitors',
+                data: [
+                    {% for analytics in analytics_data.site_analytics %}
+                        {{ analytics.unique_visitors }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                borderColor: 'rgba(25, 135, 84, 1)',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Searches',
+                data: [
+                    {% for analytics in analytics_data.site_analytics %}
+                        {{ analytics.searches_performed }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                borderColor: 'rgba(255, 193, 7, 1)',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                tension: 0.4
+            }]
+        };
+
+        new Chart(document.getElementById('analyticsChart'), {
+            type: 'line',
+            data: analyticsData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ffffff'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Page Visits Chart
+        const pageVisitsData = {
+            labels: [
+                {% for page in analytics_data.page_visits|groupby('page') %}
+                    '{{ page.grouper }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Visits',
+                data: [
+                    {% for page in analytics_data.page_visits|groupby('page') %}
+                        {{ page.list|sum(attribute='visits') }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    'rgba(13, 110, 253, 0.8)',
+                    'rgba(25, 135, 84, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(108, 117, 125, 0.8)'
+                ],
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        };
+
+        new Chart(document.getElementById('pageVisitsChart'), {
+            type: 'bar',
+            data: pageVisitsData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#ffffff',
+                            maxRotation: 45
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        function viewUserDetails(userId) {
+            // Implement user details modal
+            alert('User details for ID: ' + userId + ' - Feature coming soon!');
+        }
+
+        // Auto-refresh analytics every 5 minutes
+        setInterval(function() {
+            location.reload();
+        }, 300000);
+    </script>
 </body>
 </html> 
