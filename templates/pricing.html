@@ -720,6 +720,11 @@
             
             const lowerMessage = userMessage.toLowerCase();
             
+            // Admin AI Assistant - Unlimited capabilities
+            if (isAdmin) {
+                return generateAdminAIResponse(userMessage);
+            }
+            
             // Platinum AI Assistant - Enhanced capabilities
             if (isPlatinum) {
                 return generatePlatinumAIResponse(userMessage);
@@ -752,6 +757,97 @@
             } else {
                 return "I'm here to help with your business lead finding needs! You can ask me about:\n• How to search for leads\n• Pricing and plans\n• Export features\n• Account management\n• Support options\nWhat would you like to know?";
             }
+        }
+        
+        function generateAdminAIResponse(userMessage) {
+            const lowerMessage = userMessage.toLowerCase();
+            
+            // Admin AI can perform unlimited searches
+            if (lowerMessage.includes('search for') || lowerMessage.includes('find') || lowerMessage.includes('look for')) {
+                return handleAdminSearch(userMessage);
+            }
+            
+            // Admin AI can create multiple AI assistants
+            if (lowerMessage.includes('create ai') || lowerMessage.includes('new assistant') || lowerMessage.includes('make assistant')) {
+                return handleCreateAIAssistant(userMessage);
+            }
+            
+            // Admin AI can manage users
+            if (lowerMessage.includes('user') || lowerMessage.includes('manage') || lowerMessage.includes('account')) {
+                return handleAdminUserManagement(userMessage);
+            }
+            
+            // Admin AI can provide system insights
+            if (lowerMessage.includes('system') || lowerMessage.includes('analytics') || lowerMessage.includes('stats')) {
+                return handleAdminSystemInsights(userMessage);
+            }
+            
+            // Admin AI can perform advanced vetting
+            if (lowerMessage.includes('vet') || lowerMessage.includes('analyze') || lowerMessage.includes('quality')) {
+                return handleAdminVetting(userMessage);
+            }
+            
+            // Enhanced responses for Admin users
+            const adminResponses = {
+                'hello': 'Hello! I\'m your Admin AI Assistant with unlimited capabilities. I can help you with:\n• Unlimited business lead searches\n• Advanced result vetting and analysis\n• User management and system monitoring\n• Creating multiple AI assistants\n• System analytics and insights\n• Custom search strategies\nWhat would you like me to help you with today?',
+                'help': 'As your Admin AI Assistant, I have unlimited access to:\n• Unlimited business lead searches (no limits)\n• Advanced result vetting and analysis\n• User management and account control\n• System monitoring and analytics\n• Creating and managing multiple AI assistants\n• Custom search strategies and automation\n• Full export capabilities\n• Priority processing for all operations\nJust tell me what you need!',
+                'search': 'I can perform unlimited searches for you with no restrictions! Just tell me:\n• What type of business you\'re looking for\n• The location or area\n• Any specific criteria (reviews, ratings, etc.)\nI\'ll search, vet the results, and provide you with comprehensive analysis.',
+                'pricing': 'As an admin, you have unlimited access to all features:\n• Unlimited searches (no monthly limits)\n• Advanced AI-powered lead vetting\n• Full system analytics\n• User management capabilities\n• Multiple AI assistant creation\n• Priority processing\n• Complete export capabilities',
+                'admin': 'Admin features include:\n• User management and control\n• System monitoring and analytics\n• Advanced search capabilities\n• Multiple AI assistant creation\n• Unlimited searches and exports\n• Priority processing\n• Full system access\nYou have complete control over the platform.',
+                'export': 'I can automatically export unlimited search results to Google Sheets! Just ask me to search for something, and I\'ll handle the export process with no restrictions.',
+                'filter': 'I can apply unlimited advanced filtering during searches, including:\n• Review count analysis\n• Rating thresholds\n• Business type matching\n• Location optimization\n• Quality scoring\n• Custom criteria\nJust tell me your criteria!',
+                'trial': 'As an admin, you have unlimited access to all features with no restrictions or trial limitations.',
+                'support': 'For Admin support:\n• Direct system access\n• Unlimited capabilities\n• Priority processing\n• Full analytics access\n• Multiple AI assistant management\nContact: admin-support@businessleadfinder.com'
+            };
+            
+            if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+                return adminResponses.hello;
+            } else if (lowerMessage.includes('help')) {
+                return adminResponses.help;
+            } else if (lowerMessage.includes('search') || lowerMessage.includes('find')) {
+                return adminResponses.search;
+            } else if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('plan')) {
+                return adminResponses.pricing;
+            } else if (lowerMessage.includes('admin')) {
+                return adminResponses.admin;
+            } else if (lowerMessage.includes('export') || lowerMessage.includes('google')) {
+                return adminResponses.export;
+            } else if (lowerMessage.includes('filter') || lowerMessage.includes('review')) {
+                return adminResponses.filter;
+            } else if (lowerMessage.includes('trial') || lowerMessage.includes('free')) {
+                return adminResponses.trial;
+            } else if (lowerMessage.includes('support') || lowerMessage.includes('contact')) {
+                return adminResponses.support;
+            } else {
+                return "I'm your Admin AI Assistant with unlimited capabilities! I can help you with:\n• Unlimited business lead searches\n• Advanced result vetting and analysis\n• User management and system control\n• Creating multiple AI assistants\n• System analytics and insights\n• Custom automation strategies\nJust tell me what you need!";
+            }
+        }
+        
+        function handleAdminSearch(userMessage) {
+            // Extract search parameters from user message
+            const searchTerms = extractSearchTerms(userMessage);
+            
+            if (!searchTerms.location || !searchTerms.businessType) {
+                return "I'd be happy to perform unlimited searches for you! Please tell me:\n• What type of business you're looking for\n• The location or area\n• Any specific criteria (optional)\n\nFor example: 'Search for restaurants in New York' or 'Find coffee shops in Los Angeles'\n\nAs an admin, you have unlimited search capabilities with no restrictions!";
+            }
+            
+            return `I'll perform an unlimited search for ${searchTerms.businessType} in ${searchTerms.location} for you!\n\n🔍 **Admin Search Parameters:**\n• Business Type: ${searchTerms.businessType}\n• Location: ${searchTerms.location}\n• Radius: ${searchTerms.radius || '5 miles'}\n• Max Reviews: ${searchTerms.maxReviews || 'No limit'}\n• Search Limit: UNLIMITED\n\nI'll analyze the results and provide you with comprehensive insights, including:\n• Advanced quality scoring\n• Partnership potential analysis\n• Contact information verification\n• Business stability assessment\n• Market positioning analysis\n• Risk assessment\n• Growth potential evaluation\n\nAs an admin, you have unlimited search capabilities with priority processing!`;
+        }
+        
+        function handleCreateAIAssistant(userMessage) {
+            return "I can help you create multiple AI assistants! Here's what I can do:\n\n🤖 **AI Assistant Creation:**\n• Create specialized AI assistants for different tasks\n• Customize AI responses and capabilities\n• Set up automated workflows\n• Configure AI for specific user groups\n• Create AI assistants for different business types\n\n🎯 **Assistant Types Available:**\n• Lead Generation AI\n• Customer Support AI\n• Sales Analysis AI\n• Market Research AI\n• Quality Control AI\n• Export Management AI\n\n📊 **Management Features:**\n• Monitor all AI assistants\n• Track performance metrics\n• Update AI capabilities\n• Manage AI permissions\n• Coordinate multiple AIs\n\nJust tell me what type of AI assistant you'd like to create!";
+        }
+        
+        function handleAdminUserManagement(userMessage) {
+            return "I can help you manage users and accounts! Here's what I can do:\n\n👥 **User Management:**\n• View all user accounts\n• Modify user permissions\n• Upgrade/downgrade user plans\n• Reset user passwords\n• Monitor user activity\n• Manage user subscriptions\n\n📊 **Account Control:**\n• User analytics and insights\n• Usage tracking and reporting\n• Billing management\n• Support ticket management\n• User communication tools\n• Account verification tools\n\n🔧 **Admin Tools:**\n• Bulk user operations\n• Automated user management\n• User data export\n• Account recovery tools\n• User activity monitoring\n• Security management\n\nJust tell me what user management task you need help with!";
+        }
+        
+        function handleAdminSystemInsights(userMessage) {
+            return "I can provide comprehensive system insights and analytics! Here's what I analyze:\n\n📈 **System Analytics:**\n• Total user count and growth\n• Search usage statistics\n• Plan distribution analysis\n• Revenue tracking and trends\n• System performance metrics\n• Error rate monitoring\n\n🔍 **User Insights:**\n• User behavior patterns\n• Feature usage analytics\n• Conversion rate analysis\n• User satisfaction metrics\n• Support ticket analysis\n• User retention data\n\n📊 **Business Intelligence:**\n• Market trend analysis\n• Competitive positioning\n• Revenue optimization\n• Feature adoption rates\n• User engagement metrics\n• Growth opportunity identification\n\nJust ask me for specific system insights or analytics!";
+        }
+        
+        function handleAdminVetting(userMessage) {
+            return "I can perform advanced vetting and analysis with unlimited capabilities! Here's what I evaluate:\n\n📊 **Advanced Vetting Criteria:**\n• Comprehensive review analysis\n• Rating consistency and trends\n• Business age and stability assessment\n• Partnership potential scoring\n• Contact accessibility verification\n• Market positioning analysis\n• Financial stability indicators\n• Growth trajectory assessment\n\n🔍 **Admin Analysis Includes:**\n• Quality score (1-10) with detailed breakdown\n• Partnership likelihood with confidence levels\n• Risk assessment with mitigation strategies\n• Growth potential with market analysis\n• Contact readiness with response probability\n• Competitive positioning analysis\n• Market saturation assessment\n• Expansion opportunity evaluation\n\n📈 **Advanced Insights:**\n• Industry trend analysis\n• Market opportunity identification\n• Risk factor assessment\n• Strategic partnership recommendations\n• Contact strategy optimization\n• Follow-up timing recommendations\n\nAs an admin, I have unlimited vetting capabilities with priority processing!";
         }
         
         function generatePlatinumAIResponse(userMessage) {
