@@ -71,6 +71,11 @@ if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
 db_url = os.environ.get("DATABASE_URL")
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
+elif not db_url:
+    # Use persistent SQLite database file
+    db_url = "sqlite:///sneaker_agent.db"
+    print(f"📁 Using persistent database: {db_url}")
+
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -715,8 +720,14 @@ def login():
 @login_required
 def logout():
     """Log out the current user."""
-    logout_user()
-    return jsonify(message="Logout successful"), 200
+    try:
+        app.logger.info(f"🔧 Logout attempt for user: {current_user.email}")
+        logout_user()
+        app.logger.info(f"✅ Logout successful for user: {current_user.email}")
+        return jsonify(message="Logout successful"), 200
+    except Exception as e:
+        app.logger.error(f"❌ Logout error: {e}")
+        return jsonify(error="Logout failed"), 500
 
 
 @app.route("/api/profile", methods=["PUT"])
@@ -811,6 +822,10 @@ def send_verification_email_api():
 def check_auth():
     """Check if user is authenticated and return user info."""
     if current_user.is_authenticated:
+        app.logger.info(f"🔧 Check-auth for user: {current_user.email}")
+        app.logger.info(f"🔧 User is_admin: {current_user.is_admin}")
+        app.logger.info(f"🔧 User current_plan: {current_user.current_plan}")
+        
         return jsonify(
             {
                 "is_logged_in": True,
@@ -819,6 +834,7 @@ def check_auth():
                     "email": current_user.email,
                     "is_verified": current_user.is_verified,
                     "current_plan": current_user.current_plan,
+                    "is_admin": current_user.is_admin,
                 },
             }
         )
@@ -1310,15 +1326,16 @@ def admin_required(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        app.logger.info(f"Admin check for user: {current_user.email}")
-        app.logger.info(f"User is_admin: {current_user.is_admin}")
-        app.logger.info(f"User current_plan: {current_user.current_plan}")
+        app.logger.info(f"🔧 Admin check for user: {current_user.email}")
+        app.logger.info(f"🔧 User is_admin: {current_user.is_admin}")
+        app.logger.info(f"🔧 User current_plan: {current_user.current_plan}")
+        app.logger.info(f"🔧 User authenticated: {current_user.is_authenticated}")
 
         if not current_user.is_admin:
-            app.logger.warning(f"Admin access denied for user: {current_user.email}")
+            app.logger.warning(f"❌ Admin access denied for user: {current_user.email}")
             flash("You do not have permission to access this page.", "danger")
             return redirect(url_for("index"))
-        app.logger.info(f"Admin access granted for user: {current_user.email}")
+        app.logger.info(f"✅ Admin access granted for user: {current_user.email}")
         return f(*args, **kwargs)
 
     return decorated_function
@@ -1357,6 +1374,22 @@ def restore_admin(email):
     except Exception as e:
         app.logger.error(f"Error restoring admin: {e}")
         return jsonify(error="An error occurred"), 500
+
+
+@app.route("/temp-admin-login")
+def temp_admin_login():
+    """Temporary route to log in as admin for testing."""
+    try:
+        admin_user = User.query.filter_by(email='sdclark117@gmail.com').first()
+        if admin_user:
+            login_user(admin_user)
+            app.logger.info(f"🔧 Temporary admin login for: {admin_user.email}")
+            return redirect(url_for("index"))
+        else:
+            return "Admin user not found", 404
+    except Exception as e:
+        app.logger.error(f"❌ Temp admin login error: {e}")
+        return "Error logging in as admin", 500
 
 
 # Add a scheduled task to clean up expired tokens

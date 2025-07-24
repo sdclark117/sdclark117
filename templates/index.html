@@ -1231,6 +1231,7 @@ body {
         }
 
         function updateSubscriptionStatus(user) {
+            console.log('🔧 updateSubscriptionStatus called with user:', user);
             const statusDiv = document.getElementById('subscriptionStatus');
             const manageBtn = document.getElementById('manageSubscriptionBtn');
             const upgradeBtn = document.getElementById('upgradeSubscriptionBtn');
@@ -1244,11 +1245,15 @@ body {
             existingAdminLinks.forEach(link => link.remove());
 
             if (user.is_admin) {
+                console.log('🔧 Admin user detected:', user.email);
+                console.log('🔧 User is_admin:', user.is_admin);
+                console.log('🔧 User current_plan:', user.current_plan);
                 currentPlanSpan.textContent = 'Admin Access';
                 trialEndsSpan.textContent = 'Unlimited';
                 document.getElementById('maxReviewsContainer').style.display = 'block';
                 const adminLink = `<a href="/admin/dashboard" class="btn btn-warning mt-2">Admin Dashboard</a>`;
                 statusDiv.insertAdjacentHTML('beforeend', adminLink);
+                console.log('🔧 Admin dashboard link added');
                 return; // Exit here for admins, preventing other logic from running
             }
 
