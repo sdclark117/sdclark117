@@ -1332,6 +1332,23 @@ def admin_dashboard():
         return redirect(url_for("index"))
 
 
+@app.route("/restore-admin/<email>")
+def restore_admin(email):
+    """Temporary route to restore admin privileges for a user."""
+    try:
+        user = User.query.filter_by(email=email.lower().strip()).first()
+        if user:
+            user.is_admin = True
+            user.current_plan = "admin"
+            db.session.commit()
+            return jsonify(message=f"Admin privileges restored for {email}"), 200
+        else:
+            return jsonify(error=f"User {email} not found"), 404
+    except Exception as e:
+        app.logger.error(f"Error restoring admin: {e}")
+        return jsonify(error="An error occurred"), 500
+
+
 # Add a scheduled task to clean up expired tokens
 _cleanup_counter = 0
 
