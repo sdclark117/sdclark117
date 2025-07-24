@@ -205,7 +205,7 @@
                                 <li>Filter by maximum review count</li>
                                 <li>Export to Google Sheets</li>
                                 <li>Priority email support</li>
-                                <li><i class="bi bi-robot text-primary"></i> 1 AI Assistant</li>
+                                <li><i class="bi bi-robot text-primary"></i> AI Team (5 Specialized AIs + 1 Manager)</li>
                             </ul>
                             <button type="button" class="w-100 btn btn-lg btn-primary"
                                     onclick="createCheckout('{{ premium_price_id }}')">
@@ -812,14 +812,40 @@
         function generatePremiumAIResponse(userMessage) {
             const lowerMessage = userMessage.toLowerCase();
             
+            // Premium AI Team capabilities
+            if (lowerMessage.includes('team') || lowerMessage.includes('ai team') || lowerMessage.includes('manager')) {
+                return handlePremiumAITeam(userMessage);
+            }
+            
+            // Specific AI team member requests
+            if (lowerMessage.includes('outsourcing') || lowerMessage.includes('outsource')) {
+                return handleOutsourcingAI(userMessage);
+            }
+            
+            if (lowerMessage.includes('copywriting') || lowerMessage.includes('copy') || lowerMessage.includes('content')) {
+                return handleCopywritingAI(userMessage);
+            }
+            
+            if (lowerMessage.includes('email') || lowerMessage.includes('emails')) {
+                return handleEmailAI(userMessage);
+            }
+            
+            if (lowerMessage.includes('seo') || lowerMessage.includes('search engine')) {
+                return handleSEOAI(userMessage);
+            }
+            
+            if (lowerMessage.includes('cold call') || lowerMessage.includes('cold calling') || lowerMessage.includes('calling')) {
+                return handleColdCallingAI(userMessage);
+            }
+            
             const premiumResponses = {
-                'hello': 'Hello! I\'m your Premium AI Assistant. I can help you with:\n• Advanced business lead finding\n• Search guidance with review filters\n• Account management help\n• Export assistance\n• Enhanced search strategies\nWhat would you like to know?',
-                'help': 'As your Premium AI Assistant, I can help you with:\n• Advanced search strategies\n• Review count filtering guidance\n• Enhanced lead finding techniques\n• Account and plan questions\n• Export to Google Sheets help\n• Priority support assistance\nJust ask me anything!',
+                'hello': 'Hello! I\'m your Premium AI Team Manager. I oversee a team of 5 specialized AI assistants:\n\n🤖 **Your AI Team:**\n• Outsourcing AI - Find and manage outsourcing opportunities\n• Copywriting AI - Create compelling content and copy\n• Email AI - Craft professional email campaigns\n• SEO AI - Optimize for search engines\n• Cold Calling AI - Generate cold calling strategies\n\nWhat would you like my team to help you with today?',
+                'help': 'As your Premium AI Team Manager, I coordinate 5 specialized AIs:\n\n🎯 **Team Capabilities:**\n• Outsourcing AI - Vendor research, cost analysis, contract management\n• Copywriting AI - Marketing copy, website content, social media posts\n• Email AI - Campaign creation, templates, automation\n• SEO AI - Keyword research, optimization, analytics\n• Cold Calling AI - Scripts, strategies, follow-up sequences\n\nJust tell me what you need, and I\'ll assign the right AI to help!',
                 'search': 'To search for business leads:\n1. Enter your location\n2. Choose business type\n3. Set search radius\n4. Use review count filter (Premium feature!)\n5. Click "Search"\nYou have 150 searches per month on your Premium plan.',
-                'pricing': 'You\'re on our Premium plan ($150/mo) which includes:\n• 150 searches per month\n• Filter by maximum review count\n• Export to Google Sheets\n• Priority email support\n• 1 AI Assistant (that\'s me!)',
+                'pricing': 'You\'re on our Premium plan ($150/mo) which includes:\n• 150 searches per month\n• Filter by maximum review count\n• Export to Google Sheets\n• Priority email support\n• AI Team (5 Specialized AIs + 1 Manager)',
                 'export': 'To export results:\n1. Complete your search\n2. Click "Export to Google Sheets"\n3. Authorize Google access\n4. Results will be saved to your Google Drive!',
                 'filter': 'You have access to review count filtering! This helps you find businesses with fewer reviews, which often have more potential for partnerships.',
-                'trial': 'You\'re on our Premium plan with 150 searches per month and review filtering. All plans include a 14-day free trial.',
+                'trial': 'You\'re on our Premium plan with 150 searches per month and a full AI Team. All plans include a 14-day free trial.',
                 'support': 'For Premium support:\n• Priority email support\n• Enhanced FAQ access\n• Dedicated support team\nContact: premium-support@businessleadfinder.com'
             };
             
@@ -840,8 +866,32 @@
             } else if (lowerMessage.includes('support') || lowerMessage.includes('contact')) {
                 return premiumResponses.support;
             } else {
-                return "I'm your Premium AI Assistant! I can help you with:\n• Advanced business lead finding\n• Search guidance with review filters\n• Account management help\n• Export assistance\n• Enhanced search strategies\nJust ask me anything!";
+                return "I'm your Premium AI Team Manager! I coordinate 5 specialized AIs:\n• Outsourcing AI - Vendor research and management\n• Copywriting AI - Content creation and copywriting\n• Email AI - Email campaigns and automation\n• SEO AI - Search engine optimization\n• Cold Calling AI - Cold calling strategies\n\nJust tell me what you need, and I'll assign the right AI to help!";
             }
+        }
+        
+        function handlePremiumAITeam(userMessage) {
+            return "🤖 **Your Premium AI Team:**\n\n👨‍💼 **AI Team Manager (Me):**\n• Coordinates all 5 specialized AIs\n• Assigns tasks to the right AI\n• Manages workflow and priorities\n• Provides strategic oversight\n\n🎯 **Specialized AI Team Members:**\n\n1️⃣ **Outsourcing AI:**\n• Vendor research and evaluation\n• Cost analysis and comparison\n• Contract negotiation assistance\n• Quality control monitoring\n• Performance tracking\n\n2️⃣ **Copywriting AI:**\n• Marketing copy creation\n• Website content development\n• Social media posts\n• Email copywriting\n• Brand messaging\n\n3️⃣ **Email AI:**\n• Email campaign creation\n• Template development\n• Automation sequences\n• A/B testing strategies\n• List segmentation\n\n4️⃣ **SEO AI:**\n• Keyword research and analysis\n• On-page optimization\n• Content strategy development\n• Analytics and reporting\n• Technical SEO guidance\n\n5️⃣ **Cold Calling AI:**\n• Call script development\n• Prospect research\n• Follow-up sequences\n• Objection handling\n• Conversion strategies\n\nJust tell me what you need, and I'll assign the right AI to help you!";
+        }
+        
+        function handleOutsourcingAI(userMessage) {
+            return "🎯 **Outsourcing AI at your service!**\n\nI specialize in:\n\n📊 **Vendor Research:**\n• Find qualified outsourcing partners\n• Evaluate vendor capabilities\n• Compare pricing and quality\n• Check references and reviews\n• Assess cultural fit\n\n💰 **Cost Analysis:**\n• Detailed cost breakdowns\n• ROI calculations\n• Hidden cost identification\n• Budget optimization\n• Payment structure analysis\n\n📋 **Contract Management:**\n• Contract template creation\n• Terms and conditions review\n• SLA development\n• Risk assessment\n• Legal compliance checks\n\n📈 **Performance Monitoring:**\n• Quality control metrics\n• Delivery timeline tracking\n• Communication protocols\n• Issue resolution processes\n• Continuous improvement\n\nWhat type of outsourcing do you need help with?";
+        }
+        
+        function handleCopywritingAI(userMessage) {
+            return "✍️ **Copywriting AI ready to create compelling content!**\n\nI specialize in:\n\n📝 **Marketing Copy:**\n• Website copy and landing pages\n• Social media posts and ads\n• Email marketing campaigns\n• Product descriptions\n• Brand messaging\n\n🎯 **Content Strategy:**\n• Target audience analysis\n• Tone and voice development\n• Content calendar planning\n• SEO-optimized writing\n• Conversion-focused copy\n\n📊 **Copy Optimization:**\n• A/B testing strategies\n• Conversion rate optimization\n• Call-to-action development\n• Value proposition crafting\n• Emotional appeal techniques\n\n🎨 **Creative Writing:**\n• Storytelling and narratives\n• Engaging headlines\n• Compelling introductions\n• Persuasive conclusions\n• Brand storytelling\n\nWhat type of copy do you need help creating?";
+        }
+        
+        function handleEmailAI(userMessage) {
+            return "📧 **Email AI here to boost your email campaigns!**\n\nI specialize in:\n\n📨 **Campaign Creation:**\n• Email sequence development\n• Welcome series design\n• Nurture campaign creation\n• Promotional email strategies\n• Newsletter templates\n\n🎯 **Template Development:**\n• Professional email templates\n• Industry-specific designs\n• Mobile-responsive layouts\n• Brand-consistent styling\n• Call-to-action optimization\n\n🤖 **Automation Sequences:**\n• Drip campaign setup\n• Trigger-based emails\n• Behavioral automation\n• Lead scoring integration\n• Re-engagement campaigns\n\n📊 **A/B Testing:**\n• Subject line testing\n• Content optimization\n• Send time analysis\n• List segmentation\n• Performance tracking\n\n📈 **List Management:**\n• Segmentation strategies\n• List cleaning and hygiene\n• Opt-in optimization\n• Compliance management\n• Growth strategies\n\nWhat email campaign do you need help with?";
+        }
+        
+        function handleSEOAI(userMessage) {
+            return "🔍 **SEO AI ready to boost your search rankings!**\n\nI specialize in:\n\n🎯 **Keyword Research:**\n• High-value keyword identification\n• Search volume analysis\n• Competition assessment\n• Long-tail keyword discovery\n• Local SEO keywords\n\n📝 **Content Strategy:**\n• SEO-optimized content creation\n• Topic cluster development\n• Content gap analysis\n• Featured snippet optimization\n• Content calendar planning\n\n🔧 **Technical SEO:**\n• Site structure optimization\n• Page speed improvement\n• Mobile optimization\n• Schema markup implementation\n• XML sitemap creation\n\n📊 **Analytics & Reporting:**\n• Search performance tracking\n• Keyword ranking monitoring\n• Traffic analysis\n• Conversion tracking\n• Competitor analysis\n\n🎨 **On-Page Optimization:**\n• Meta title and description\n• Header tag optimization\n• Image alt text\n• Internal linking\n• URL structure\n\nWhat SEO aspect do you need help with?";
+        }
+        
+        function handleColdCallingAI(userMessage) {
+            return "📞 **Cold Calling AI ready to boost your sales!**\n\nI specialize in:\n\n📋 **Script Development:**\n• Opening line creation\n• Value proposition crafting\n• Objection handling scripts\n• Closing techniques\n• Follow-up sequences\n\n🎯 **Prospect Research:**\n• Target company identification\n• Decision maker research\n• Company background analysis\n• Pain point identification\n• Timing optimization\n\n📊 **Call Strategy:**\n• Call timing optimization\n• Call volume planning\n• Territory management\n• Lead qualification\n• Pipeline development\n\n💬 **Communication Skills:**\n• Active listening techniques\n• Question formulation\n• Value proposition delivery\n• Objection handling\n• Closing strategies\n\n📈 **Follow-up Sequences:**\n• Multi-touch campaigns\n• Email follow-ups\n• LinkedIn outreach\n• Voicemail strategies\n• Persistence planning\n\nWhat cold calling aspect do you need help with?";
         }
         
         function generateAdminAIResponse(userMessage) {
