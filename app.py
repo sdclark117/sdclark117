@@ -1240,8 +1240,7 @@ def create_checkout_session():
         if not customer_id:
             # Create Stripe customer for authenticated user
             customer = stripe.Customer.create(
-                email=current_user.email,
-                name=current_user.name
+                email=current_user.email, name=current_user.name
             )
             current_user.stripe_customer_id = customer.id
             db.session.commit()
@@ -1332,18 +1331,20 @@ def pricing():
     """Display pricing page."""
     # Get Stripe publishable key from environment
     stripe_publishable_key = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
-    
+
     # These would normally come from your Stripe dashboard
     # For now, using placeholder values
     basic_price_id = os.getenv("STRIPE_BASIC_PRICE_ID", "price_basic")
-    premium_price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID", "price_premium") 
+    premium_price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID", "price_premium")
     platinum_price_id = os.getenv("STRIPE_PLATINUM_PRICE_ID", "price_platinum")
-    
-    return render_template("pricing.html", 
-                         stripe_publishable_key=stripe_publishable_key,
-                         basic_price_id=basic_price_id,
-                         premium_price_id=premium_price_id,
-                         platinum_price_id=platinum_price_id)
+
+    return render_template(
+        "pricing.html",
+        stripe_publishable_key=stripe_publishable_key,
+        basic_price_id=basic_price_id,
+        premium_price_id=premium_price_id,
+        platinum_price_id=platinum_price_id,
+    )
 
 
 def admin_required(f):
