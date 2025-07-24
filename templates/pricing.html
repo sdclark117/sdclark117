@@ -707,12 +707,15 @@
                 'help': 'I can help you with:\n• Finding business leads\n• Understanding search features\n• Account management\n• Pricing questions\nWhat would you like to know?',
                 'search': 'To search for business leads:\n1. Enter your location\n2. Choose business type\n3. Set search radius\n4. Click "Search"\nPremium users can also filter by review count!',
                 'pricing': 'We offer three plans:\n• Basic: $50/mo - 50 searches\n• Premium: $150/mo - 150 searches + review filters\n• Platinum: $500/mo - 500 searches + phone support\nAll plans include a 14-day free trial!',
-                'admin': 'Admin features include:\n• User management\n• System monitoring\n• Advanced analytics\n• Support tools\nContact support if you need admin access.',
+                'admin': 'I\'m sorry, I don\'t have information about admin features. If you need assistance with your account or the platform, please contact our support team.',
                 'export': 'To export results:\n1. Complete your search\n2. Click "Export to Google Sheets"\n3. Authorize Google access\n4. Results will be saved to your Google Drive!',
                 'filter': 'Review count filtering is available for Premium and Platinum users. This helps you find businesses with fewer reviews, which often have more potential for partnerships.',
                 'trial': 'All plans include a 14-day free trial with no credit card required. You can upgrade or cancel anytime during the trial period.',
                 'support': 'For support:\n• Email: support@businessleadfinder.com\n• Check our FAQ section\n• Use the contact form\nWe typically respond within 24 hours!'
             };
+            
+            // Check if user is admin
+            const isAdmin = currentUser && currentUser.is_admin;
             
             const lowerMessage = userMessage.toLowerCase();
             
@@ -726,7 +729,12 @@
             } else if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('plan')) {
                 return responses.pricing;
             } else if (lowerMessage.includes('admin')) {
-                return responses.admin;
+                // Only provide admin info to admin users
+                if (isAdmin) {
+                    return 'Admin features include:\n• User management\n• System monitoring\n• Advanced analytics\n• Support tools\n• Dashboard access\nYou have access to these features through your admin dashboard.';
+                } else {
+                    return responses.admin;
+                }
             } else if (lowerMessage.includes('export') || lowerMessage.includes('google')) {
                 return responses.export;
             } else if (lowerMessage.includes('filter') || lowerMessage.includes('review')) {
