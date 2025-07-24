@@ -1160,12 +1160,16 @@ body {
             const authBtn = document.getElementById('authBtn');
             const authBtnText = document.getElementById('authBtnText');
             
+            console.log('🔧 updateAuthButton called - isAuthenticated:', isAuthenticated, 'currentUser:', currentUser);
+            
             if (isAuthenticated && currentUser) {
                 authBtnText.textContent = currentUser.name || currentUser.email;
                 authBtn.onclick = showProfileModal;
+                console.log('🔧 Auth button updated to show profile for:', currentUser.name || currentUser.email);
             } else {
                 authBtnText.textContent = 'Login';
                 authBtn.onclick = showAuthModal;
+                console.log('🔧 Auth button updated to show login');
             }
         }
 
@@ -1464,6 +1468,7 @@ body {
         // Handle logout
         async function logout() {
             try {
+                console.log('🔧 Logout attempt started');
                 const response = await fetch('/api/logout', {
                     method: 'POST',
                     headers: {
@@ -1472,8 +1477,10 @@ body {
                 });
                 
                 const data = await response.json();
+                console.log('🔧 Logout response:', response.status, data);
                 
                 if (response.ok) {
+                    console.log('✅ Logout successful, updating UI');
                     currentUser = null;
                     isAuthenticated = false;
                     updateAuthButton();
@@ -1484,12 +1491,16 @@ body {
                         profileModal.hide();
                     }
                     
+                    // Refresh auth status to ensure UI is properly updated
+                    await checkAuthStatus();
+                    
                     alert('Logout successful!');
                 } else {
+                    console.log('❌ Logout failed:', data.error);
                     alert(data.error || 'Logout failed');
                 }
             } catch (error) {
-                console.error('Logout error:', error);
+                console.error('❌ Logout error:', error);
                 alert('An error occurred during logout');
             }
         }
