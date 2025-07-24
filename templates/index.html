@@ -1458,7 +1458,7 @@ body {
                 
                 const data = await response.json();
                 
-                if (data.success) {
+                if (response.ok) {
                     currentUser = null;
                     isAuthenticated = false;
                     updateAuthButton();
