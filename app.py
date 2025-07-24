@@ -1227,6 +1227,7 @@ def update_last_search():
 
 
 @app.route("/api/create-checkout-session", methods=["POST"])
+@login_required
 def create_checkout_session():
     """Create Stripe checkout session."""
     try:
@@ -1234,25 +1235,16 @@ def create_checkout_session():
         if not data:
             return jsonify(error="No data provided"), 400
 
-        # Check if user is authenticated
-        if current_user.is_authenticated:
-            # User is logged in, use their customer ID
-            customer_id = current_user.stripe_customer_id
-            if not customer_id:
-                # Create Stripe customer for authenticated user
-                customer = stripe.Customer.create(
-                    email=current_user.email,
-                    name=current_user.name
-                )
-                current_user.stripe_customer_id = customer.id
-                db.session.commit()
-                customer_id = customer.id
-        else:
-            # Guest user, create temporary customer
+        # User must be authenticated to create checkout session
+        customer_id = current_user.stripe_customer_id
+        if not customer_id:
+            # Create Stripe customer for authenticated user
             customer = stripe.Customer.create(
-                email="guest@example.com",  # Will be updated after signup
-                name="Guest User"
+                email=current_user.email,
+                name=current_user.name
             )
+            current_user.stripe_customer_id = customer.id
+            db.session.commit()
             customer_id = customer.id
 
         checkout_session = stripe.checkout.Session.create(
