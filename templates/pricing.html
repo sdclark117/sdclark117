@@ -64,6 +64,33 @@
         .pricing-header .text-muted {
             color: rgba(255, 255, 255, 0.85) !important;
         }
+        
+        /* Auth Modal Tab Styling */
+        #authModal .nav-tabs .nav-link {
+            color: #495057;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: none;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        
+        #authModal .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            border-bottom: 2px solid #0d6efd;
+            background: none;
+            font-weight: 600;
+        }
+        
+        #authModal .nav-tabs .nav-link:hover {
+            color: #0d6efd;
+            border-bottom: 2px solid #0d6efd;
+        }
+        
+        #authModal .nav-tabs {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -197,6 +224,11 @@
                                     <label for="registerPassword" class="form-label">Password</label>
                                     <input type="password" class="form-control" id="registerPassword" required>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="registerConfirmPassword" class="form-label">Confirm Password</label>
+                                    <input type="password" class="form-control" id="registerConfirmPassword" required>
+                                    <div id="passwordMatch" class="form-text text-danger" style="display: none;">Passwords do not match</div>
+                                </div>
                                 <button type="submit" class="btn btn-success w-100">Register</button>
                             </form>
                         </div>
@@ -298,6 +330,16 @@
             const name = document.getElementById('registerName').value;
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            const passwordMatch = document.getElementById('passwordMatch');
+            
+            // Check if passwords match
+            if (password !== confirmPassword) {
+                passwordMatch.style.display = 'block';
+                return;
+            } else {
+                passwordMatch.style.display = 'none';
+            }
             
             try {
                 const response = await fetch('/api/register', {
@@ -325,6 +367,19 @@
             } catch (error) {
                 console.error('Registration error:', error);
                 alert('An error occurred during registration.');
+            }
+        });
+        
+        // Add password confirmation check on input
+        document.getElementById('registerConfirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = this.value;
+            const passwordMatch = document.getElementById('passwordMatch');
+            
+            if (confirmPassword && password !== confirmPassword) {
+                passwordMatch.style.display = 'block';
+            } else {
+                passwordMatch.style.display = 'none';
             }
         });
     </script>
