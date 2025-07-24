@@ -1380,7 +1380,7 @@ def restore_admin(email):
 def temp_admin_login():
     """Temporary route to log in as admin for testing."""
     try:
-        admin_user = User.query.filter_by(email='sdclark117@gmail.com').first()
+        admin_user = User.query.filter_by(email="sdclark117@gmail.com").first()
         if admin_user:
             login_user(admin_user)
             app.logger.info(f"🔧 Temporary admin login for: {admin_user.email}")
