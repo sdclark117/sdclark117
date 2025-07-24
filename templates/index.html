@@ -1497,7 +1497,7 @@ body {
                 'hello': 'Hello! How can I help you with your business lead finding today?',
                 'help': 'I can help you with:\n• Finding business leads\n• Understanding search features\n• Account management\n• Pricing questions\nWhat would you like to know?',
                 'search': 'To search for business leads:\n1. Enter your location\n2. Choose business type\n3. Set search radius\n4. Click "Search"\nPremium users can also filter by review count!',
-                'pricing': 'We offer three plans:\n• Basic: $50/mo - 50 searches\n• Premium: $150/mo - 150 searches + review filters\n• Platinum: $500/mo - 500 searches + phone support\nAll plans include a 14-day free trial!',
+                'pricing': 'We offer three plans:\n• Basic: $50/mo - 50 searches + 1 AI Assistant\n• Premium: $150/mo - 150 searches + review filters + 1 AI Assistant\n• Platinum: $500/mo - 500 searches + phone support + 2 AI Assistants\nAll plans include a 14-day free trial!',
                 'admin': 'I\'m sorry, I don\'t have information about admin features. If you need assistance with your account or the platform, please contact our support team.',
                 'export': 'To export results:\n1. Complete your search\n2. Click "Export to Google Sheets"\n3. Authorize Google access\n4. Results will be saved to your Google Drive!',
                 'filter': 'Review count filtering is available for Premium and Platinum users. This helps you find businesses with fewer reviews, which often have more potential for partnerships.',
@@ -1505,9 +1505,11 @@ body {
                 'support': 'For support:\n• Email: support@businessleadfinder.com\n• Check our FAQ section\n• Use the contact form\nWe typically respond within 24 hours!'
             };
             
-            // Check if user is admin or platinum
+            // Check if user is admin, platinum, or premium
             const isAdmin = currentUser && currentUser.is_admin;
             const isPlatinum = currentUser && currentUser.current_plan === 'PLATINUM';
+            const isPremium = currentUser && currentUser.current_plan === 'PREMIUM';
+            const isBasic = currentUser && currentUser.current_plan === 'BASIC';
             
             const lowerMessage = userMessage.toLowerCase();
             
@@ -1516,9 +1518,19 @@ body {
                 return generateAdminAIResponse(userMessage);
             }
             
-            // Platinum AI Assistant - Enhanced capabilities
+            // Platinum AI Assistant - Enhanced capabilities (2 AI Assistants)
             if (isPlatinum) {
                 return generatePlatinumAIResponse(userMessage);
+            }
+            
+            // Premium AI Assistant - Standard capabilities (1 AI Assistant)
+            if (isPremium) {
+                return generatePremiumAIResponse(userMessage);
+            }
+            
+            // Basic AI Assistant - Basic capabilities (1 AI Assistant)
+            if (isBasic) {
+                return generateBasicAIResponse(userMessage);
             }
             
             // Check for keywords and return appropriate response
@@ -1547,6 +1559,76 @@ body {
                 return responses.support;
             } else {
                 return "I'm here to help with your business lead finding needs! You can ask me about:\n• How to search for leads\n• Pricing and plans\n• Export features\n• Account management\n• Support options\nWhat would you like to know?";
+            }
+        }
+        
+        function generateBasicAIResponse(userMessage) {
+            const lowerMessage = userMessage.toLowerCase();
+            
+            const basicResponses = {
+                'hello': 'Hello! I\'m your Basic AI Assistant. I can help you with:\n• Basic business lead finding\n• Search guidance and tips\n• Account management help\n• Export assistance\nWhat would you like to know?',
+                'help': 'As your Basic AI Assistant, I can help you with:\n• Understanding how to search for leads\n• Basic search guidance\n• Account and plan questions\n• Export to Google Sheets help\n• General platform support\nJust ask me anything!',
+                'search': 'To search for business leads:\n1. Enter your location\n2. Choose business type\n3. Set search radius\n4. Click "Search"\nYou have 50 searches per month on your Basic plan.',
+                'pricing': 'You\'re on our Basic plan ($50/mo) which includes:\n• 50 searches per month\n• Basic business lead finding\n• Export to Google Sheets\n• Email support\n• 1 AI Assistant (that\'s me!)',
+                'export': 'To export results:\n1. Complete your search\n2. Click "Export to Google Sheets"\n3. Authorize Google access\n4. Results will be saved to your Google Drive!',
+                'filter': 'Review count filtering is available for Premium and Platinum users. You can upgrade to Premium to access this feature.',
+                'trial': 'You\'re on our Basic plan with 50 searches per month. All plans include a 14-day free trial.',
+                'support': 'For Basic support:\n• Email support\n• FAQ section\n• Contact form\nContact: support@businessleadfinder.com'
+            };
+            
+            if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+                return basicResponses.hello;
+            } else if (lowerMessage.includes('help')) {
+                return basicResponses.help;
+            } else if (lowerMessage.includes('search') || lowerMessage.includes('find')) {
+                return basicResponses.search;
+            } else if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('plan')) {
+                return basicResponses.pricing;
+            } else if (lowerMessage.includes('export') || lowerMessage.includes('google')) {
+                return basicResponses.export;
+            } else if (lowerMessage.includes('filter') || lowerMessage.includes('review')) {
+                return basicResponses.filter;
+            } else if (lowerMessage.includes('trial') || lowerMessage.includes('free')) {
+                return basicResponses.trial;
+            } else if (lowerMessage.includes('support') || lowerMessage.includes('contact')) {
+                return basicResponses.support;
+            } else {
+                return "I'm your Basic AI Assistant! I can help you with:\n• Basic business lead finding\n• Search guidance and tips\n• Account management help\n• Export assistance\nJust ask me anything!";
+            }
+        }
+        
+        function generatePremiumAIResponse(userMessage) {
+            const lowerMessage = userMessage.toLowerCase();
+            
+            const premiumResponses = {
+                'hello': 'Hello! I\'m your Premium AI Assistant. I can help you with:\n• Advanced business lead finding\n• Search guidance with review filters\n• Account management help\n• Export assistance\n• Enhanced search strategies\nWhat would you like to know?',
+                'help': 'As your Premium AI Assistant, I can help you with:\n• Advanced search strategies\n• Review count filtering guidance\n• Enhanced lead finding techniques\n• Account and plan questions\n• Export to Google Sheets help\n• Priority support assistance\nJust ask me anything!',
+                'search': 'To search for business leads:\n1. Enter your location\n2. Choose business type\n3. Set search radius\n4. Use review count filter (Premium feature!)\n5. Click "Search"\nYou have 150 searches per month on your Premium plan.',
+                'pricing': 'You\'re on our Premium plan ($150/mo) which includes:\n• 150 searches per month\n• Filter by maximum review count\n• Export to Google Sheets\n• Priority email support\n• 1 AI Assistant (that\'s me!)',
+                'export': 'To export results:\n1. Complete your search\n2. Click "Export to Google Sheets"\n3. Authorize Google access\n4. Results will be saved to your Google Drive!',
+                'filter': 'You have access to review count filtering! This helps you find businesses with fewer reviews, which often have more potential for partnerships.',
+                'trial': 'You\'re on our Premium plan with 150 searches per month and review filtering. All plans include a 14-day free trial.',
+                'support': 'For Premium support:\n• Priority email support\n• Enhanced FAQ access\n• Dedicated support team\nContact: premium-support@businessleadfinder.com'
+            };
+            
+            if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+                return premiumResponses.hello;
+            } else if (lowerMessage.includes('help')) {
+                return premiumResponses.help;
+            } else if (lowerMessage.includes('search') || lowerMessage.includes('find')) {
+                return premiumResponses.search;
+            } else if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('plan')) {
+                return premiumResponses.pricing;
+            } else if (lowerMessage.includes('export') || lowerMessage.includes('google')) {
+                return premiumResponses.export;
+            } else if (lowerMessage.includes('filter') || lowerMessage.includes('review')) {
+                return premiumResponses.filter;
+            } else if (lowerMessage.includes('trial') || lowerMessage.includes('free')) {
+                return premiumResponses.trial;
+            } else if (lowerMessage.includes('support') || lowerMessage.includes('contact')) {
+                return premiumResponses.support;
+            } else {
+                return "I'm your Premium AI Assistant! I can help you with:\n• Advanced business lead finding\n• Search guidance with review filters\n• Account management help\n• Export assistance\n• Enhanced search strategies\nJust ask me anything!";
             }
         }
         
