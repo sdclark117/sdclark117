@@ -1250,7 +1250,16 @@ body {
                 console.log('🔧 User current_plan:', user.current_plan);
                 currentPlanSpan.textContent = 'Admin Access';
                 trialEndsSpan.textContent = 'Unlimited';
-                document.getElementById('maxReviewsContainer').style.display = 'block';
+                
+                // Show max reviews filter for admin users
+                const maxReviewsContainer = document.getElementById('maxReviewsContainer');
+                if (maxReviewsContainer) {
+                    maxReviewsContainer.style.display = 'block';
+                    console.log('🔧 Max reviews filter shown for admin user');
+                } else {
+                    console.log('❌ Max reviews container not found');
+                }
+                
                 const adminLink = `<a href="/admin/dashboard" class="btn btn-warning mt-2">Admin Dashboard</a>`;
                 statusDiv.insertAdjacentHTML('beforeend', adminLink);
                 console.log('🔧 Admin dashboard link added');
@@ -1262,7 +1271,13 @@ body {
                 trialEndsSpan.textContent = 'N/A';
                 manageBtn.style.display = 'block';
                 if (user.current_plan === 'PREMIUM' || user.current_plan === 'PLATINUM') {
-                    document.getElementById('maxReviewsContainer').style.display = 'block';
+                    const maxReviewsContainer = document.getElementById('maxReviewsContainer');
+                    if (maxReviewsContainer) {
+                        maxReviewsContainer.style.display = 'block';
+                        console.log(`🔧 Max reviews filter shown for ${user.current_plan} user`);
+                    } else {
+                        console.log('❌ Max reviews container not found');
+                    }
                 }
             } else if (user.trial_ends_at) {
                 const trialEndDate = new Date(user.trial_ends_at);
