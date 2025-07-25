@@ -968,15 +968,30 @@ def verify_email(token: str):
                 user.is_verified = True
                 db.session.delete(verification_record)
                 db.session.commit()
-                flash("Email verified successfully! You can now log in.", "success")
+                return render_template(
+                    "email_verification_result.html",
+                    success=True,
+                    message="Your email has been verified successfully! You can now log in.",
+                )
             else:
-                flash("User not found.", "danger")
+                return render_template(
+                    "email_verification_result.html",
+                    success=False,
+                    message="User not found.",
+                )
         else:
-            flash("Invalid or expired verification link.", "danger")
+            return render_template(
+                "email_verification_result.html",
+                success=False,
+                message="Invalid or expired verification link.",
+            )
     except Exception as e:
         app.logger.error(f"Error during email verification: {e}")
-        flash("An error occurred during verification.", "danger")
-    return redirect(url_for("index"))
+        return render_template(
+            "email_verification_result.html",
+            success=False,
+            message="An error occurred during verification.",
+        )
 
 
 @app.route("/reset-password/<token>")
