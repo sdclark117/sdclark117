@@ -351,6 +351,24 @@ class AIAgent(db.Model):
     status = db.Column(db.String(20), default="Active")
 
 
+class StaffAccessCode(db.Model):
+    __tablename__ = "staff_access_codes"
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(8), unique=True, nullable=False)
+    staff_role = db.Column(db.String(50), nullable=False)
+    is_support = db.Column(db.Boolean, default=False)
+    is_technical = db.Column(db.Boolean, default=False)
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_used = db.Column(db.Boolean, default=False)
+    used_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    used_at = db.Column(db.DateTime, nullable=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -2361,6 +2379,115 @@ def promote_user_to_staff(user_id):
         return jsonify({"error": "Failed to promote user"}), 500
 
 
+@app.route("/api/admin/generate-access-code", methods=["POST"])
+@login_required
+@admin_required
+def generate_access_code():
+    """Generate an access code for staff registration."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify(error="No data provided"), 400
+
+        staff_role = data.get("staff_role", "").strip()
+        is_support = data.get("is_support", False)
+        is_technical = data.get("is_technical", False)
+
+        if not staff_role:
+            return jsonify(error="Staff role is required"), 400
+
+        # Generate a unique access code
+        access_code = generate_token()[:8].upper()  # 8-character uppercase code
+        
+        # Create access code record
+        access_code_record = StaffAccessCode(
+            code=access_code,
+            staff_role=staff_role,
+            is_support=is_support,
+            is_technical=is_technical,
+            created_by=current_user.id,
+            expires_at=datetime.utcnow() + timedelta(hours=24)
+        )
+        db.session.add(access_code_record)
+        db.session.commit()
+
+        return jsonify(
+            message="Access code generated successfully",
+            access_code=access_code,
+            expires_at=access_code_record.expires_at.isoformat(),
+        ), 201
+    except Exception as e:
+        app.logger.error(f"Error generating access code: {e}")
+        db.session.rollback()
+        return jsonify(error="An error occurred while generating access code"), 500
+
+
+@app.route("/api/register-with-access-code", methods=["POST"])
+def register_with_access_code():
+    """Register a new staff member using an access code."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify(error="No data provided"), 400
+
+        email = data.get("email", "").lower().strip()
+        name = data.get("name", "").strip()
+        password = data.get("password", "").strip()
+        access_code = data.get("access_code", "").strip().upper()
+
+        if not all([email, name, password, access_code]):
+            return jsonify(error="All fields are required"), 400
+
+        # Validate access code
+        access_code_record = StaffAccessCode.query.filter_by(
+            code=access_code, 
+            is_used=False
+        ).filter(StaffAccessCode.expires_at > datetime.utcnow()).first()
+
+        if not access_code_record:
+            return jsonify(error="Invalid or expired access code"), 400
+
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return jsonify(error="User with this email already exists"), 400
+
+        # Create new staff member
+        staff_member = User(
+            email=email,
+            name=name,
+            password_hash=generate_password_hash(password),
+            is_support=access_code_record.is_support,
+            is_technical=access_code_record.is_technical,
+            staff_role=access_code_record.staff_role,
+            is_verified=True,  # Staff members are pre-verified
+        )
+        db.session.add(staff_member)
+
+        # Mark access code as used
+        access_code_record.is_used = True
+        access_code_record.used_by = staff_member.id
+        access_code_record.used_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify(
+            message="Staff member registered successfully",
+            staff_member={
+                "id": staff_member.id,
+                "email": staff_member.email,
+                "name": staff_member.name,
+                "staff_role": staff_member.staff_role,
+                "is_support": staff_member.is_support,
+                "is_technical": staff_member.is_technical,
+            },
+        ), 201
+    except Exception as e:
+        app.logger.error(f"Error registering with access code: {e}")
+        db.session.rollback()
+        return jsonify(error="An error occurred while registering"), 500
+
+
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
-    app.run(debug=debug_mode)
+    app.run(debug=debug_mode, host="0.0.0.0")
