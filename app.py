@@ -111,7 +111,9 @@ app.logger.info(f"📧 GMAIL_USERNAME set: {bool(app.config['MAIL_USERNAME'])}")
 app.logger.info(f"📧 GMAIL_APP_PASSWORD set: {bool(app.config['MAIL_PASSWORD'])}")
 app.logger.info(f"📧 MAIL_SERVER: {app.config['MAIL_SERVER']}")
 app.logger.info(f"📧 MAIL_USERNAME value: {app.config['MAIL_USERNAME']}")
-app.logger.info(f"📧 MAIL_PASSWORD length: {len(app.config['MAIL_PASSWORD']) if app.config['MAIL_PASSWORD'] else 0}")
+app.logger.info(
+    f"📧 MAIL_PASSWORD length: {len(app.config['MAIL_PASSWORD']) if app.config['MAIL_PASSWORD'] else 0}"
+)
 
 # Check if Gmail is configured
 gmail_configured = app.config["MAIL_USERNAME"] and app.config["MAIL_PASSWORD"]
