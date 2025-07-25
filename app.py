@@ -1102,7 +1102,8 @@ def search():
             app.logger.info(f"Attempting to geocode: '{location_query}'")
             app.logger.info(f"API key available: {bool(app.config['GOOGLE_API_KEY'])}")
             app.logger.info(
-                f"Environment variable GOOGLE_MAPS_API_KEY: {bool(os.environ.get('GOOGLE_MAPS_API_KEY'))}"
+                f"Environment variable GOOGLE_MAPS_API_KEY: "
+                f"{bool(os.environ.get('GOOGLE_MAPS_API_KEY'))}"
             )
 
             coords_dict = get_coordinates(location_query, app.config["GOOGLE_API_KEY"])
@@ -1151,7 +1152,8 @@ def search():
                 if session["guest_search_count"] >= 5:
                     return (
                         jsonify(
-                            error="Guest users are limited to 5 searches. Please sign up or log in for more."
+                            error="Guest users are limited to 5 searches. "
+                            "Please sign up or log in for more."
                         ),
                         403,
                     )
