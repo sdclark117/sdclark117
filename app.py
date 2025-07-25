@@ -95,14 +95,14 @@ app.config["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_MAPS_API_KEY")
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
 app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = os.getenv("GMAIL_USERNAME")
-app.config["MAIL_PASSWORD"] = os.getenv("GMAIL_APP_PASSWORD")
-app.config["MAIL_DEFAULT_SENDER"] = os.getenv("GMAIL_USERNAME")
+app.config["MAIL_USERNAME"] = os.getenv("GMAIL_USERNAME2")
+app.config["MAIL_PASSWORD"] = os.getenv("GMAIL_APP_PASSWORD2")
+app.config["MAIL_DEFAULT_SENDER"] = os.getenv("GMAIL_USERNAME2")
 
 # Debug email configuration
 app.logger.info(f"📧 FLASK_ENV: {os.getenv('FLASK_ENV')}")
-app.logger.info(f"📧 GMAIL_USERNAME: {os.getenv('GMAIL_USERNAME')}")
-app.logger.info(f"📧 GMAIL_APP_PASSWORD set: {bool(os.getenv('GMAIL_APP_PASSWORD'))}")
+app.logger.info(f"📧 GMAIL_USERNAME2: {os.getenv('GMAIL_USERNAME2')}")
+app.logger.info(f"📧 GMAIL_APP_PASSWORD2 set: {bool(os.getenv('GMAIL_APP_PASSWORD2'))}")
 app.logger.info(f"📧 GMAIL_USERNAME set: {bool(app.config['MAIL_USERNAME'])}")
 app.logger.info(f"📧 GMAIL_APP_PASSWORD set: {bool(app.config['MAIL_PASSWORD'])}")
 app.logger.info(f"📧 MAIL_SERVER: {app.config['MAIL_SERVER']}")
