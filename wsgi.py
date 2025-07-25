@@ -1,6 +1,6 @@
 import os
-from app import app, db
 
+from app import app, db
 
 # This file is the new entry point for the gunicorn server.
 # It ensures that the database tables are created before the app runs.
