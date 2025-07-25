@@ -119,7 +119,7 @@ elif not gmail_configured:
     app.config["MAIL_PORT"] = 1025
     app.config["MAIL_USE_TLS"] = False
     app.config["MAIL_USERNAME"] = "noreply@businessleadfinder.com"
-    app.config["MAIL_PASSWORD"] = ""
+    app.config["MAIL_PASSWORD"] = ""  # nosec B105
     app.config["MAIL_DEFAULT_SENDER"] = "noreply@businessleadfinder.com"
 else:
     app.logger.info("✅ Email configuration loaded successfully.")
