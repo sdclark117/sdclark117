@@ -468,6 +468,18 @@
                                                     <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('carlos')">
                                                         <i class="bi bi-robot"></i> Carlos (Email Campaigns)
                                                     </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('rachel')">
+                                                        <i class="bi bi-robot"></i> Rachel (Content Creation)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('mike')">
+                                                        <i class="bi bi-robot"></i> Mike (SEO & Analytics)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('lisa')">
+                                                        <i class="bi bi-robot"></i> Lisa (PPC & Ads)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('tom')">
+                                                        <i class="bi bi-robot"></i> Tom (Brand Strategy)
+                                                    </a>
                                                 </div>
                                             </div>
                                             <div class="col-md-8">
@@ -570,7 +582,7 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="badge bg-primary">5 Agents</span>
+                                            <span class="badge bg-primary">3 Agents</span>
                                             <span class="badge bg-success">1 Manager</span>
                                         </div>
                                         <div class="mb-2">
@@ -582,8 +594,6 @@
                                                 <li>• Alex - Lead Generation</li>
                                                 <li>• Maria - Cold Calling</li>
                                                 <li>• David - Sales Outreach</li>
-                                                <li>• Lisa - Follow-up Specialist</li>
-                                                <li>• Mike - Conversion Expert</li>
                                             </ul>
                                         </div>
                                         <div class="btn-group" role="group">
@@ -600,7 +610,7 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="badge bg-primary">5 Agents</span>
+                                            <span class="badge bg-primary">6 Agents</span>
                                             <span class="badge bg-success">1 Manager</span>
                                         </div>
                                         <div class="mb-2">
@@ -609,11 +619,12 @@
                                         <div class="mb-2">
                                             <strong>Agents:</strong>
                                             <ul class="list-unstyled mt-1">
-                                                <li>• Emma - Social Media Management</li>
+                                                <li>• Emma - Social Media</li>
                                                 <li>• Carlos - Email Campaigns</li>
                                                 <li>• Rachel - Content Creation</li>
-                                                <li>• Tom - Analytics & Reporting</li>
-                                                <li>• Anna - SEO Specialist</li>
+                                                <li>• Mike - SEO & Analytics</li>
+                                                <li>• Lisa - PPC & Ads</li>
+                                                <li>• Tom - Brand Strategy</li>
                                             </ul>
                                         </div>
                                         <div class="btn-group" role="group">
@@ -1704,7 +1715,7 @@
 
         function initializeAISystem() {
             // Initialize chat history for each AI
-            const aiNames = ['sarah', 'james', 'alex', 'maria', 'david', 'emma', 'carlos'];
+            const aiNames = ['sarah', 'james', 'alex', 'maria', 'david', 'emma', 'carlos', 'rachel', 'mike', 'lisa', 'tom'];
             aiNames.forEach(name => {
                 aiChatHistory[name] = [];
             });
@@ -1733,7 +1744,11 @@
                 'maria': 'Maria - Cold Calling',
                 'david': 'David - Sales Outreach',
                 'emma': 'Emma - Social Media',
-                'carlos': 'Carlos - Email Campaigns'
+                'carlos': 'Carlos - Email Campaigns',
+                'rachel': 'Rachel - Content Creation',
+                'mike': 'Mike - SEO & Analytics',
+                'lisa': 'Lisa - PPC & Ads',
+                'tom': 'Tom - Brand Strategy'
             };
             document.getElementById('currentAIChatTitle').textContent = titles[aiName];
             
@@ -1753,7 +1768,11 @@
                     'maria': 'Hello! I\'m Maria, Cold Calling expert. I\'ve made 47 calls today with a 23% success rate. Need an update?',
                     'david': 'Hi! I\'m David, Sales Outreach specialist. I\'ve sent 156 follow-up emails this week. Should I show you the metrics?',
                     'emma': 'Hey! I\'m Emma, Social Media manager. I\'ve posted 12 times this week with 2.3K engagement. Want to see the analytics?',
-                    'carlos': 'Hello! I\'m Carlos, Email Campaign specialist. I\'ve sent 3 campaigns this week with 18.7% open rate. Need details?'
+                    'carlos': 'Hello! I\'m Carlos, Email Campaign specialist. I\'ve sent 3 campaigns this week with 18.7% open rate. Need details?',
+                    'rachel': 'Hi! I\'m Rachel, Content Creation specialist. I\'ve created 8 blog posts and 15 social media graphics this week. Need content updates?',
+                    'mike': 'Hello! I\'m Mike, SEO & Analytics expert. I\'ve optimized 12 pages and tracked 2.3K organic visitors. Want to see the SEO metrics?',
+                    'lisa': 'Hey! I\'m Lisa, PPC & Ads specialist. I\'ve managed 5 ad campaigns with 34% ROI improvement. Need advertising insights?',
+                    'tom': 'Hi! I\'m Tom, Brand Strategy expert. I\'ve developed 3 brand campaigns and increased brand awareness by 28%. Want brand insights?'
                 };
                 addAIMessage(aiName, welcomeMessages[aiName], 'ai');
             }
@@ -1853,6 +1872,26 @@
                     'email': 'I sent 3 email campaigns this week with 18.7% open rate! 156 clicks and 23 responses. The A/B test shows 22% better performance.',
                     'update': 'Email update: I\'m preparing next week\'s nurture sequence and analyzing subscriber behavior for segmentation.',
                     'default': 'Email campaigns are performing well! I\'m averaging 19.2% open rate and 3.2% click-through rate across all campaigns.'
+                },
+                'rachel': {
+                    'content': 'I created 8 blog posts and 15 social media graphics this week! 3 posts went viral with 2.1K shares. Content engagement is up 45%.',
+                    'update': 'Content update: I\'m working on next week\'s editorial calendar and creating video content for our YouTube channel.',
+                    'default': 'Content creation is driving strong engagement! I\'m averaging 1.8K views per blog post and 89% social media engagement rate.'
+                },
+                'mike': {
+                    'seo': 'I optimized 12 pages and tracked 2.3K organic visitors! Our search rankings improved by 23 positions. Organic traffic is up 34%.',
+                    'update': 'SEO update: I\'m analyzing competitor keywords and implementing schema markup for better search visibility.',
+                    'default': 'SEO performance is excellent! We\'re ranking for 156 keywords and driving 45% of our traffic organically.'
+                },
+                'lisa': {
+                    'ads': 'I managed 5 ad campaigns with 34% ROI improvement! 2.3K clicks, 89 conversions. Cost per acquisition dropped by 28%.',
+                    'update': 'PPC update: I\'m launching new remarketing campaigns and testing new ad formats for better performance.',
+                    'default': 'PPC campaigns are generating strong ROI! I\'m averaging 3.2% conversion rate and 156% ROAS across all campaigns.'
+                },
+                'tom': {
+                    'brand': 'I developed 3 brand campaigns and increased brand awareness by 28%! Brand sentiment improved by 45% and recognition is up 34%.',
+                    'update': 'Brand update: I\'m working on our Q4 brand strategy and developing new brand guidelines for consistency.',
+                    'default': 'Brand strategy is driving strong results! We\'ve increased brand equity by 23% and customer loyalty by 56%.'
                 }
             };
             
@@ -1875,6 +1914,14 @@
                 return aiResponses.social;
             } else if (lowerMessage.includes('email') && aiName === 'carlos') {
                 return aiResponses.email;
+            } else if (lowerMessage.includes('content') && aiName === 'rachel') {
+                return aiResponses.content;
+            } else if (lowerMessage.includes('seo') && aiName === 'mike') {
+                return aiResponses.seo;
+            } else if (lowerMessage.includes('ads') && aiName === 'lisa') {
+                return aiResponses.ads;
+            } else if (lowerMessage.includes('brand') && aiName === 'tom') {
+                return aiResponses.brand;
             } else {
                 return aiResponses.default;
             }
@@ -1883,7 +1930,7 @@
         function startAIUpdates() {
             // Simulate periodic AI updates
             setInterval(() => {
-                const aiNames = ['sarah', 'james', 'alex', 'maria', 'david', 'emma', 'carlos'];
+                const aiNames = ['sarah', 'james', 'alex', 'maria', 'david', 'emma', 'carlos', 'rachel', 'mike', 'lisa', 'tom'];
                 const randomAI = aiNames[Math.floor(Math.random() * aiNames.length)];
                 
                 const updates = {
@@ -1893,7 +1940,11 @@
                     'maria': '📞 Call Update: Made 12 calls this hour, 3 positive responses. Daily target: 45 calls, currently at 38.',
                     'david': '💰 Sales Update: Closed $12K deal, 2 proposals sent. Pipeline: $89K in active negotiations.',
                     'emma': '📱 Social Update: New post got 234 likes in 2 hours. Instagram followers: +23 today.',
-                    'carlos': '📧 Email Update: Campaign sent to 1,200 subscribers, 18.9% open rate so far.'
+                    'carlos': '📧 Email Update: Campaign sent to 1,200 subscribers, 18.9% open rate so far.',
+                    'rachel': '📝 Content Update: Published new blog post, 156 views in 2 hours. Content calendar: 3 posts scheduled for next week.',
+                    'mike': '🔍 SEO Update: Page speed improved by 23%, 5 new keywords ranking. Organic traffic: +12% this week.',
+                    'lisa': '💰 PPC Update: Ad spend $2.3K, 89 conversions. ROI: 234%. New campaign launching tomorrow.',
+                    'tom': '🎨 Brand Update: Brand awareness survey shows 28% improvement. New brand guidelines completed.'
                 };
                 
                 addAIMessage(randomAI, updates[randomAI], 'ai');
