@@ -436,6 +436,65 @@
 
                     <!-- AI Teams Tab -->
                     <div class="tab-pane fade" id="ai-teams" role="tabpanel">
+                        <!-- AI Communication Panel -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="bi bi-chat-dots"></i> AI Communication Center</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="list-group" id="aiChatList">
+                                                    <a href="#" class="list-group-item list-group-item-action active" onclick="switchAIChat('sarah')">
+                                                        <i class="bi bi-person-badge"></i> Sarah (Team A Manager)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('james')">
+                                                        <i class="bi bi-person-badge"></i> James (Team B Manager)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('alex')">
+                                                        <i class="bi bi-robot"></i> Alex (Lead Generation)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('maria')">
+                                                        <i class="bi bi-robot"></i> Maria (Cold Calling)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('david')">
+                                                        <i class="bi bi-robot"></i> David (Sales Outreach)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('emma')">
+                                                        <i class="bi bi-robot"></i> Emma (Social Media)
+                                                    </a>
+                                                    <a href="#" class="list-group-item list-group-item-action" onclick="switchAIChat('carlos')">
+                                                        <i class="bi bi-robot"></i> Carlos (Email Campaigns)
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h6 class="mb-0" id="currentAIChatTitle">Sarah - Team A Manager</h6>
+                                                    </div>
+                                                    <div class="card-body" style="height: 300px; overflow-y: auto;">
+                                                        <div id="aiChatMessages">
+                                                            <!-- AI messages will appear here -->
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-footer">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control" id="aiMessageInput" placeholder="Type your message...">
+                                                            <button class="btn btn-primary" onclick="sendAIMessage()">
+                                                                <i class="bi bi-send"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row mb-3">
                             <div class="col-12">
                                 <button class="btn btn-primary" onclick="createAITeam()">
@@ -1634,7 +1693,212 @@
             if (staffRoleSelect) {
                 staffRoleSelect.addEventListener('change', updateRoleCheckboxes);
             }
+            
+            // Initialize AI Communication System
+            initializeAISystem();
         });
+
+        // AI Communication System
+        let currentAIChat = 'sarah';
+        let aiChatHistory = {};
+
+        function initializeAISystem() {
+            // Initialize chat history for each AI
+            const aiNames = ['sarah', 'james', 'alex', 'maria', 'david', 'emma', 'carlos'];
+            aiNames.forEach(name => {
+                aiChatHistory[name] = [];
+            });
+            
+            // Load initial messages for Sarah
+            loadAIChat('sarah');
+            
+            // Start AI update simulation
+            startAIUpdates();
+        }
+
+        function switchAIChat(aiName) {
+            currentAIChat = aiName;
+            
+            // Update active chat in list
+            document.querySelectorAll('#aiChatList a').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update chat title
+            const titles = {
+                'sarah': 'Sarah - Team A Manager',
+                'james': 'James - Team B Manager',
+                'alex': 'Alex - Lead Generation',
+                'maria': 'Maria - Cold Calling',
+                'david': 'David - Sales Outreach',
+                'emma': 'Emma - Social Media',
+                'carlos': 'Carlos - Email Campaigns'
+            };
+            document.getElementById('currentAIChatTitle').textContent = titles[aiName];
+            
+            loadAIChat(aiName);
+        }
+
+        function loadAIChat(aiName) {
+            const chatContainer = document.getElementById('aiChatMessages');
+            const messages = aiChatHistory[aiName];
+            
+            if (messages.length === 0) {
+                // Add welcome message
+                const welcomeMessages = {
+                    'sarah': 'Hello! I\'m Sarah, Team A Manager. I oversee our Lead Generation and Sales operations. How can I help you today?',
+                    'james': 'Hi there! I\'m James, Team B Manager. I handle Marketing and Analytics. What would you like to know?',
+                    'alex': 'Hey! I\'m Alex, Lead Generation specialist. I\'ve been working on finding new prospects. Want to see my latest results?',
+                    'maria': 'Hello! I\'m Maria, Cold Calling expert. I\'ve made 47 calls today with a 23% success rate. Need an update?',
+                    'david': 'Hi! I\'m David, Sales Outreach specialist. I\'ve sent 156 follow-up emails this week. Should I show you the metrics?',
+                    'emma': 'Hey! I\'m Emma, Social Media manager. I\'ve posted 12 times this week with 2.3K engagement. Want to see the analytics?',
+                    'carlos': 'Hello! I\'m Carlos, Email Campaign specialist. I\'ve sent 3 campaigns this week with 18.7% open rate. Need details?'
+                };
+                addAIMessage(aiName, welcomeMessages[aiName], 'ai');
+            }
+            
+            displayChatMessages(aiName);
+        }
+
+        function displayChatMessages(aiName) {
+            const chatContainer = document.getElementById('aiChatMessages');
+            const messages = aiChatHistory[aiName];
+            
+            chatContainer.innerHTML = '';
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `mb-2 ${msg.sender === 'ai' ? 'text-start' : 'text-end'}`;
+                
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = `d-inline-block p-2 rounded ${msg.sender === 'ai' ? 'bg-light text-dark' : 'bg-primary text-white'}`;
+                bubbleDiv.style.maxWidth = '80%';
+                bubbleDiv.textContent = msg.text;
+                
+                messageDiv.appendChild(bubbleDiv);
+                chatContainer.appendChild(messageDiv);
+            });
+            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addAIMessage(aiName, text, sender) {
+            if (!aiChatHistory[aiName]) {
+                aiChatHistory[aiName] = [];
+            }
+            
+            aiChatHistory[aiName].push({
+                text: text,
+                sender: sender,
+                timestamp: new Date()
+            });
+            
+            if (currentAIChat === aiName) {
+                displayChatMessages(aiName);
+            }
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiMessageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addAIMessage(currentAIChat, message, 'user');
+            input.value = '';
+            
+            // Generate AI response
+            setTimeout(() => {
+                const response = generateAIResponse(currentAIChat, message);
+                addAIMessage(currentAIChat, response, 'ai');
+            }, 1000);
+        }
+
+        function generateAIResponse(aiName, userMessage) {
+            const responses = {
+                'sarah': {
+                    'performance': 'Team A is performing excellently! Alex found 23 new leads, Maria converted 12 prospects, and David closed 8 deals this week. Our conversion rate is up 15% from last month.',
+                    'update': 'Here\'s my team update: Alex is working on LinkedIn outreach, Maria is following up with warm leads, and David is preparing proposals for 3 high-value prospects.',
+                    'help': 'I can help you with team performance reports, lead generation strategies, or sales pipeline updates. What specific information do you need?',
+                    'default': 'I\'m focused on optimizing our lead generation and sales processes. My team is currently working on 47 active prospects with a projected close rate of 28%.'
+                },
+                'james': {
+                    'performance': 'Team B metrics are strong! Emma\'s social posts got 2.3K engagement, Carlos\' email campaigns have 18.7% open rate, and our content is driving 34% more traffic.',
+                    'update': 'Marketing update: Emma is launching a new Instagram campaign, Carlos is A/B testing email subject lines, and Rachel is creating content for next week\'s campaign.',
+                    'help': 'I can provide marketing analytics, campaign performance data, or content strategy insights. What would you like to know?',
+                    'default': 'Our marketing efforts are generating strong ROI. We\'re seeing 23% increase in brand awareness and 45% growth in qualified leads from our campaigns.'
+                },
+                'alex': {
+                    'leads': 'I\'ve identified 23 new high-quality leads this week! 8 are from LinkedIn outreach, 12 from industry events, and 3 from referrals. 15 are ready for Maria\'s follow-up.',
+                    'update': 'Lead generation update: I\'m currently researching 34 companies that match our ideal customer profile. 12 have shown interest and are ready for contact.',
+                    'default': 'I\'m actively prospecting and finding new opportunities. My current pipeline has 47 qualified leads with a 65% response rate.'
+                },
+                'maria': {
+                    'calls': 'I made 47 cold calls today with a 23% success rate! 11 prospects agreed to follow-up meetings, and 8 requested proposals.',
+                    'update': 'Cold calling update: I\'ve scheduled 15 follow-up calls for tomorrow and 8 prospects are ready for David\'s sales pitch.',
+                    'default': 'My cold calling is generating solid results. I\'m averaging 45 calls per day with a 22% conversion rate to meetings.'
+                },
+                'david': {
+                    'sales': 'I closed 3 deals this week worth $47K! 2 more are in final negotiation, and I have 8 proposals out for $125K total potential.',
+                    'update': 'Sales update: I\'m working with 12 active prospects. 5 are in proposal stage, 3 are negotiating, and 4 are in discovery calls.',
+                    'default': 'Sales pipeline is strong! I\'m managing 23 prospects with $340K in potential revenue and a 28% close rate.'
+                },
+                'emma': {
+                    'social': 'I posted 12 times this week with 2.3K total engagement! Our Instagram campaign got 1.2K likes and 89 new followers.',
+                    'update': 'Social media update: I\'m planning next week\'s content calendar and analyzing which posts performed best for optimization.',
+                    'default': 'Social media is driving great engagement! I\'m averaging 2.1K engagement per week with 15% follower growth.'
+                },
+                'carlos': {
+                    'email': 'I sent 3 email campaigns this week with 18.7% open rate! 156 clicks and 23 responses. The A/B test shows 22% better performance.',
+                    'update': 'Email update: I\'m preparing next week\'s nurture sequence and analyzing subscriber behavior for segmentation.',
+                    'default': 'Email campaigns are performing well! I\'m averaging 19.2% open rate and 3.2% click-through rate across all campaigns.'
+                }
+            };
+            
+            const aiResponses = responses[aiName];
+            const lowerMessage = userMessage.toLowerCase();
+            
+            if (lowerMessage.includes('performance') || lowerMessage.includes('metrics')) {
+                return aiResponses.performance;
+            } else if (lowerMessage.includes('update') || lowerMessage.includes('status')) {
+                return aiResponses.update;
+            } else if (lowerMessage.includes('help') || lowerMessage.includes('what can you')) {
+                return aiResponses.help;
+            } else if (lowerMessage.includes('lead') && aiName === 'alex') {
+                return aiResponses.leads;
+            } else if (lowerMessage.includes('call') && aiName === 'maria') {
+                return aiResponses.calls;
+            } else if (lowerMessage.includes('sale') && aiName === 'david') {
+                return aiResponses.sales;
+            } else if (lowerMessage.includes('social') && aiName === 'emma') {
+                return aiResponses.social;
+            } else if (lowerMessage.includes('email') && aiName === 'carlos') {
+                return aiResponses.email;
+            } else {
+                return aiResponses.default;
+            }
+        }
+
+        function startAIUpdates() {
+            // Simulate periodic AI updates
+            setInterval(() => {
+                const aiNames = ['sarah', 'james', 'alex', 'maria', 'david', 'emma', 'carlos'];
+                const randomAI = aiNames[Math.floor(Math.random() * aiNames.length)];
+                
+                const updates = {
+                    'sarah': '📊 Team A Update: Alex found 3 new leads, Maria converted 2 prospects, David closed 1 deal. Weekly target: 85% complete.',
+                    'james': '📈 Marketing Update: Emma\'s posts got 450 new engagements, Carlos\' email open rate hit 19.2%. Campaign performance: +12% vs last week.',
+                    'alex': '🎯 Lead Update: Just identified 2 new high-value prospects from LinkedIn. Total this week: 25 leads, 18 qualified.',
+                    'maria': '📞 Call Update: Made 12 calls this hour, 3 positive responses. Daily target: 45 calls, currently at 38.',
+                    'david': '💰 Sales Update: Closed $12K deal, 2 proposals sent. Pipeline: $89K in active negotiations.',
+                    'emma': '📱 Social Update: New post got 234 likes in 2 hours. Instagram followers: +23 today.',
+                    'carlos': '📧 Email Update: Campaign sent to 1,200 subscribers, 18.9% open rate so far.'
+                };
+                
+                addAIMessage(randomAI, updates[randomAI], 'ai');
+            }, 30000); // Update every 30 seconds
+        }
     </script>
 </body>
 </html> 
