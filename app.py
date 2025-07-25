@@ -115,15 +115,19 @@ app.logger.info(f"📧 MAIL_SERVER: {app.config['MAIL_SERVER']}")
 gmail_configured = app.config["MAIL_USERNAME"] and app.config["MAIL_PASSWORD"]
 
 if not gmail_configured:
-    app.logger.warning("📧 Gmail not configured. Using email simulation.")
-    # For development, we'll simulate email sending
-    app.config["MAIL_SERVER"] = "localhost"
-    app.config["MAIL_PORT"] = 1025
-    app.config["MAIL_USE_TLS"] = False
-    app.config["MAIL_USERNAME"] = "noreply@businessleadfinder.com"
-    app.config["MAIL_PASSWORD"] = ""  # nosec B105
-    app.config["MAIL_DEFAULT_SENDER"] = "noreply@businessleadfinder.com"
-    app.logger.info("📧 Using development email simulation")
+    if os.getenv("FLASK_ENV") == "production":
+        app.logger.error("❌ Gmail not configured in PRODUCTION mode!")
+        app.logger.error("❌ Please set GMAIL_USERNAME2 and GMAIL_APP_PASSWORD2 in Render")
+    else:
+        app.logger.warning("📧 Gmail not configured. Using email simulation for development.")
+        # For development, we'll simulate email sending
+        app.config["MAIL_SERVER"] = "localhost"
+        app.config["MAIL_PORT"] = 1025
+        app.config["MAIL_USE_TLS"] = False
+        app.config["MAIL_USERNAME"] = "noreply@businessleadfinder.com"
+        app.config["MAIL_PASSWORD"] = ""  # nosec B105
+        app.config["MAIL_DEFAULT_SENDER"] = "noreply@businessleadfinder.com"
+        app.logger.info("📧 Using development email simulation")
 else:
     app.logger.info("✅ Email configuration loaded successfully.")
     app.logger.info(f"📧 Using Gmail SMTP: {app.config['MAIL_USERNAME']}")
@@ -561,10 +565,18 @@ def send_email(subject, recipients, body, html_body=None):
 
         # Check if Gmail credentials are configured
         if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-            app.logger.error(
-                "Gmail credentials not configured. Please set GMAIL_USERNAME2 and "
-                "GMAIL_APP_PASSWORD2 environment variables."
-            )
+            if os.getenv("FLASK_ENV") == "production":
+                app.logger.error(
+                    "❌ Gmail credentials not configured in PRODUCTION mode!"
+                )
+                app.logger.error(
+                    "❌ Please set GMAIL_USERNAME2 and GMAIL_APP_PASSWORD2 in Render"
+                )
+            else:
+                app.logger.error(
+                    "Gmail credentials not configured. Please set GMAIL_USERNAME2 and "
+                    "GMAIL_APP_PASSWORD2 environment variables."
+                )
             return False
 
         # Create message
