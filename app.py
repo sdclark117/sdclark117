@@ -2598,8 +2598,12 @@ class AIColdCallingSystem:
     def generate_call_script(self, prospect_data, product_info):
         """Generate personalized call script"""
         return {
-            "opening": "Hi {}, this is [Name] calling from [Company]...".format(prospect_data['name']),
-            "pain_point": "I understand companies like yours in {} are facing...".format(prospect_data['industry']),
+            "opening": "Hi {}, this is [Name] calling from [Company]...".format(
+                prospect_data["name"]
+            ),
+            "pain_point": "I understand companies like yours in {} are facing...".format(
+                prospect_data["industry"]
+            ),
             "solution": "Our solution has helped similar companies achieve...",
             "question": "Would you be interested in a 15-minute call to discuss how we could help?",
             "objection_handlers": {
@@ -2634,12 +2638,22 @@ class AISalesOutreachSystem:
     def create_proposal(self, prospect_data, solution_details):
         """Create personalized sales proposal"""
         return {
-            "executive_summary": "Based on our analysis of {}...".format(prospect_data['company']),
-            "problem_statement": "Companies in {} face challenges with...".format(prospect_data['industry']),
-            "solution_overview": "Our {} solution provides...".format(solution_details['product']),
-            "value_proposition": "This will deliver {} ROI within 6 months...".format(solution_details['roi']),
-            "implementation_plan": "Phase 1: {}...".format(solution_details['timeline']),
-            "investment": "Total investment: ${}...".format(solution_details['price']),
+            "executive_summary": "Based on our analysis of {}...".format(
+                prospect_data["company"]
+            ),
+            "problem_statement": "Companies in {} face challenges with...".format(
+                prospect_data["industry"]
+            ),
+            "solution_overview": "Our {} solution provides...".format(
+                solution_details["product"]
+            ),
+            "value_proposition": "This will deliver {} ROI within 6 months...".format(
+                solution_details["roi"]
+            ),
+            "implementation_plan": "Phase 1: {}...".format(
+                solution_details["timeline"]
+            ),
+            "investment": "Total investment: ${}...".format(solution_details["price"]),
             "next_steps": "Schedule a technical review and contract signing...",
         }
 
@@ -2653,7 +2667,9 @@ class AISalesOutreachSystem:
                 {
                     "type": "email",
                     "subject": "Quick follow-up from our call",
-                    "content": "Hi {}, thanks for taking my call yesterday...".format(prospect['name']),
+                    "content": "Hi {}, thanks for taking my call yesterday...".format(
+                        prospect["name"]
+                    ),
                 }
             )
         elif days_since == 3:
@@ -2662,7 +2678,7 @@ class AISalesOutreachSystem:
                     "type": "email",
                     "subject": "Thought you might find this interesting",
                     "content": "Hi {}, I came across this article about {}...".format(
-                        prospect['name'], prospect['industry']
+                        prospect["name"], prospect["industry"]
                     ),
                 }
             )
@@ -2670,7 +2686,9 @@ class AISalesOutreachSystem:
             sequence.append(
                 {
                     "type": "call",
-                    "script": "Hi {}, I wanted to follow up on our previous discussion...".format(prospect['name']),
+                    "script": "Hi {}, I wanted to follow up on our previous discussion...".format(
+                        prospect["name"]
+                    ),
                 }
             )
 
@@ -2829,7 +2847,9 @@ class AIContentCreationSystem:
                 "Learn everything about {} and how it can benefit your business. "
                 "Expert insights and actionable tips."
             ).format(topic),
-            "introduction": "{} has become increasingly important for businesses looking to...".format(topic),
+            "introduction": "{} has become increasingly important for businesses looking to...".format(
+                topic
+            ),
             "sections": [
                 "What is {}?".format(topic),
                 "Why {} matters for your business".format(topic),
@@ -2950,7 +2970,11 @@ class AISEOSystem:
         """Generate keyword research and opportunities"""
         keywords = {
             "primary_keywords": [
-                {"keyword": "{} solutions".format(industry), "volume": 1200, "difficulty": 45},
+                {
+                    "keyword": "{} solutions".format(industry),
+                    "volume": 1200,
+                    "difficulty": 45,
+                },
                 {
                     "keyword": "best {} company".format(industry),
                     "volume": 890,
@@ -3032,7 +3056,9 @@ class AIPPCSystem:
     def create_ppc_campaign(self, campaign_type, target_audience, budget):
         """Create PPC campaign with targeting and optimization"""
         campaign = {
-            "campaign_name": "{} Campaign - {}".format(campaign_type.title(), target_audience),
+            "campaign_name": "{} Campaign - {}".format(
+                campaign_type.title(), target_audience
+            ),
             "budget": budget,
             "platforms": ["Google Ads", "Facebook Ads", "LinkedIn Ads"],
             "targeting": {
@@ -3152,7 +3178,7 @@ class AIBrandStrategySystem:
         strategy = {
             "brand_positioning": {
                 "value_proposition": "The leading {} solution for {}".format(
-                    company_data['industry'], target_audience['primary']
+                    company_data["industry"], target_audience["primary"]
                 ),
                 "differentiators": [
                     "Advanced automation capabilities",
@@ -3182,7 +3208,7 @@ class AIBrandStrategySystem:
             },
             "messaging_framework": {
                 "core_message": "Empowering {} to achieve more with intelligent automation".format(
-                    target_audience['primary']
+                    target_audience["primary"]
                 ),
                 "key_messages": [
                     "Simplify complex workflows",
