@@ -383,7 +383,7 @@ def track_page_visit(page_name):
             db.session.add(page_visit)
 
         # Increment total visits
-        page_visit.visits += 1
+        page_visit.visits = (page_visit.visits or 0) + 1
 
         # Check if this is a unique visitor (by IP)
         existing_activity = UserActivity.query.filter_by(
@@ -393,7 +393,7 @@ def track_page_visit(page_name):
         ).first()
 
         if not existing_activity:
-            page_visit.unique_visitors += 1
+            page_visit.unique_visitors = (page_visit.unique_visitors or 0) + 1
 
         # Record user activity
         activity = UserActivity(

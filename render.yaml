@@ -11,6 +11,8 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
+      - key: FLASK_SECRET_KEY
+        generateValue: true
       - key: FLASK_ENV
         value: production
       - key: FLASK_DEBUG

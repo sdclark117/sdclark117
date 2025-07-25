@@ -3071,10 +3071,10 @@ body {
                 
                 const data = await response.json();
                 
-                if (data.success) {
+                if (response.ok) {
                     const alertDiv = document.getElementById('profileAlert');
                     alertDiv.className = 'alert alert-success mt-3';
-                    alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                    alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + (data.message || 'Verification email sent successfully!');
                     alertDiv.style.display = 'block';
                     
                     // Hide alert after 3 seconds
