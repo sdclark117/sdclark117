@@ -1411,7 +1411,7 @@ body {
                                 <i class="bi bi-robot"></i>
                             </div>
                             <div class="message-content">
-                                <p>Hello! I'm Cleo, your AI assistant. How can I help you with your business lead finding today?</p>
+                                <p id="initialAIMessage">Hello! I'm Cleo, your AI assistant. How can I help you with your business lead finding today?</p>
                             </div>
                         </div>
             </div>
@@ -1697,6 +1697,339 @@ body {
         let isChatOpen = false;
         let isTyping = false;
         
+        // AI Learning and Personalization System
+        let aiPersonality = {
+            name: 'Cleo',
+            tone: 'friendly',
+            expertise: [],
+            userPreferences: {},
+            conversationHistory: [],
+            learningProgress: {
+                userInterests: [],
+                communicationStyle: 'professional',
+                preferredTopics: [],
+                responseLength: 'medium'
+            }
+        };
+        
+        // Initialize AI personality based on user
+        function initializeAIPersonality() {
+            const user = currentUser || {};
+            const userEmail = user.email || 'guest';
+            
+            // Generate unique personality based on user
+            const personalitySeed = hashString(userEmail);
+            const personalityTypes = ['friendly', 'professional', 'casual', 'enthusiastic', 'analytical'];
+            const expertiseAreas = ['business', 'marketing', 'sales', 'technology', 'finance', 'healthcare', 'education'];
+            
+            // Create unique personality for each user
+            aiPersonality.name = generateUniqueName(userEmail);
+            aiPersonality.tone = personalityTypes[personalitySeed % personalityTypes.length];
+            aiPersonality.expertise = generateExpertise(userEmail, expertiseAreas);
+            aiPersonality.learningProgress.communicationStyle = determineCommunicationStyle(userEmail);
+            aiPersonality.learningProgress.responseLength = determineResponseLength(userEmail);
+            
+            // Load existing learning data if available
+            loadAILearningData(userEmail);
+        }
+        
+        // Generate unique AI name based on user
+        function generateUniqueName(userEmail) {
+            const names = ['Cleo', 'Aria', 'Nova', 'Zara', 'Luna', 'Atlas', 'Kai', 'Maya', 'Finn', 'Sage'];
+            const hash = hashString(userEmail);
+            return names[hash % names.length];
+        }
+        
+        // Generate expertise based on user
+        function generateExpertise(userEmail, areas) {
+            const hash = hashString(userEmail);
+            const numExpertise = 2 + (hash % 3); // 2-4 expertise areas
+            const expertise = [];
+            
+            for (let i = 0; i < numExpertise; i++) {
+                const area = areas[(hash + i) % areas.length];
+                if (!expertise.includes(area)) {
+                    expertise.push(area);
+                }
+            }
+            
+            return expertise;
+        }
+        
+        // Determine communication style
+        function determineCommunicationStyle(userEmail) {
+            const styles = ['professional', 'casual', 'friendly', 'formal'];
+            const hash = hashString(userEmail);
+            return styles[hash % styles.length];
+        }
+        
+        // Determine response length preference
+        function determineResponseLength(userEmail) {
+            const lengths = ['short', 'medium', 'detailed'];
+            const hash = hashString(userEmail);
+            return lengths[hash % lengths.length];
+        }
+        
+        // Simple hash function
+        function hashString(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return Math.abs(hash);
+        }
+        
+        // Load AI learning data from localStorage
+        function loadAILearningData(userEmail) {
+            const key = `ai_learning_${userEmail}`;
+            const savedData = localStorage.getItem(key);
+            
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    aiPersonality.learningProgress = { ...aiPersonality.learningProgress, ...data };
+                    aiPersonality.conversationHistory = data.conversationHistory || [];
+                    aiPersonality.userPreferences = data.userPreferences || {};
+                } catch (e) {
+                    console.log('No existing AI learning data found');
+                }
+            }
+        }
+        
+        // Save AI learning data to localStorage
+        function saveAILearningData(userEmail) {
+            const key = `ai_learning_${userEmail}`;
+            const data = {
+                userInterests: aiPersonality.learningProgress.userInterests,
+                communicationStyle: aiPersonality.learningProgress.communicationStyle,
+                preferredTopics: aiPersonality.learningProgress.preferredTopics,
+                responseLength: aiPersonality.learningProgress.responseLength,
+                conversationHistory: aiPersonality.conversationHistory.slice(-50), // Keep last 50 conversations
+                userPreferences: aiPersonality.userPreferences
+            };
+            
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+        
+        // Learn from user interaction
+        function learnFromInteraction(userMessage, aiResponse) {
+            const userEmail = (currentUser && currentUser.email) || 'guest';
+            
+            // Add to conversation history
+            aiPersonality.conversationHistory.push({
+                user: userMessage,
+                ai: aiResponse,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Learn user interests
+            const interests = extractInterests(userMessage);
+            interests.forEach(interest => {
+                if (!aiPersonality.learningProgress.userInterests.includes(interest)) {
+                    aiPersonality.learningProgress.userInterests.push(interest);
+                }
+            });
+            
+            // Learn preferred topics
+            const topics = extractTopics(userMessage);
+            topics.forEach(topic => {
+                if (!aiPersonality.learningProgress.preferredTopics.includes(topic)) {
+                    aiPersonality.learningProgress.preferredTopics.push(topic);
+                }
+            });
+            
+            // Save learning data
+            saveAILearningData(userEmail);
+        }
+        
+        // Extract interests from user message
+        function extractInterests(message) {
+            const interests = [];
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('business') || lowerMessage.includes('entrepreneur')) interests.push('business');
+            if (lowerMessage.includes('marketing') || lowerMessage.includes('advertising')) interests.push('marketing');
+            if (lowerMessage.includes('sales') || lowerMessage.includes('selling')) interests.push('sales');
+            if (lowerMessage.includes('technology') || lowerMessage.includes('tech')) interests.push('technology');
+            if (lowerMessage.includes('finance') || lowerMessage.includes('money')) interests.push('finance');
+            if (lowerMessage.includes('health') || lowerMessage.includes('medical')) interests.push('healthcare');
+            if (lowerMessage.includes('education') || lowerMessage.includes('learning')) interests.push('education');
+            
+            return interests;
+        }
+        
+        // Extract topics from user message
+        function extractTopics(message) {
+            const topics = [];
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('lead') || lowerMessage.includes('prospect')) topics.push('lead generation');
+            if (lowerMessage.includes('search') || lowerMessage.includes('find')) topics.push('search');
+            if (lowerMessage.includes('export') || lowerMessage.includes('data')) topics.push('data export');
+            if (lowerMessage.includes('pricing') || lowerMessage.includes('plan')) topics.push('pricing');
+            if (lowerMessage.includes('team') || lowerMessage.includes('collaboration')) topics.push('team management');
+            if (lowerMessage.includes('analytics') || lowerMessage.includes('report')) topics.push('analytics');
+            
+            return topics;
+        }
+        
+        // Personalize AI response based on user preferences
+        function personalizeResponse(baseResponse, userMessage) {
+            let personalizedResponse = baseResponse;
+            
+            // Add personal touch based on AI personality
+            const greeting = getPersonalizedGreeting();
+            const tone = getPersonalizedTone();
+            const expertise = getPersonalizedExpertise();
+            
+            // Modify response based on user's communication style
+            if (aiPersonality.learningProgress.communicationStyle === 'casual') {
+                personalizedResponse = makeResponseCasual(personalizedResponse);
+            } else if (aiPersonality.learningProgress.communicationStyle === 'formal') {
+                personalizedResponse = makeResponseFormal(personalizedResponse);
+            }
+            
+            // Adjust response length based on user preference
+            if (aiPersonality.learningProgress.responseLength === 'short') {
+                personalizedResponse = shortenResponse(personalizedResponse);
+            } else if (aiPersonality.learningProgress.responseLength === 'detailed') {
+                personalizedResponse = expandResponse(personalizedResponse);
+            }
+            
+            // Add personal touches
+            personalizedResponse = addPersonalTouches(personalizedResponse, userMessage);
+            
+            return personalizedResponse;
+        }
+        
+        // Get personalized greeting
+        function getPersonalizedGreeting() {
+            const greetings = {
+                friendly: ['Hey there!', 'Hi!', 'Hello!', 'Hey!'],
+                professional: ['Hello!', 'Good day!', 'Greetings!'],
+                casual: ['Hey!', 'Hi there!', 'What\'s up!'],
+                enthusiastic: ['Hey there! 🎉', 'Hi! ✨', 'Hello! 🚀'],
+                analytical: ['Hello.', 'Greetings.', 'Hi.']
+            };
+            
+            const tone = aiPersonality.tone;
+            const greetingArray = greetings[tone] || greetings.friendly;
+            return greetingArray[Math.floor(Math.random() * greetingArray.length)];
+        }
+        
+        // Get personalized tone
+        function getPersonalizedTone() {
+            const tones = {
+                friendly: 'warm and approachable',
+                professional: 'professional and helpful',
+                casual: 'relaxed and conversational',
+                enthusiastic: 'energetic and motivating',
+                analytical: 'precise and data-driven'
+            };
+            
+            return tones[aiPersonality.tone] || tones.friendly;
+        }
+        
+        // Get personalized expertise
+        function getPersonalizedExpertise() {
+            if (aiPersonality.expertise.length === 0) return '';
+            
+            const expertise = aiPersonality.expertise.join(' and ');
+            return `I specialize in ${expertise}, so I can help you with those areas!`;
+        }
+        
+        // Make response more casual
+        function makeResponseCasual(response) {
+            return response
+                .replace(/Hello! I'm/g, "Hey! I'm")
+                .replace(/I can help you with/g, "I can help you out with")
+                .replace(/Please tell me/g, "Just let me know")
+                .replace(/Would you like/g, "Want to")
+                .replace(/I'll search for/g, "I'll look for")
+                .replace(/I can provide/g, "I can give you");
+        }
+        
+        // Make response more formal
+        function makeResponseFormal(response) {
+            return response
+                .replace(/Hey! I'm/g, "Hello! I'm")
+                .replace(/I can help you out with/g, "I can assist you with")
+                .replace(/Just let me know/g, "Please inform me")
+                .replace(/Want to/g, "Would you like to")
+                .replace(/I'll look for/g, "I'll search for")
+                .replace(/I can give you/g, "I can provide you with");
+        }
+        
+        // Shorten response
+        function shortenResponse(response) {
+            const sentences = response.split('.');
+            if (sentences.length > 3) {
+                return sentences.slice(0, 3).join('.') + '.';
+            }
+            return response;
+        }
+        
+        // Expand response
+        function expandResponse(response) {
+            if (response.length < 200) {
+                return response + '\n\nI\'m here to provide comprehensive assistance and detailed insights to help you achieve your goals.';
+            }
+            return response;
+        }
+        
+        // Add personal touches based on user interests
+        function addPersonalTouches(response, userMessage) {
+            let personalizedResponse = response;
+            
+            // Add expertise mention if relevant
+            if (aiPersonality.expertise.length > 0 && 
+                (userMessage.toLowerCase().includes('business') || userMessage.toLowerCase().includes('marketing'))) {
+                const expertise = aiPersonality.expertise[0];
+                personalizedResponse = `Since I specialize in ${expertise}, I can give you some insider insights! ` + personalizedResponse;
+            }
+            
+            // Add learning reference if user has interests
+            if (aiPersonality.learningProgress.userInterests.length > 0) {
+                const interests = aiPersonality.learningProgress.userInterests.slice(0, 2).join(' and ');
+                personalizedResponse = personalizedResponse.replace(
+                    /Just tell me what you're looking for!/g,
+                    `I know you're interested in ${interests}, so I'll tailor my suggestions accordingly!`
+                );
+            }
+            
+            return personalizedResponse;
+        }
+        
+        // Update AI name in chat interface
+        function updateAIName() {
+            const statusText = document.querySelector('.status-text');
+            const chatTitle = document.querySelector('.chat-title span');
+            
+            if (statusText) {
+                statusText.textContent = aiPersonality.name;
+            }
+            
+            if (chatTitle) {
+                chatTitle.textContent = aiPersonality.name;
+            }
+        }
+        
+        // Update initial AI message with personalization
+        function updateInitialMessage() {
+            const initialMessage = document.getElementById('initialAIMessage');
+            if (!initialMessage) return;
+            
+            const greeting = getPersonalizedGreeting();
+            const expertise = aiPersonality.expertise.length > 0 ? 
+                ` I specialize in ${aiPersonality.expertise.join(' and ')}.` : '';
+            
+            const personalizedMessage = `${greeting} I'm ${aiPersonality.name}, your AI assistant.${expertise} How can I help you with your business lead finding today?`;
+            
+            initialMessage.textContent = personalizedMessage;
+        }
+        
         function toggleChat() {
             const chatWindow = document.getElementById('chatWindow');
             const chatHead = document.getElementById('chatHead');
@@ -1708,6 +2041,10 @@ body {
                 chatWindow.classList.add('active');
                 chatHead.style.transform = 'translateY(-5px)';
                 document.getElementById('chatInput').focus();
+                
+                // Initialize AI personality and update initial message
+                initializeAIPersonality();
+                updateInitialMessage();
             }
             
             isChatOpen = !isChatOpen;
@@ -1723,14 +2060,17 @@ body {
             addMessage(message, 'user');
             input.value = '';
             
-            // Simulate AI response
+            // Simulate AI response with learning
             isTyping = true;
             showTypingIndicator();
             
             setTimeout(() => {
                 hideTypingIndicator();
-                const response = generateAIResponse(message);
+                const response = generatePersonalizedAIResponse(message);
                 addMessage(response, 'ai');
+                
+                // Learn from this interaction
+                learnFromInteraction(message, response);
                 isTyping = false;
             }, 1000 + Math.random() * 2000);
         }
@@ -1782,6 +2122,20 @@ body {
             if (typingIndicator) {
                 typingIndicator.remove();
             }
+        }
+        
+        function generatePersonalizedAIResponse(userMessage) {
+            // Initialize AI personality if not already done
+            if (!aiPersonality.name || aiPersonality.name === 'Cleo') {
+                initializeAIPersonality();
+            }
+            
+            // Update AI name in chat interface
+            updateAIName();
+            
+            // Generate personalized response
+            const baseResponse = generateAIResponse(userMessage);
+            return personalizeResponse(baseResponse, userMessage);
         }
         
         function generateAIResponse(userMessage) {
