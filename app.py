@@ -2525,6 +2525,784 @@ def register_with_access_code():
         return jsonify(error="An error occurred while registering"), 500
 
 
+# AI Agent Functionality Systems
+class AILeadGenerationSystem:
+    """AI system for lead generation tasks"""
+    
+    def __init__(self):
+        self.linkedin_api_key = os.environ.get('LINKEDIN_API_KEY')
+        self.crunchbase_api_key = os.environ.get('CRUNCHBASE_API_KEY')
+        self.leads_database = {}
+    
+    def find_prospects(self, industry, company_size, location):
+        """Find new prospects based on criteria"""
+        # Simulate LinkedIn and Crunchbase API calls
+        prospects = [
+            {
+                'name': 'TechCorp Solutions',
+                'industry': 'Technology',
+                'size': '50-200 employees',
+                'location': 'San Francisco, CA',
+                'contact': 'john.doe@techcorp.com',
+                'linkedin': 'linkedin.com/in/johndoe',
+                'score': 85
+            },
+            {
+                'name': 'Innovate Labs',
+                'industry': 'Software',
+                'size': '10-50 employees', 
+                'location': 'Austin, TX',
+                'contact': 'sarah.smith@innovatelabs.com',
+                'linkedin': 'linkedin.com/in/sarahsmith',
+                'score': 92
+            }
+        ]
+        return prospects
+    
+    def qualify_lead(self, prospect_data):
+        """Qualify a lead based on BANT criteria"""
+        score = 0
+        if prospect_data.get('budget'):
+            score += 25
+        if prospect_data.get('authority'):
+            score += 25
+        if prospect_data.get('need'):
+            score += 25
+        if prospect_data.get('timeline'):
+            score += 25
+        return score >= 75
+    
+    def generate_outreach_sequence(self, prospect):
+        """Generate personalized outreach sequence"""
+        return {
+            'email_1': f"Hi {prospect['name']}, I noticed your company's work in {prospect['industry']}...",
+            'email_2': f"Following up on my previous email about {prospect['company']}...",
+            'email_3': f"Final attempt to connect regarding {prospect['company']}...",
+            'linkedin_message': f"Hi {prospect['name']}, I'd love to connect and discuss...",
+            'call_script': f"Hi {prospect['name']}, this is [Name] calling from [Company]..."
+        }
+
+class AIColdCallingSystem:
+    """AI system for cold calling tasks"""
+    
+    def __init__(self):
+        self.call_scripts = {}
+        self.call_metrics = {
+            'total_calls': 0,
+            'successful_calls': 0,
+            'appointments_set': 0,
+            'conversion_rate': 0.0
+        }
+    
+    def generate_call_script(self, prospect_data, product_info):
+        """Generate personalized call script"""
+        return {
+            'opening': f"Hi {prospect_data['name']}, this is [Name] calling from [Company]...",
+            'pain_point': f"I understand companies like yours in {prospect_data['industry']} are facing...",
+            'solution': f"Our solution has helped similar companies achieve...",
+            'question': f"Would you be interested in a 15-minute call to discuss how we could help?",
+            'objection_handlers': {
+                'not_interested': "I understand. Many people feel that way initially...",
+                'no_time': "I respect your time. This would only take 15 minutes...",
+                'send_info': "I'd be happy to send some information, but I'd also like to..."
+            }
+        }
+    
+    def track_call_result(self, call_id, result, notes):
+        """Track call results and update metrics"""
+        self.call_metrics['total_calls'] += 1
+        if result == 'success':
+            self.call_metrics['successful_calls'] += 1
+        if result == 'appointment':
+            self.call_metrics['appointments_set'] += 1
+        
+        self.call_metrics['conversion_rate'] = (
+            self.call_metrics['successful_calls'] / self.call_metrics['total_calls']
+        )
+        return self.call_metrics
+
+class AISalesOutreachSystem:
+    """AI system for sales outreach and follow-up"""
+    
+    def __init__(self):
+        self.email_templates = {}
+        self.follow_up_sequences = {}
+        self.proposal_templates = {}
+    
+    def create_proposal(self, prospect_data, solution_details):
+        """Create personalized sales proposal"""
+        return {
+            'executive_summary': f"Based on our analysis of {prospect_data['company']}...",
+            'problem_statement': f"Companies in {prospect_data['industry']} face challenges with...",
+            'solution_overview': f"Our {solution_details['product']} solution provides...",
+            'value_proposition': f"This will deliver {solution_details['roi']} ROI within 6 months...",
+            'implementation_plan': f"Phase 1: {solution_details['timeline']}...",
+            'investment': f"Total investment: ${solution_details['price']}...",
+            'next_steps': "Schedule a technical review and contract signing..."
+        }
+    
+    def generate_follow_up_sequence(self, prospect, last_interaction):
+        """Generate automated follow-up sequence"""
+        sequence = []
+        days_since = (datetime.utcnow() - last_interaction).days
+        
+        if days_since == 1:
+            sequence.append({
+                'type': 'email',
+                'subject': 'Quick follow-up from our call',
+                'content': f"Hi {prospect['name']}, thanks for taking my call yesterday..."
+            })
+        elif days_since == 3:
+            sequence.append({
+                'type': 'email',
+                'subject': 'Thought you might find this interesting',
+                'content': f"Hi {prospect['name']}, I came across this article about {prospect['industry']}..."
+            })
+        elif days_since == 7:
+            sequence.append({
+                'type': 'call',
+                'script': f"Hi {prospect['name']}, I wanted to follow up on our previous discussion..."
+            })
+        
+        return sequence
+
+class AISocialMediaSystem:
+    """AI system for social media management"""
+    
+    def __init__(self):
+        self.platforms = ['linkedin', 'twitter', 'instagram', 'facebook']
+        self.content_calendar = {}
+        self.engagement_metrics = {}
+    
+    def create_content_calendar(self, themes, frequency):
+        """Create content calendar for the month"""
+        calendar = {}
+        content_types = ['educational', 'promotional', 'engagement', 'thought_leadership']
+        
+        for week in range(1, 5):
+            calendar[f'week_{week}'] = []
+            for day in range(1, 8):
+                content_type = content_types[day % len(content_types)]
+                calendar[f'week_{week}'].append({
+                    'day': day,
+                    'type': content_type,
+                    'theme': themes[content_type],
+                    'platform': self.platforms[day % len(self.platforms)],
+                    'content': self.generate_content(content_type, themes[content_type])
+                })
+        
+        return calendar
+    
+    def generate_content(self, content_type, theme):
+        """Generate social media content"""
+        templates = {
+            'educational': f"Did you know? {theme} can significantly impact your business. Here's how...",
+            'promotional': f"🚀 Excited to share our latest {theme} solution! Learn more...",
+            'engagement': f"What's your biggest challenge with {theme}? Share your thoughts below! 👇",
+            'thought_leadership': f"The future of {theme} is evolving rapidly. Here's what you need to know..."
+        }
+        return templates.get(content_type, f"Great insights on {theme}!")
+    
+    def analyze_engagement(self, post_data):
+        """Analyze post engagement and provide insights"""
+        engagement_rate = (post_data['likes'] + post_data['comments'] + post_data['shares']) / post_data['reach']
+        return {
+            'engagement_rate': engagement_rate,
+            'best_performing_time': '9:00 AM - 11:00 AM',
+            'optimal_content_type': 'educational',
+            'recommendations': [
+                'Post more educational content',
+                'Increase video content by 25%',
+                'Engage with followers within 1 hour'
+            ]
+        }
+
+class AIEmailCampaignSystem:
+    """AI system for email campaign management"""
+    
+    def __init__(self):
+        self.campaign_templates = {}
+        self.segment_data = {}
+        self.ab_test_results = {}
+    
+    def create_email_campaign(self, campaign_type, target_audience):
+        """Create email campaign with A/B testing"""
+        templates = {
+            'welcome_series': {
+                'subject_a': 'Welcome to [Company] - Let\'s get started!',
+                'subject_b': 'Welcome! Here\'s your exclusive guide',
+                'content_a': 'Hi [Name], welcome to [Company]! We\'re excited to help you...',
+                'content_b': 'Welcome to [Company], [Name]! We\'ve prepared a special guide just for you...'
+            },
+            'nurture_sequence': {
+                'subject_a': '5 ways to improve your [Industry] results',
+                'subject_b': 'Quick tip: Boost your [Industry] performance',
+                'content_a': 'Hi [Name], here are 5 proven strategies to improve your [Industry] results...',
+                'content_b': 'Hi [Name], here\'s a quick tip that can immediately boost your [Industry] performance...'
+            },
+            'promotional': {
+                'subject_a': 'Limited time: 25% off [Product]',
+                'subject_b': 'Exclusive offer just for you, [Name]',
+                'content_a': 'Hi [Name], we\'re offering 25% off [Product] for a limited time...',
+                'content_b': 'Hi [Name], as a valued customer, we\'re offering you an exclusive discount...'
+            }
+        }
+        
+        return templates.get(campaign_type, templates['nurture_sequence'])
+    
+    def segment_audience(self, subscriber_data):
+        """Segment email audience based on behavior and demographics"""
+        segments = {
+            'high_engagement': [],
+            'medium_engagement': [],
+            'low_engagement': [],
+            'new_subscribers': [],
+            'inactive': []
+        }
+        
+        for subscriber in subscriber_data:
+            if subscriber['days_since_signup'] <= 7:
+                segments['new_subscribers'].append(subscriber)
+            elif subscriber['open_rate'] >= 0.3:
+                segments['high_engagement'].append(subscriber)
+            elif subscriber['open_rate'] >= 0.15:
+                segments['medium_engagement'].append(subscriber)
+            elif subscriber['days_since_open'] > 30:
+                segments['inactive'].append(subscriber)
+            else:
+                segments['low_engagement'].append(subscriber)
+        
+        return segments
+    
+    def analyze_campaign_performance(self, campaign_data):
+        """Analyze email campaign performance"""
+        return {
+            'open_rate': campaign_data['opens'] / campaign_data['sent'],
+            'click_rate': campaign_data['clicks'] / campaign_data['sent'],
+            'conversion_rate': campaign_data['conversions'] / campaign_data['sent'],
+            'unsubscribe_rate': campaign_data['unsubscribes'] / campaign_data['sent'],
+            'revenue_per_email': campaign_data['revenue'] / campaign_data['sent'],
+            'recommendations': [
+                'Test different subject lines',
+                'Improve email timing',
+                'Segment audience more granularly'
+            ]
+        }
+
+class AIContentCreationSystem:
+    """AI system for content creation and management"""
+    
+    def __init__(self):
+        self.content_templates = {}
+        self.seo_keywords = {}
+        self.content_calendar = {}
+    
+    def generate_blog_post(self, topic, target_keywords, word_count=800):
+        """Generate SEO-optimized blog post"""
+        outline = {
+            'title': f"Complete Guide to {topic} in 2024",
+            'meta_description': f"Learn everything about {topic} and how it can benefit your business. Expert insights and actionable tips.",
+            'introduction': f"{topic} has become increasingly important for businesses looking to...",
+            'sections': [
+                f"What is {topic}?",
+                f"Why {topic} matters for your business",
+                f"Best practices for implementing {topic}",
+                f"Common mistakes to avoid",
+                f"Success stories and case studies",
+                f"Next steps and conclusion"
+            ],
+            'target_keywords': target_keywords,
+            'estimated_read_time': f"{word_count // 200} minutes"
+        }
+        
+        return outline
+    
+    def create_social_media_graphics(self, content_type, brand_guidelines):
+        """Generate social media graphics specifications"""
+        graphics = {
+            'linkedin_post': {
+                'dimensions': '1200x628px',
+                'style': 'Professional, clean, brand colors',
+                'elements': ['Logo', 'Headline', 'CTA button', 'Brand colors']
+            },
+            'instagram_post': {
+                'dimensions': '1080x1080px',
+                'style': 'Modern, engaging, visual hierarchy',
+                'elements': ['Eye-catching image', 'Overlay text', 'Hashtags', 'Brand watermark']
+            },
+            'twitter_post': {
+                'dimensions': '1200x675px',
+                'style': 'Simple, readable, mobile-friendly',
+                'elements': ['Clear text', 'Minimal design', 'Brand colors']
+            }
+        }
+        
+        return graphics.get(content_type, graphics['linkedin_post'])
+    
+    def optimize_content_for_seo(self, content, target_keywords):
+        """Optimize content for search engines"""
+        optimization = {
+            'keyword_density': {},
+            'heading_structure': ['H1', 'H2', 'H3'],
+            'meta_tags': {
+                'title': f"{target_keywords[0]} - Complete Guide | [Company]",
+                'description': f"Learn about {target_keywords[0]} and how it can help your business. Expert insights and actionable tips.",
+                'keywords': ', '.join(target_keywords)
+            },
+            'internal_links': [
+                f"Link to related {target_keywords[1]} content",
+                f"Link to {target_keywords[2]} case study"
+            ],
+            'recommendations': [
+                'Include more long-tail keywords',
+                'Add more internal links',
+                'Improve heading structure'
+            ]
+        }
+        
+        return optimization
+
+class AISEOSystem:
+    """AI system for SEO and analytics"""
+    
+    def __init__(self):
+        self.keyword_tracker = {}
+        self.rankings_database = {}
+        self.analytics_data = {}
+    
+    def analyze_website_performance(self, domain):
+        """Analyze website SEO performance"""
+        return {
+            'page_speed': {
+                'mobile': 85,
+                'desktop': 92,
+                'recommendations': ['Optimize images', 'Minimize CSS/JS', 'Enable compression']
+            },
+            'technical_seo': {
+                'indexed_pages': 156,
+                'broken_links': 3,
+                'missing_meta': 12,
+                'recommendations': ['Fix broken links', 'Add meta descriptions', 'Improve site structure']
+            },
+            'keyword_rankings': {
+                'top_10': 23,
+                'top_50': 45,
+                'top_100': 67,
+                'opportunities': ['Long-tail keywords', 'Local SEO', 'Featured snippets']
+            },
+            'traffic_analysis': {
+                'organic_traffic': 23400,
+                'organic_conversions': 156,
+                'conversion_rate': 0.67,
+                'trend': '+12% month over month'
+            }
+        }
+    
+    def generate_keyword_research(self, industry, target_location):
+        """Generate keyword research and opportunities"""
+        keywords = {
+            'primary_keywords': [
+                {'keyword': f'{industry} solutions', 'volume': 1200, 'difficulty': 45},
+                {'keyword': f'best {industry} company', 'volume': 890, 'difficulty': 52},
+                {'keyword': f'{industry} services near me', 'volume': 650, 'difficulty': 38}
+            ],
+            'long_tail_keywords': [
+                {'keyword': f'how to choose {industry} provider', 'volume': 320, 'difficulty': 28},
+                {'keyword': f'{industry} cost comparison', 'volume': 210, 'difficulty': 35},
+                {'keyword': f'{industry} benefits for small business', 'volume': 180, 'difficulty': 25}
+            ],
+            'local_keywords': [
+                {'keyword': f'{industry} {target_location}', 'volume': 450, 'difficulty': 42},
+                {'keyword': f'{industry} near {target_location}', 'volume': 380, 'difficulty': 38}
+            ]
+        }
+        
+        return keywords
+    
+    def create_seo_optimization_plan(self, current_performance):
+        """Create SEO optimization action plan"""
+        return {
+            'immediate_actions': [
+                'Fix 3 broken links identified',
+                'Add meta descriptions to 12 pages',
+                'Optimize 5 high-traffic pages'
+            ],
+            'short_term_goals': [
+                'Improve page speed by 15%',
+                'Target 10 new long-tail keywords',
+                'Create 5 pillar content pieces'
+            ],
+            'long_term_strategy': [
+                'Build 50 quality backlinks',
+                'Optimize for voice search',
+                'Implement schema markup'
+            ],
+            'expected_results': {
+                'traffic_increase': '+25% in 3 months',
+                'ranking_improvements': '+15 positions average',
+                'conversion_boost': '+18% organic conversions'
+            }
+        }
+
+class AIPPCSystem:
+    """AI system for PPC and advertising management"""
+    
+    def __init__(self):
+        self.campaign_data = {}
+        self.ad_performance = {}
+        self.budget_allocations = {}
+    
+    def create_ppc_campaign(self, campaign_type, target_audience, budget):
+        """Create PPC campaign with targeting and optimization"""
+        campaign = {
+            'campaign_name': f'{campaign_type.title()} Campaign - {target_audience}',
+            'budget': budget,
+            'platforms': ['Google Ads', 'Facebook Ads', 'LinkedIn Ads'],
+            'targeting': {
+                'demographics': {
+                    'age': '25-54',
+                    'gender': 'All',
+                    'income': '$50K+',
+                    'education': 'Bachelor\'s degree+'
+                },
+                'interests': [
+                    'Business software',
+                    'Marketing',
+                    'Technology',
+                    'Entrepreneurship'
+                ],
+                'behaviors': [
+                    'Frequent online shoppers',
+                    'Business decision makers',
+                    'Technology early adopters'
+                ]
+            },
+            'ad_groups': [
+                {
+                    'name': 'Primary Keywords',
+                    'keywords': ['business software', 'marketing tools', 'automation'],
+                    'bids': [2.50, 3.20, 2.80]
+                },
+                {
+                    'name': 'Long-tail Keywords',
+                    'keywords': ['best marketing software for small business', 'automation tools for entrepreneurs'],
+                    'bids': [1.80, 2.10]
+                }
+            ],
+            'ad_copy': {
+                'headlines': [
+                    'Transform Your Business Today',
+                    'Automate Your Marketing',
+                    'Save 10 Hours Per Week'
+                ],
+                'descriptions': [
+                    'Streamline your workflow with our powerful automation tools. Start your free trial today!',
+                    'Join 10,000+ businesses using our platform. Get started in minutes.'
+                ]
+            }
+        }
+        
+        return campaign
+    
+    def optimize_campaign_performance(self, campaign_data):
+        """Optimize PPC campaign based on performance data"""
+        optimizations = {
+            'bid_adjustments': {
+                'high_performing_keywords': '+20%',
+                'low_performing_keywords': '-15%',
+                'mobile_users': '+10%',
+                'weekend_traffic': '+25%'
+            },
+            'ad_copy_tests': [
+                'Test new headlines focusing on benefits',
+                'A/B test different call-to-actions',
+                'Experiment with different ad formats'
+            ],
+            'budget_reallocation': {
+                'high_roi_campaigns': '+30% budget',
+                'low_roi_campaigns': '-20% budget',
+                'new_testing_budget': '10% of total'
+            },
+            'targeting_refinements': [
+                'Exclude low-converting audiences',
+                'Add similar audiences to high-performers',
+                'Test new geographic markets'
+            ]
+        }
+        
+        return optimizations
+    
+    def analyze_campaign_roi(self, campaign_metrics):
+        """Analyze campaign ROI and provide insights"""
+        roi_analysis = {
+            'overall_roi': campaign_metrics['revenue'] / campaign_metrics['cost'],
+            'conversion_rate': campaign_metrics['conversions'] / campaign_metrics['clicks'],
+            'cost_per_acquisition': campaign_metrics['cost'] / campaign_metrics['conversions'],
+            'lifetime_value': campaign_metrics['lifetime_value'] / campaign_metrics['conversions'],
+            'recommendations': [
+                'Increase bids on high-converting keywords',
+                'Pause low-performing ad groups',
+                'Test new ad copy variations',
+                'Expand to similar audiences'
+            ],
+            'forecast': {
+                'projected_revenue': campaign_metrics['revenue'] * 1.25,
+                'projected_roi': (campaign_metrics['revenue'] * 1.25) / campaign_metrics['cost'],
+                'budget_recommendation': campaign_metrics['cost'] * 1.15
+            }
+        }
+        
+        return roi_analysis
+
+class AIBrandStrategySystem:
+    """AI system for brand strategy and management"""
+    
+    def __init__(self):
+        self.brand_guidelines = {}
+        self.brand_performance = {}
+        self.competitive_analysis = {}
+    
+    def develop_brand_strategy(self, company_data, target_audience):
+        """Develop comprehensive brand strategy"""
+        strategy = {
+            'brand_positioning': {
+                'value_proposition': f"The leading {company_data['industry']} solution for {target_audience['primary']}",
+                'differentiators': [
+                    'Advanced automation capabilities',
+                    'Superior customer support',
+                    'Proven ROI guarantee'
+                ],
+                'personality': 'Professional, innovative, trustworthy, approachable'
+            },
+            'brand_identity': {
+                'logo_guidelines': {
+                    'primary_logo': 'Full color on white background',
+                    'secondary_logo': 'White version for dark backgrounds',
+                    'minimum_size': '1 inch width',
+                    'clear_space': 'Equal to logo height'
+                },
+                'color_palette': {
+                    'primary': '#2563EB',
+                    'secondary': '#10B981',
+                    'accent': '#F59E0B',
+                    'neutral': '#6B7280'
+                },
+                'typography': {
+                    'headings': 'Inter Bold',
+                    'body_text': 'Inter Regular',
+                    'accent_text': 'Inter Medium'
+                }
+            },
+            'messaging_framework': {
+                'core_message': f"Empowering {target_audience['primary']} to achieve more with intelligent automation",
+                'key_messages': [
+                    'Simplify complex workflows',
+                    'Drive measurable results',
+                    'Scale with confidence'
+                ],
+                'tone_of_voice': 'Professional yet approachable, confident but not arrogant'
+            },
+            'brand_guidelines': {
+                'do': [
+                    'Use brand colors consistently',
+                    'Maintain professional tone',
+                    'Focus on customer benefits',
+                    'Show real results and testimonials'
+                ],
+                'dont': [
+                    'Use competitor names',
+                    'Make unrealistic claims',
+                    'Use generic stock photos',
+                    'Ignore brand voice guidelines'
+                ]
+            }
+        }
+        
+        return strategy
+    
+    def conduct_brand_audit(self, current_brand_data):
+        """Conduct comprehensive brand audit"""
+        audit = {
+            'brand_awareness': {
+                'unaided_recall': 23,
+                'aided_recall': 67,
+                'brand_recognition': 78,
+                'industry_rank': 4
+            },
+            'brand_perception': {
+                'trust_score': 8.2,
+                'quality_score': 8.5,
+                'innovation_score': 8.8,
+                'customer_service_score': 9.1
+            },
+            'competitive_positioning': {
+                'market_share': 12,
+                'competitive_advantage': 'Superior customer support',
+                'differentiation_score': 8.3
+            },
+            'recommendations': [
+                'Increase brand awareness through thought leadership',
+                'Strengthen differentiation messaging',
+                'Improve customer testimonials visibility',
+                'Develop influencer partnerships'
+            ]
+        }
+        
+        return audit
+    
+    def create_brand_campaign(self, campaign_objective, target_audience):
+        """Create brand awareness campaign"""
+        campaign = {
+            'campaign_name': f'Brand Awareness - {campaign_objective}',
+            'objectives': [
+                'Increase brand awareness by 25%',
+                'Improve brand perception scores',
+                'Generate 500 new brand mentions'
+            ],
+            'channels': {
+                'social_media': {
+                    'platforms': ['LinkedIn', 'Twitter', 'Instagram'],
+                    'content_types': ['Thought leadership', 'Behind-the-scenes', 'Customer stories'],
+                    'frequency': '3-5 posts per week'
+                },
+                'content_marketing': {
+                    'blog_posts': '2 per week',
+                    'whitepapers': '1 per month',
+                    'webinars': '1 per quarter'
+                },
+                'public_relations': {
+                    'press_releases': '1 per month',
+                    'media_outreach': '10 targeted journalists',
+                    'industry_events': '3 speaking opportunities'
+                }
+            },
+            'success_metrics': {
+                'brand_awareness': '25% increase',
+                'social_mentions': '+40%',
+                'website_traffic': '+30%',
+                'lead_generation': '+20%'
+            }
+        }
+        
+        return campaign
+
+# Initialize AI systems
+ai_systems = {
+    'alex': AILeadGenerationSystem(),
+    'maria': AIColdCallingSystem(),
+    'david': AISalesOutreachSystem(),
+    'emma': AISocialMediaSystem(),
+    'carlos': AIEmailCampaignSystem(),
+    'rachel': AIContentCreationSystem(),
+    'mike': AISEOSystem(),
+    'lisa': AIPPCSystem(),
+    'tom': AIBrandStrategySystem()
+}
+
+# AI Task Execution Functions
+def execute_ai_task(ai_name, task_type, parameters):
+    """Execute AI agent tasks with their specialized systems"""
+    if ai_name not in ai_systems:
+        return {"error": "AI agent not found"}
+    
+    ai_system = ai_systems[ai_name]
+    
+    try:
+        if task_type == 'find_prospects' and ai_name == 'alex':
+            return ai_system.find_prospects(
+                parameters.get('industry'),
+                parameters.get('company_size'),
+                parameters.get('location')
+            )
+        elif task_type == 'generate_call_script' and ai_name == 'maria':
+            return ai_system.generate_call_script(
+                parameters.get('prospect_data'),
+                parameters.get('product_info')
+            )
+        elif task_type == 'create_proposal' and ai_name == 'david':
+            return ai_system.create_proposal(
+                parameters.get('prospect_data'),
+                parameters.get('solution_details')
+            )
+        elif task_type == 'create_content_calendar' and ai_name == 'emma':
+            return ai_system.create_content_calendar(
+                parameters.get('themes'),
+                parameters.get('frequency')
+            )
+        elif task_type == 'create_email_campaign' and ai_name == 'carlos':
+            return ai_system.create_email_campaign(
+                parameters.get('campaign_type'),
+                parameters.get('target_audience')
+            )
+        elif task_type == 'generate_blog_post' and ai_name == 'rachel':
+            return ai_system.generate_blog_post(
+                parameters.get('topic'),
+                parameters.get('target_keywords'),
+                parameters.get('word_count', 800)
+            )
+        elif task_type == 'analyze_website_performance' and ai_name == 'mike':
+            return ai_system.analyze_website_performance(
+                parameters.get('domain')
+            )
+        elif task_type == 'create_ppc_campaign' and ai_name == 'lisa':
+            return ai_system.create_ppc_campaign(
+                parameters.get('campaign_type'),
+                parameters.get('target_audience'),
+                parameters.get('budget')
+            )
+        elif task_type == 'develop_brand_strategy' and ai_name == 'tom':
+            return ai_system.develop_brand_strategy(
+                parameters.get('company_data'),
+                parameters.get('target_audience')
+            )
+        else:
+            return {"error": f"Task {task_type} not supported for {ai_name}"}
+    
+    except Exception as e:
+        app.logger.error(f"Error executing AI task: {e}")
+        return {"error": f"Task execution failed: {str(e)}"}
+
+# AI Task API Endpoints
+@app.route("/api/ai-tasks/<ai_name>/<task_type>", methods=["POST"])
+@login_required
+def execute_ai_task_api(ai_name, task_type):
+    """API endpoint for executing AI agent tasks"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify(error="No parameters provided"), 400
+        
+        result = execute_ai_task(ai_name, task_type, data)
+        
+        if "error" in result:
+            return jsonify(result), 400
+        else:
+            return jsonify(result), 200
+    
+    except Exception as e:
+        app.logger.error(f"Error in AI task API: {e}")
+        return jsonify(error="Internal server error"), 500
+
+@app.route("/api/ai-systems/status", methods=["GET"])
+@login_required
+def get_ai_systems_status():
+    """Get status of all AI systems"""
+    try:
+        status = {}
+        for ai_name, system in ai_systems.items():
+            status[ai_name] = {
+                'system_type': system.__class__.__name__,
+                'status': 'active',
+                'last_activity': datetime.utcnow().isoformat(),
+                'capabilities': list(system.__class__.__dict__.keys())
+            }
+        
+        return jsonify(status), 200
+    
+    except Exception as e:
+        app.logger.error(f"Error getting AI systems status: {e}")
+        return jsonify(error="Failed to get AI systems status"), 500
+
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(debug=debug_mode, host="0.0.0.0")  # nosec B104

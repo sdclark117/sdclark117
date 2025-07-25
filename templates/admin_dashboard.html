@@ -499,6 +499,14 @@
                                                                 <i class="bi bi-send"></i>
                                                             </button>
                                                         </div>
+                                                        <div class="mt-2">
+                                                            <button class="btn btn-sm btn-outline-success" onclick="executeAITask()">
+                                                                <i class="bi bi-play-circle"></i> Execute AI Task
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-info" onclick="getAIStatus()">
+                                                                <i class="bi bi-info-circle"></i> System Status
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1949,6 +1957,161 @@
                 
                 addAIMessage(randomAI, updates[randomAI], 'ai');
             }, 30000); // Update every 30 seconds
+        }
+
+        // AI Task Execution Functions
+        async function executeAITask() {
+            const taskTypes = {
+                'alex': ['find_prospects'],
+                'maria': ['generate_call_script'],
+                'david': ['create_proposal'],
+                'emma': ['create_content_calendar'],
+                'carlos': ['create_email_campaign'],
+                'rachel': ['generate_blog_post'],
+                'mike': ['analyze_website_performance'],
+                'lisa': ['create_ppc_campaign'],
+                'tom': ['develop_brand_strategy']
+            };
+            
+            const availableTasks = taskTypes[currentAIChat];
+            if (!availableTasks || availableTasks.length === 0) {
+                alert('No tasks available for this AI agent');
+                return;
+            }
+            
+            const taskType = availableTasks[0]; // For now, use the first available task
+            const parameters = getTaskParameters(currentAIChat, taskType);
+            
+            try {
+                const response = await fetch(`/api/ai-tasks/${currentAIChat}/${taskType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(parameters)
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    addAIMessage(currentAIChat, `Task completed successfully! ${JSON.stringify(result, null, 2)}`, 'ai');
+                } else {
+                    addAIMessage(currentAIChat, `Task failed: ${result.error}`, 'ai');
+                }
+            } catch (error) {
+                console.error('Error executing AI task:', error);
+                addAIMessage(currentAIChat, 'Task execution failed. Please try again.', 'ai');
+            }
+        }
+
+        function getTaskParameters(aiName, taskType) {
+            const parameters = {
+                'alex': {
+                    'find_prospects': {
+                        'industry': 'Technology',
+                        'company_size': '50-200 employees',
+                        'location': 'San Francisco, CA'
+                    }
+                },
+                'maria': {
+                    'generate_call_script': {
+                        'prospect_data': {
+                            'name': 'John Smith',
+                            'company': 'TechCorp Solutions',
+                            'industry': 'Technology',
+                            'title': 'CTO'
+                        },
+                        'product_info': {
+                            'name': 'Business Automation Suite',
+                            'benefits': ['Save 10 hours per week', 'Increase efficiency by 40%'],
+                            'price': '$2,500/month'
+                        }
+                    }
+                },
+                'david': {
+                    'create_proposal': {
+                        'prospect_data': {
+                            'company': 'Innovate Labs',
+                            'industry': 'Software',
+                            'size': '100 employees'
+                        },
+                        'solution_details': {
+                            'product': 'Enterprise Automation Platform',
+                            'roi': '300%',
+                            'timeline': '6 weeks',
+                            'price': '$15,000'
+                        }
+                    }
+                },
+                'emma': {
+                    'create_content_calendar': {
+                        'themes': {
+                            'educational': 'Business Automation',
+                            'promotional': 'Product Features',
+                            'engagement': 'Industry Trends',
+                            'thought_leadership': 'Digital Transformation'
+                        },
+                        'frequency': '3-5 posts per week'
+                    }
+                },
+                'carlos': {
+                    'create_email_campaign': {
+                        'campaign_type': 'nurture_sequence',
+                        'target_audience': 'Marketing professionals'
+                    }
+                },
+                'rachel': {
+                    'generate_blog_post': {
+                        'topic': 'Business Process Automation',
+                        'target_keywords': ['automation', 'business efficiency', 'workflow optimization'],
+                        'word_count': 1200
+                    }
+                },
+                'mike': {
+                    'analyze_website_performance': {
+                        'domain': 'example.com'
+                    }
+                },
+                'lisa': {
+                    'create_ppc_campaign': {
+                        'campaign_type': 'lead_generation',
+                        'target_audience': 'Business owners',
+                        'budget': 5000
+                    }
+                },
+                'tom': {
+                    'develop_brand_strategy': {
+                        'company_data': {
+                            'name': 'Business Lead Finder',
+                            'industry': 'Business Intelligence',
+                            'size': '50 employees'
+                        },
+                        'target_audience': {
+                            'primary': 'Small to medium business owners',
+                            'secondary': 'Marketing professionals'
+                        }
+                    }
+                }
+            };
+            
+            return parameters[aiName]?.[taskType] || {};
+        }
+
+        async function getAIStatus() {
+            try {
+                const response = await fetch('/api/ai-systems/status');
+                const status = await response.json();
+                
+                if (response.ok) {
+                    let statusMessage = 'AI Systems Status:\n';
+                    for (const [aiName, aiStatus] of Object.entries(status)) {
+                        statusMessage += `${aiName}: ${aiStatus.status}\n`;
+                    }
+                    addAIMessage(currentAIChat, statusMessage, 'ai');
+                } else {
+                    addAIMessage(currentAIChat, 'Failed to get AI systems status', 'ai');
+                }
+            } catch (error) {
+                console.error('Error getting AI status:', error);
+                addAIMessage(currentAIChat, 'Error getting AI systems status', 'ai');
+            }
         }
     </script>
 </body>
