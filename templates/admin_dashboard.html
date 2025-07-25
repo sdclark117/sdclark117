@@ -1481,6 +1481,30 @@
             alert(`Viewing details for user ID: ${userId}`);
         }
 
+        async function deleteUser(userId, userName) {
+            if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`User "${userName}" deleted successfully!`);
+                    loadUsers(); // Reload the user list
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('Failed to delete user');
+            }
+        }
+
         // Access Code Functions
         function showAccessCodeModal() {
             const modal = new bootstrap.Modal(document.getElementById('accessCodeModal'));

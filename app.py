@@ -2349,6 +2349,30 @@ def remove_staff_member(user_id):
         return jsonify({"error": "Failed to remove staff member"}), 500
 
 
+@app.route("/api/admin/users/<int:user_id>", methods=["DELETE"])
+@login_required
+@admin_required
+def delete_user(user_id):
+    """Delete a user account"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Prevent deleting admin accounts
+        if user.is_admin:
+            return jsonify({"error": "Cannot delete admin accounts"}), 400
+
+        db.session.delete(user)
+        db.session.commit()
+
+        return jsonify({"message": "User deleted successfully"}), 200
+    except Exception as e:
+        app.logger.error(f"Error deleting user: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete user"}), 500
+
+
 @app.route("/api/admin/promote-user/<int:user_id>", methods=["POST"])
 @login_required
 @admin_required
