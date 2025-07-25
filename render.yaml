@@ -2,10 +2,34 @@ services:
   - type: web
     name: business-lead-finder
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: gunicorn wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: 0
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_BASIC_PRICE_ID
+        value: price_basic
+      - key: STRIPE_PREMIUM_PRICE_ID
+        value: price_premium
+      - key: STRIPE_PLATINUM_PRICE_ID
+        value: price_platinum
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: GMAIL_USERNAME
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: GOOGLE_SHEETS_CREDENTIALS_JSON
         sync: false 
