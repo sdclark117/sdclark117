@@ -2672,6 +2672,11 @@ body {
             console.log('🔧 updateAuthButton called - isAuthenticated:', isAuthenticated, 'currentUser:', currentUser);
             
             if (isAuthenticated && currentUser) {
+                // Reset button HTML first, then show profile picture or icon for logged in users
+                resetAuthButtonHTML();
+                const authBtnIcon = document.getElementById('authBtnIcon');
+                const authBtnImage = document.getElementById('authBtnImage');
+                
                 if (currentUser.profile_picture) {
                     authBtnImage.src = currentUser.profile_picture;
                     authBtnImage.style.display = 'block';
@@ -2683,11 +2688,19 @@ body {
                 authBtn.onclick = showProfileModal;
                 console.log('🔧 Auth button updated to show profile picture for:', currentUser.name || currentUser.email);
             } else {
+                // Show "Login" text for non-authenticated users
                 authBtnImage.style.display = 'none';
-                authBtnIcon.style.display = 'block';
+                authBtnIcon.style.display = 'none';
+                authBtn.innerHTML = '<span style="color: #fff; font-size: 0.9rem;">Login</span>';
                 authBtn.onclick = showAuthModal;
-                console.log('🔧 Auth button updated to show login');
+                console.log('🔧 Auth button updated to show login text');
             }
+        }
+
+        // Reset auth button HTML to original state
+        function resetAuthButtonHTML() {
+            const authBtn = document.getElementById('authBtn');
+            authBtn.innerHTML = '<i class="bi bi-person-circle" id="authBtnIcon"></i><img id="authBtnImage" src="" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: none;">';
         }
 
         // Show authentication modal
