@@ -1840,6 +1840,12 @@ def pricing():
     )
 
 
+@app.route("/staff-registration")
+def staff_registration():
+    """Staff registration page"""
+    return render_template("staff_registration.html")
+
+
 def admin_required(f):
     """Decorator to require admin privileges."""
 

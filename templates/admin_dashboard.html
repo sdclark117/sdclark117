@@ -516,9 +516,14 @@
                     <div class="tab-pane fade" id="staff-management" role="tabpanel">
                         <div class="row mb-3">
                             <div class="col-12">
-                                <button class="btn btn-primary" onclick="createStaffMember()">
-                                    <i class="bi bi-plus-circle"></i> Add Staff Member
-                                </button>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-primary" onclick="createStaffMember()">
+                                        <i class="bi bi-plus-circle"></i> Add Staff Member
+                                    </button>
+                                    <button class="btn btn-success" onclick="showAccessCodeModal()">
+                                        <i class="bi bi-key"></i> Generate Access Code
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
@@ -632,6 +637,48 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Access Code Modal -->
+    <div class="modal fade" id="accessCodeModal" tabindex="-1" aria-labelledby="accessCodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="accessCodeModalLabel">Generate Access Code</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="accessCodeForm">
+                        <div class="mb-3">
+                            <label for="staffRole" class="form-label">Staff Role</label>
+                            <select class="form-select" id="staffRole" required>
+                                <option value="">Select Role</option>
+                                <option value="support">Support Staff</option>
+                                <option value="technical">Technical Staff</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isSupport" disabled>
+                                <label class="form-check-label" for="isSupport">
+                                    Support Staff
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isTechnical" disabled>
+                                <label class="form-check-label" for="isTechnical">
+                                    Technical Staff
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="generateAccessCode()">Generate Code</button>
                 </div>
             </div>
         </div>
@@ -1433,6 +1480,73 @@
             // In a real implementation, this would show user details in a modal
             alert(`Viewing details for user ID: ${userId}`);
         }
+
+        // Access Code Functions
+        function showAccessCodeModal() {
+            const modal = new bootstrap.Modal(document.getElementById('accessCodeModal'));
+            modal.show();
+        }
+
+        function updateRoleCheckboxes() {
+            const staffRole = document.getElementById('staffRole').value;
+            const isSupport = document.getElementById('isSupport');
+            const isTechnical = document.getElementById('isTechnical');
+
+            // Reset checkboxes
+            isSupport.checked = false;
+            isTechnical.checked = false;
+
+            // Update based on selection
+            if (staffRole === 'support') {
+                isSupport.checked = true;
+            } else if (staffRole === 'technical') {
+                isTechnical.checked = true;
+            }
+        }
+
+        async function generateAccessCode() {
+            const staffRole = document.getElementById('staffRole').value;
+            const isSupport = document.getElementById('isSupport').checked;
+            const isTechnical = document.getElementById('isTechnical').checked;
+
+            if (!staffRole) {
+                alert('Please select a staff role');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/generate-access-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        staff_role: staffRole,
+                        is_support: isSupport,
+                        is_technical: isTechnical
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('accessCodeModal'));
+                    modal.hide();
+                    
+                    alert(`Access code generated successfully!\n\nCode: ${data.access_code}\nRole: ${staffRole}\nExpires: ${new Date(data.expires_at).toLocaleString()}\n\nShare this code with the staff member to register.`);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error generating access code:', error);
+                alert('Failed to generate access code');
+            }
+        }
+
+        // Add event listener for role selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const staffRoleSelect = document.getElementById('staffRole');
+            if (staffRoleSelect) {
+                staffRoleSelect.addEventListener('change', updateRoleCheckboxes);
+            }
+        });
     </script>
 </body>
 </html> 
