@@ -386,10 +386,10 @@ def track_page_visit(page_name):
         page_visit.visits = (page_visit.visits or 0) + 1
 
         # Check if this is a unique visitor (by IP)
-        existing_activity = UserActivity.query.filter_by(
-            date=db.func.date(UserActivity.created_at),
-            ip_address=ip_address,
-            page=page_name,
+        existing_activity = UserActivity.query.filter(
+            db.func.date(UserActivity.created_at) == today,
+            UserActivity.ip_address == ip_address,
+            UserActivity.page == page_name,
         ).first()
 
         if not existing_activity:
