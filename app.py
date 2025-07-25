@@ -54,6 +54,11 @@ if not secret_key:
     print("Please set SECRET_KEY environment variable for production use.")
 app.secret_key = secret_key
 
+# Configure Flask for production - only set SERVER_NAME if explicitly provided
+if os.getenv("SERVER_NAME"):
+    app.config['SERVER_NAME'] = os.getenv("SERVER_NAME")
+app.config['PREFERRED_URL_SCHEME'] = 'https' if os.getenv("FLASK_ENV") == "production" else 'http'
+
 # Logging setup
 app.logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stdout)
@@ -91,6 +96,25 @@ app.config["MAIL_USE_TLS"] = True
 app.config["MAIL_USERNAME"] = os.getenv("GMAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.getenv("GMAIL_APP_PASSWORD")
 app.config["MAIL_DEFAULT_SENDER"] = os.getenv("GMAIL_USERNAME")
+
+# Check if we're in production and Gmail is configured
+is_production = os.getenv("FLASK_ENV") == "production"
+gmail_configured = app.config["MAIL_USERNAME"] and app.config["MAIL_PASSWORD"]
+
+if is_production and not gmail_configured:
+    app.logger.error("❌ PRODUCTION: Gmail not configured! Email verification will fail.")
+    app.logger.error("❌ Set GMAIL_USERNAME and GMAIL_APP_PASSWORD environment variables.")
+elif not gmail_configured:
+    app.logger.warning("📧 Development mode: Gmail not configured. Using email simulation.")
+    # For development, we'll simulate email sending
+    app.config["MAIL_SERVER"] = "localhost"
+    app.config["MAIL_PORT"] = 1025
+    app.config["MAIL_USE_TLS"] = False
+    app.config["MAIL_USERNAME"] = "noreply@businessleadfinder.com"
+    app.config["MAIL_PASSWORD"] = ""
+    app.config["MAIL_DEFAULT_SENDER"] = "noreply@businessleadfinder.com"
+else:
+    app.logger.info("✅ Email configuration loaded successfully.")
 
 mail = Mail(app)
 db = SQLAlchemy(app)
@@ -259,6 +283,33 @@ class UserActivity(db.Model):
     page = db.Column(db.String(100), nullable=True)
     user_agent = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class AITeam(db.Model):
+    __tablename__ = "ai_teams"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    manager_id = db.Column(db.Integer, db.ForeignKey("ai_managers.id"))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    agents = db.relationship("AIAgent", backref="team", cascade="all, delete-orphan")
+    manager = db.relationship("AIManager", back_populates="team", uselist=False)
+
+class AIManager(db.Model):
+    __tablename__ = "ai_managers"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    team = db.relationship("AITeam", back_populates="manager", uselist=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class AIAgent(db.Model):
+    __tablename__ = "ai_agents"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    specialty = db.Column(db.String(100), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey("ai_teams.id"))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default="Active")
 
 
 @login_manager.user_loader
@@ -480,37 +531,71 @@ def get_analytics_data(days=30):
 
 def send_email(subject, recipients, body, html_body=None):
     try:
+        # Check if we're in development mode and Gmail is not configured
+        if app.config.get("MAIL_SERVER") == "localhost":
+            # Simulate email sending for development
+            app.logger.info(f"📧 [DEV MODE] Email would be sent to {recipients}")
+            app.logger.info(f"📧 Subject: {subject}")
+            app.logger.info(f"📧 Body: {body[:100]}...")
+            
+            # In development, we'll simulate successful email sending
+            # In production, this would be replaced with actual email service
+            return True
+        
+        # Check if Gmail credentials are configured
+        if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
+            app.logger.error("Gmail credentials not configured. Please set GMAIL_USERNAME and GMAIL_APP_PASSWORD environment variables.")
+            return False
+        
         msg = Message(subject, recipients=recipients)
         msg.body = body
         if html_body:
             msg.html = html_body
         mail.send(msg)
+        app.logger.info(f"✅ Email sent successfully to {recipients}")
         return True
     except Exception as e:
-        app.logger.error(f"Email sending error: {e}")
+        app.logger.error(f"❌ Email sending error: {e}")
         return False
 
 
 def send_verification_email(user_id, email, name):
-    token = generate_token()
-    expires_at = datetime.utcnow() + timedelta(hours=24)
-    new_token = EmailVerificationToken(
-        user_id=user_id, token=token, expires_at=expires_at
-    )
-    db.session.add(new_token)
-    db.session.commit()
+    try:
+        token = generate_token()
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+        new_token = EmailVerificationToken(
+            user_id=user_id, token=token, expires_at=expires_at
+        )
+        db.session.add(new_token)
+        db.session.commit()
 
-    verification_url = url_for("verify_email", token=token, _external=True)
-    subject = "Verify Your Email - Business Lead Finder"
-    html_body = render_template(
-        "email_verification.html", name=name, verification_url=verification_url
-    )
-    body = (
-        f"Hello {name or 'there'}! Please verify your email by clicking this link: "
-        f"{verification_url}"
-    )
+        verification_url = url_for("verify_email", token=token, _external=True)
+        subject = "Verify Your Email - Business Lead Finder"
+        html_body = render_template(
+            "email_verification.html", name=name, verification_url=verification_url
+        )
+        body = (
+            f"Hello {name or 'there'}! Please verify your email by clicking this link: "
+            f"{verification_url}"
+        )
 
-    return send_email(subject, [email], body, html_body)
+        success = send_email(subject, [email], body, html_body)
+        
+        # In development mode, show the verification link in console
+        if app.config.get("MAIL_SERVER") == "localhost":
+            print(f"\n🔗 [DEV MODE] Email verification link for {email}:")
+            print(f"🔗 {verification_url}")
+            print(f"🔗 Token: {token}")
+            print(f"🔗 Expires: {expires_at}\n")
+        
+        if success:
+            app.logger.info(f"Verification email sent successfully to {email}")
+        else:
+            app.logger.error(f"Failed to send verification email to {email}")
+        return success
+    except Exception as e:
+        app.logger.error(f"Error in send_verification_email: {e}")
+        return False
 
 
 def send_password_reset_email(user_id, email, name):
@@ -1039,8 +1124,13 @@ def send_verification_email_api():
     try:
         if current_user.is_verified:
             return jsonify(error="Your email is already verified."), 400
-        send_verification_email(current_user.id, current_user.email, current_user.name)
-        return jsonify(message="Verification email sent."), 200
+        
+        success = send_verification_email(current_user.id, current_user.email, current_user.name)
+        
+        if success:
+            return jsonify(message="Verification email sent successfully."), 200
+        else:
+            return jsonify(error="Failed to send verification email. Please check your email configuration."), 500
     except Exception as e:
         app.logger.error(f"Error sending verification email: {e}")
         return jsonify(error="An error occurred while sending verification email."), 500
@@ -1649,6 +1739,11 @@ def admin_dashboard():
 
         users = User.query.all()
 
+        # Get AI teams data for the dashboard
+        teams = AITeam.query.all()
+        managers = AIManager.query.all()
+        agents = AIAgent.query.all()
+
         return render_template(
             "admin_dashboard.html",
             users=users,
@@ -1656,6 +1751,9 @@ def admin_dashboard():
             total_users=total_users,
             active_users_today=active_users_today,
             plan_distribution=plan_distribution,
+            teams=teams,
+            managers=managers,
+            agents=agents,
         )
     except Exception as e:
         app.logger.error(f"Error accessing admin dashboard: {e}")
@@ -1711,6 +1809,199 @@ def before_request():
         cleanup_expired_tokens()
         reset_guest_usage_daily()
         update_daily_analytics()
+
+
+# AI Teams Management API Routes
+@app.route("/api/ai-teams/managers", methods=["GET", "POST"])
+@login_required
+@admin_required
+def ai_managers():
+    """Get all AI managers or create a new one."""
+    if request.method == "GET":
+        try:
+            managers = AIManager.query.all()
+            return jsonify([{
+                "id": manager.id,
+                "name": manager.name,
+                "email": manager.email,
+                "created_at": manager.created_at.isoformat(),
+                "team_id": manager.team.id if manager.team else None,
+                "team_name": manager.team.name if manager.team else None
+            } for manager in managers]), 200
+        except Exception as e:
+            app.logger.error(f"Error fetching AI managers: {e}")
+            return jsonify(error="Failed to fetch managers"), 500
+    
+    elif request.method == "POST":
+        try:
+            data = request.get_json()
+            if not data or not data.get("name") or not data.get("email"):
+                return jsonify(error="Name and email are required"), 400
+            
+            # Check if email already exists
+            if AIManager.query.filter_by(email=data["email"]).first():
+                return jsonify(error="Manager with this email already exists"), 409
+            
+            manager = AIManager(
+                name=data["name"],
+                email=data["email"]
+            )
+            db.session.add(manager)
+            db.session.commit()
+            
+            app.logger.info(f"Created AI manager: {manager.name} ({manager.email})")
+            return jsonify({
+                "id": manager.id,
+                "name": manager.name,
+                "email": manager.email,
+                "created_at": manager.created_at.isoformat()
+            }), 201
+        except Exception as e:
+            app.logger.error(f"Error creating AI manager: {e}")
+            db.session.rollback()
+            return jsonify(error="Failed to create manager"), 500
+
+@app.route("/api/ai-teams/teams", methods=["GET", "POST"])
+@login_required
+@admin_required
+def ai_teams():
+    """Get all AI teams or create a new one."""
+    if request.method == "GET":
+        try:
+            teams = AITeam.query.all()
+            return jsonify([{
+                "id": team.id,
+                "name": team.name,
+                "created_at": team.created_at.isoformat(),
+                "manager_id": team.manager_id,
+                "manager_name": team.manager.name if team.manager else None,
+                "agent_count": len(team.agents)
+            } for team in teams]), 200
+        except Exception as e:
+            app.logger.error(f"Error fetching AI teams: {e}")
+            return jsonify(error="Failed to fetch teams"), 500
+    
+    elif request.method == "POST":
+        try:
+            data = request.get_json()
+            if not data or not data.get("name"):
+                return jsonify(error="Team name is required"), 400
+            
+            team = AITeam(name=data["name"])
+            db.session.add(team)
+            db.session.commit()
+            
+            app.logger.info(f"Created AI team: {team.name}")
+            return jsonify({
+                "id": team.id,
+                "name": team.name,
+                "created_at": team.created_at.isoformat()
+            }), 201
+        except Exception as e:
+            app.logger.error(f"Error creating AI team: {e}")
+            db.session.rollback()
+            return jsonify(error="Failed to create team"), 500
+
+@app.route("/api/ai-teams/agents", methods=["GET", "POST"])
+@login_required
+@admin_required
+def ai_agents():
+    """Get all AI agents or create a new one."""
+    if request.method == "GET":
+        try:
+            agents = AIAgent.query.all()
+            return jsonify([{
+                "id": agent.id,
+                "name": agent.name,
+                "specialty": agent.specialty,
+                "status": agent.status,
+                "created_at": agent.created_at.isoformat(),
+                "team_id": agent.team_id,
+                "team_name": agent.team.name if agent.team else None
+            } for agent in agents]), 200
+        except Exception as e:
+            app.logger.error(f"Error fetching AI agents: {e}")
+            return jsonify(error="Failed to fetch agents"), 500
+    
+    elif request.method == "POST":
+        try:
+            data = request.get_json()
+            if not data or not data.get("name") or not data.get("specialty"):
+                return jsonify(error="Name and specialty are required"), 400
+            
+            # Handle custom specialty
+            specialty = data["specialty"]
+            if specialty == "Custom" and data.get("custom_specialty"):
+                specialty = data["custom_specialty"]
+            
+            agent = AIAgent(
+                name=data["name"],
+                specialty=specialty,
+                team_id=data.get("team_id")
+            )
+            db.session.add(agent)
+            db.session.commit()
+            
+            app.logger.info(f"Created AI agent: {agent.name} (Specialty: {agent.specialty})")
+            return jsonify({
+                "id": agent.id,
+                "name": agent.name,
+                "specialty": agent.specialty,
+                "status": agent.status,
+                "created_at": agent.created_at.isoformat(),
+                "team_id": agent.team_id
+            }), 201
+        except Exception as e:
+            app.logger.error(f"Error creating AI agent: {e}")
+            db.session.rollback()
+            return jsonify(error="Failed to create agent"), 500
+
+@app.route("/api/ai-teams/assign-manager/<int:team_id>", methods=["POST"])
+@login_required
+@admin_required
+def assign_manager_to_team(team_id):
+    """Assign a manager to a team."""
+    try:
+        data = request.get_json()
+        if not data or not data.get("manager_id"):
+            return jsonify(error="Manager ID is required"), 400
+        
+        team = AITeam.query.get(team_id)
+        if not team:
+            return jsonify(error="Team not found"), 404
+        
+        manager = AIManager.query.get(data["manager_id"])
+        if not manager:
+            return jsonify(error="Manager not found"), 404
+        
+        team.manager_id = manager.id
+        db.session.commit()
+        
+        app.logger.info(f"Assigned manager {manager.name} to team {team.name}")
+        return jsonify(message="Manager assigned successfully"), 200
+    except Exception as e:
+        app.logger.error(f"Error assigning manager to team: {e}")
+        db.session.rollback()
+        return jsonify(error="Failed to assign manager"), 500
+
+@app.route("/api/ai-teams/specialties", methods=["GET"])
+@login_required
+@admin_required
+def get_ai_specialties():
+    """Get list of available AI specialties."""
+    specialties = [
+        "Marketing",
+        "Cold Calling", 
+        "Social Media Management",
+        "Email Campaigns",
+        "Lead Generation",
+        "Content Creation",
+        "SEO",
+        "Analytics",
+        "Customer Support",
+        "Sales"
+    ]
+    return jsonify(specialties), 200
 
 
 if __name__ == "__main__":

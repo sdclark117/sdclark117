@@ -216,6 +216,11 @@
                             <i class="bi bi-robot"></i> AI Assistant Management
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="ai-teams-tab" data-bs-toggle="tab" data-bs-target="#ai-teams" type="button" role="tab">
+                            <i class="bi bi-people-fill"></i> AI Teams
+                        </button>
+                    </li>
                 </ul>
             </div>
             <div class="card-body">
@@ -420,6 +425,84 @@
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Teams Tab -->
+                    <div class="tab-pane fade" id="ai-teams" role="tabpanel">
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <button class="btn btn-primary" onclick="createAITeam()">
+                                    <i class="bi bi-plus-circle"></i> Create New Team
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="bi bi-person-badge"></i> Create AI Team Manager</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="createManagerForm">
+                                            <div class="mb-2">
+                                                <label for="managerName" class="form-label">Manager Name</label>
+                                                <input type="text" class="form-control" id="managerName" required>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label for="managerEmail" class="form-label">Manager Email</label>
+                                                <input type="email" class="form-control" id="managerEmail" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary w-100">Create Manager</button>
+                                        </form>
+                                        <div id="managerList" class="mt-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="bi bi-person-plus"></i> Create AI Agent</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="createAgentForm">
+                                            <div class="mb-2">
+                                                <label for="agentName" class="form-label">Agent Name</label>
+                                                <input type="text" class="form-control" id="agentName" required>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label for="agentTeam" class="form-label">Assign to Team</label>
+                                                <select class="form-select" id="agentTeam" required></select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label for="agentSpecialty" class="form-label">Specialty</label>
+                                                <select class="form-select" id="agentSpecialty" required>
+                                                    <option value="Marketing">Marketing</option>
+                                                    <option value="Cold Calling">Cold Calling</option>
+                                                    <option value="Social Media Management">Social Media Management</option>
+                                                    <option value="Email Campaigns">Email Campaigns</option>
+                                                    <option value="Lead Generation">Lead Generation</option>
+                                                    <option value="Custom">Custom (specify below)</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2" id="customSpecialtyDiv" style="display:none;">
+                                                <label for="customSpecialty" class="form-label">Custom Specialty</label>
+                                                <input type="text" class="form-control" id="customSpecialty">
+                                            </div>
+                                            <button type="submit" class="btn btn-success w-100">Create Agent</button>
+                                        </form>
+                                        <div id="agentList" class="mt-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="bi bi-diagram-3"></i> AI Teams Overview</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="teamsOverview"></div>
                             </div>
                         </div>
                     </div>
@@ -742,6 +825,239 @@
 
             // In a real implementation, this would delete the assistant via API
             alert(`AI Assistant "${assistantName}" deleted successfully!`);
+        }
+
+        // AI Teams Management Functions
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAITeamsData();
+            setupAITeamsForms();
+        });
+
+        function setupAITeamsForms() {
+            // Manager form submission
+            document.getElementById('createManagerForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                createAIManager();
+            });
+
+            // Agent form submission
+            document.getElementById('createAgentForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                createAIAgent();
+            });
+
+            // Handle specialty selection change
+            document.getElementById('agentSpecialty').addEventListener('change', function() {
+                const customDiv = document.getElementById('customSpecialtyDiv');
+                if (this.value === 'Custom') {
+                    customDiv.style.display = 'block';
+                } else {
+                    customDiv.style.display = 'none';
+                }
+            });
+        }
+
+        async function loadAITeamsData() {
+            try {
+                // Load teams, managers, and agents
+                const [teamsRes, managersRes, agentsRes] = await Promise.all([
+                    fetch('/api/ai-teams/teams'),
+                    fetch('/api/ai-teams/managers'),
+                    fetch('/api/ai-teams/agents')
+                ]);
+
+                const teams = await teamsRes.json();
+                const managers = await managersRes.json();
+                const agents = await agentsRes.json();
+
+                updateTeamsOverview(teams, managers, agents);
+                updateManagerList(managers);
+                updateAgentList(agents);
+                updateTeamSelect(teams);
+            } catch (error) {
+                console.error('Error loading AI teams data:', error);
+            }
+        }
+
+        async function createAIManager() {
+            const name = document.getElementById('managerName').value;
+            const email = document.getElementById('managerEmail').value;
+
+            try {
+                const response = await fetch('/api/ai-teams/managers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Manager created successfully!');
+                    document.getElementById('createManagerForm').reset();
+                    loadAITeamsData();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error creating manager:', error);
+                alert('Failed to create manager');
+            }
+        }
+
+        async function createAIAgent() {
+            const name = document.getElementById('agentName').value;
+            const teamId = document.getElementById('agentTeam').value;
+            const specialty = document.getElementById('agentSpecialty').value;
+            const customSpecialty = document.getElementById('customSpecialty').value;
+
+            const agentData = {
+                name,
+                team_id: teamId ? parseInt(teamId) : null,
+                specialty: specialty === 'Custom' ? customSpecialty : specialty
+            };
+
+            try {
+                const response = await fetch('/api/ai-teams/agents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(agentData)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Agent created successfully!');
+                    document.getElementById('createAgentForm').reset();
+                    document.getElementById('customSpecialtyDiv').style.display = 'none';
+                    loadAITeamsData();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error creating agent:', error);
+                alert('Failed to create agent');
+            }
+        }
+
+        function updateTeamsOverview(teams, managers, agents) {
+            const container = document.getElementById('teamsOverview');
+            if (!container) return;
+
+            let html = '<div class="row">';
+            
+            if (teams.length === 0) {
+                html += '<div class="col-12"><p class="text-muted">No teams created yet.</p></div>';
+            } else {
+                teams.forEach(team => {
+                    const teamAgents = agents.filter(agent => agent.team_id === team.id);
+                    const teamManager = managers.find(manager => manager.team_id === team.id);
+                    
+                    html += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-diagram-3"></i> ${team.name}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Manager:</strong> ${teamManager ? teamManager.name : 'None assigned'}</p>
+                                    <p><strong>Agents:</strong> ${teamAgents.length}</p>
+                                    <div class="mt-2">
+                                        ${teamAgents.map(agent => 
+                                            `<span class="badge bg-primary me-1">${agent.name} (${agent.specialty})</span>`
+                                        ).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function updateManagerList(managers) {
+            const container = document.getElementById('managerList');
+            if (!container) return;
+
+            if (managers.length === 0) {
+                container.innerHTML = '<p class="text-muted">No managers created yet.</p>';
+                return;
+            }
+
+            let html = '<h6>Existing Managers:</h6><div class="list-group">';
+            managers.forEach(manager => {
+                html += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${manager.name}</strong><br>
+                            <small class="text-muted">${manager.email}</small>
+                        </div>
+                        <span class="badge bg-primary">${manager.team_name || 'No team'}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function updateAgentList(agents) {
+            const container = document.getElementById('agentList');
+            if (!container) return;
+
+            if (agents.length === 0) {
+                container.innerHTML = '<p class="text-muted">No agents created yet.</p>';
+                return;
+            }
+
+            let html = '<h6>Existing Agents:</h6><div class="list-group">';
+            agents.forEach(agent => {
+                html += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${agent.name}</strong><br>
+                            <small class="text-muted">${agent.specialty}</small>
+                        </div>
+                        <span class="badge bg-success">${agent.team_name || 'No team'}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function updateTeamSelect(teams) {
+            const select = document.getElementById('agentTeam');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Select a team...</option>';
+            teams.forEach(team => {
+                select.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+            });
+        }
+
+        async function createAITeam() {
+            const teamName = prompt('Enter team name:');
+            if (!teamName) return;
+
+            try {
+                const response = await fetch('/api/ai-teams/teams', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: teamName })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Team created successfully!');
+                    loadAITeamsData();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error creating team:', error);
+                alert('Failed to create team');
+            }
         }
 
         // Auto-refresh analytics every 5 minutes
