@@ -1162,6 +1162,11 @@ body {
                             <li><i class="bi bi-check-circle text-success"></i> Advanced result vetting</li>
                             <li><i class="bi bi-check-circle text-success"></i> Custom search strategies</li>
                             <li><i class="bi bi-check-circle text-success"></i> Quality scoring</li>
+                            <li><i class="bi bi-check-circle text-success"></i> 2 AI Teams (5 agents + 1 manager each)</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Team A: Lead Generation & Sales</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Team B: Marketing & Analytics</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Cross-team collaboration</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Advanced team management</li>
                           </ul>
                         </div>
                         
@@ -1208,6 +1213,111 @@ body {
                             </button>
                             <button class="btn btn-outline-warning btn-sm" onclick="testAIAssistant()">
                               <i class="bi bi-play-circle"></i> Test Assistant
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Platinum AI Team Management (Platinum/Admin Only) -->
+                  <div class="card mb-3" id="platinumTeamManagement" style="display: none;">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-people"></i> Platinum AI Team Management</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <h6>Team A: Lead Generation & Sales</h6>
+                          <div id="teamA" class="mb-3">
+                            <div class="team-manager mb-2">
+                              <i class="bi bi-person-badge text-warning"></i>
+                              <span><strong>Manager:</strong> Sarah (Sales Director)</span>
+                              <span class="badge bg-warning">Active</span>
+                            </div>
+                            <div class="team-agents">
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Alex (Lead Prospector)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Emma (Sales Strategist)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Mike (Cold Caller)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Lisa (Follow-up Specialist)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Tom (Deal Closer)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <h6>Team B: Marketing & Analytics</h6>
+                          <div id="teamB" class="mb-3">
+                            <div class="team-manager mb-2">
+                              <i class="bi bi-person-badge text-info"></i>
+                              <span><strong>Manager:</strong> David (Marketing Director)</span>
+                              <span class="badge bg-info">Active</span>
+                            </div>
+                            <div class="team-agents">
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Sophie (Content Creator)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>James (SEO Specialist)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Rachel (Data Analyst)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Chris (Campaign Manager)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                              <div class="agent-item mb-1">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span>Anna (Social Media Expert)</span>
+                                <span class="badge bg-success">Active</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div class="row mt-3">
+                        <div class="col-12">
+                          <h6>Team Management Actions</h6>
+                          <div class="d-grid gap-2 d-md-flex">
+                            <button class="btn btn-outline-primary btn-sm" onclick="createPlatinumTeam()">
+                              <i class="bi bi-plus-circle"></i> Create New Team
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="configurePlatinumTeam()">
+                              <i class="bi bi-gear"></i> Configure Teams
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="testPlatinumTeam()">
+                              <i class="bi bi-play-circle"></i> Test Team Collaboration
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="deployPlatinumTeam()">
+                              <i class="bi bi-rocket"></i> Deploy Team Strategy
                             </button>
                           </div>
                         </div>
@@ -1973,6 +2083,11 @@ body {
                 return handlePlatinumInsights(userMessage);
             }
             
+            // Platinum AI can manage teams
+            if (lowerMessage.includes('team') || lowerMessage.includes('teams') || lowerMessage.includes('manager')) {
+                return handlePlatinumTeamManagement(userMessage);
+            }
+            
             // Enhanced responses for Platinum users
             const platinumResponses = {
                 'hello': 'Hello! I\'m your Platinum AI Assistant. I can help you with:\n• Automated business lead searches\n• Result vetting and analysis\n• Advanced insights and recommendations\n• Custom search strategies\nWhat would you like me to help you with today?',
@@ -2026,6 +2141,28 @@ body {
         
         function handlePlatinumInsights(userMessage) {
             return "I can provide advanced insights and recommendations! Here's what I analyze:\n\n📈 **Market Insights:**\n• Industry trends in your target area\n• Competition analysis\n• Market saturation levels\n• Growth opportunities\n\n🎯 **Lead Quality Analysis:**\n• Partnership potential scoring\n• Contact readiness assessment\n• Business stability indicators\n• Expansion opportunities\n\n📊 **Strategic Recommendations:**\n• Best approach strategies\n• Optimal contact timing\n• Partnership proposal suggestions\n• Risk mitigation strategies\n\nJust tell me what you're looking for, and I'll provide comprehensive insights!";
+        }
+        
+        function handlePlatinumTeamManagement(userMessage) {
+            const lowerMessage = userMessage.toLowerCase();
+            
+            if (lowerMessage.includes('team a') || lowerMessage.includes('sales team')) {
+                return "🤖 **Team A: Lead Generation & Sales**\n\n👨‍💼 **Manager: Sarah (Sales Director)**\n• Coordinates all sales activities\n• Manages lead pipeline\n• Oversees team performance\n• Sets sales targets and strategies\n\n🎯 **Team Members:**\n• **Alex (Lead Prospector)** - Finds and qualifies new leads\n• **Emma (Sales Strategist)** - Develops sales strategies\n• **Mike (Cold Caller)** - Handles cold calling campaigns\n• **Lisa (Follow-up Specialist)** - Manages follow-up sequences\n• **Tom (Deal Closer)** - Closes deals and negotiations\n\n💼 **Team Capabilities:**\n• Lead generation and qualification\n• Sales strategy development\n• Cold calling and outreach\n• Follow-up management\n• Deal closing and negotiation\n• Sales pipeline management\n\nJust tell me what you need from Team A!";
+            }
+            
+            if (lowerMessage.includes('team b') || lowerMessage.includes('marketing team')) {
+                return "🤖 **Team B: Marketing & Analytics**\n\n👨‍💼 **Manager: David (Marketing Director)**\n• Coordinates all marketing activities\n• Manages brand strategy\n• Oversees campaign performance\n• Sets marketing objectives\n\n🎯 **Team Members:**\n• **Sophie (Content Creator)** - Creates compelling content\n• **James (SEO Specialist)** - Optimizes for search engines\n• **Rachel (Data Analyst)** - Analyzes performance data\n• **Chris (Campaign Manager)** - Manages marketing campaigns\n• **Anna (Social Media Expert)** - Handles social media\n\n📊 **Team Capabilities:**\n• Content creation and strategy\n• SEO optimization\n• Data analysis and insights\n• Campaign management\n• Social media marketing\n• Brand development\n\nJust tell me what you need from Team B!";
+            }
+            
+            if (lowerMessage.includes('create team') || lowerMessage.includes('new team')) {
+                return "I can help you create a new Platinum AI Team! Here's what you can do:\n\n🎯 **Team Creation Options:**\n• Lead Generation & Sales Team\n• Marketing & Analytics Team\n• Research & Development Team\n• Customer Success Team\n• Operations & Support Team\n\n📋 **Each Team Includes:**\n• 1 Team Manager (AI Director)\n• 5 Specialized AI Agents\n• Cross-team collaboration\n• Advanced coordination\n\n🔧 **To Create a Team:**\n1. Go to your AI Assistant tab\n2. Click 'Create New Team'\n3. Choose team type and manager\n4. Configure team settings\n\nWhat type of team would you like to create?";
+            }
+            
+            if (lowerMessage.includes('manage team') || lowerMessage.includes('configure team')) {
+                return "I can help you manage your Platinum AI Teams! Here's what you can do:\n\n⚙️ **Team Management Options:**\n• Configure team settings\n• Test team collaboration\n• Deploy team strategies\n• Monitor team performance\n• Adjust team coordination\n\n📊 **Management Features:**\n• Team performance analytics\n• Cross-team communication\n• Strategy deployment\n• Quality control\n• Performance optimization\n\n🔧 **To Manage Teams:**\n1. Go to your AI Assistant tab\n2. Use the Team Management section\n3. Choose your management action\n4. Configure as needed\n\nWhat would you like to manage?";
+            }
+            
+            return "🤖 **Your Platinum AI Teams Overview:**\n\nYou have access to 2 AI Teams, each with 5 agents and 1 manager:\n\n**Team A: Lead Generation & Sales**\n• Manager: Sarah (Sales Director)\n• 5 specialized sales agents\n\n**Team B: Marketing & Analytics**\n• Manager: David (Marketing Director)\n• 5 specialized marketing agents\n\n💼 **Team Capabilities:**\n• Cross-team collaboration\n• Advanced coordination\n• Strategy deployment\n• Performance monitoring\n• Quality control\n\nJust ask me about specific teams or team management!";
         }
         
         function extractSearchTerms(userMessage) {
@@ -2827,6 +2964,7 @@ body {
             const platinumFeatures = document.getElementById('platinumFeatures');
             const adminFeatures = document.getElementById('adminFeatures');
             const aiManagement = document.getElementById('aiManagement');
+            const platinumTeamManagement = document.getElementById('platinumTeamManagement');
 
             if (premiumFeatures) {
                 premiumFeatures.style.display = (isPremium || isPlatinum || isAdmin) ? 'block' : 'none';
@@ -2839,6 +2977,9 @@ body {
             }
             if (aiManagement) {
                 aiManagement.style.display = (isPremium || isPlatinum || isAdmin) ? 'block' : 'none';
+            }
+            if (platinumTeamManagement) {
+                platinumTeamManagement.style.display = (isPlatinum || isAdmin) ? 'block' : 'none';
             }
         }
 
@@ -2939,6 +3080,60 @@ body {
                 // Save the reset settings
                 saveAISettings();
             }
+        }
+
+        // Platinum AI Team Management Functions
+        function createPlatinumTeam() {
+            const teamName = prompt('Enter a name for your new AI Team:');
+            if (!teamName) return;
+
+            const teamType = prompt('Choose team type:\n1. Lead Generation & Sales\n2. Marketing & Analytics\n3. Research & Development\n4. Customer Success\n5. Operations & Support');
+            if (!teamType) return;
+
+            const managerName = prompt('Enter a name for the team manager:');
+            if (!managerName) return;
+
+            // In a real implementation, this would create the team via API
+            alert(`Platinum AI Team "${teamName}" created successfully with manager "${managerName}"!`);
+        }
+
+        function configurePlatinumTeam() {
+            const teamName = prompt('Enter the name of the team to configure:');
+            if (!teamName) return;
+
+            const configuration = prompt('Enter team configuration (JSON format):');
+            if (!configuration) return;
+
+            try {
+                JSON.parse(configuration);
+                alert(`Platinum AI Team "${teamName}" configured successfully!`);
+            } catch (e) {
+                alert('Invalid JSON configuration format');
+            }
+        }
+
+        function testPlatinumTeam() {
+            const teamName = prompt('Enter the name of the team to test:');
+            if (!teamName) return;
+
+            const testScenario = prompt('Enter a test scenario for team collaboration:');
+            if (!testScenario) return;
+
+            // Simulate team collaboration response
+            setTimeout(() => {
+                alert(`Platinum AI Team "${teamName}" collaboration test: "Team members are working together on: ${testScenario}. All 5 agents and 1 manager are coordinating effectively!"`);
+            }, 1500);
+        }
+
+        function deployPlatinumTeam() {
+            const teamName = prompt('Enter the name of the team to deploy:');
+            if (!teamName) return;
+
+            const deploymentStrategy = prompt('Choose deployment strategy:\n1. Full team deployment\n2. Gradual rollout\n3. A/B testing\n4. Targeted deployment');
+            if (!deploymentStrategy) return;
+
+            // In a real implementation, this would deploy the team strategy via API
+            alert(`Platinum AI Team "${teamName}" deployed successfully with strategy: ${deploymentStrategy}!`);
         }
 
         // Update AI features when profile modal is shown
