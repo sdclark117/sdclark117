@@ -101,6 +101,8 @@ app.config["MAIL_DEFAULT_SENDER"] = os.getenv("GMAIL_USERNAME")
 
 # Debug email configuration
 app.logger.info(f"📧 FLASK_ENV: {os.getenv('FLASK_ENV')}")
+app.logger.info(f"📧 GMAIL_USERNAME: {os.getenv('GMAIL_USERNAME')}")
+app.logger.info(f"📧 GMAIL_APP_PASSWORD set: {bool(os.getenv('GMAIL_APP_PASSWORD'))}")
 app.logger.info(f"📧 GMAIL_USERNAME set: {bool(app.config['MAIL_USERNAME'])}")
 app.logger.info(f"📧 GMAIL_APP_PASSWORD set: {bool(app.config['MAIL_PASSWORD'])}")
 app.logger.info(f"📧 MAIL_SERVER: {app.config['MAIL_SERVER']}")
