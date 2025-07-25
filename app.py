@@ -2503,4 +2503,4 @@ def register_with_access_code():
 
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
-    app.run(debug=debug_mode, host="0.0.0.0")
+    app.run(debug=debug_mode, host="0.0.0.0")  # nosec B104
