@@ -948,9 +948,10 @@ def login():
 def logout():
     """Log out the current user."""
     try:
-        app.logger.info(f"🔧 Logout attempt for user: {current_user.email}")
+        user_email = current_user.email  # Store email before logout
+        app.logger.info(f"🔧 Logout attempt for user: {user_email}")
         logout_user()
-        app.logger.info(f"✅ Logout successful for user: {current_user.email}")
+        app.logger.info(f"✅ Logout successful for user: {user_email}")
         return jsonify(message="Logout successful"), 200
     except Exception as e:
         app.logger.error(f"❌ Logout error: {e}")

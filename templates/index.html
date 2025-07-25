@@ -2989,14 +2989,27 @@ body {
                     // Refresh auth status to ensure UI is properly updated
                     await checkAuthStatus();
                     
-                    alert('Logout successful!');
+                    // Show success message without alert for better UX
+                    console.log('Logout successful!');
                 } else {
                     console.log('❌ Logout failed:', data.error);
-                    alert(data.error || 'Logout failed');
+                    // Don't show alert for logout failure, just log it
+                    console.log('Logout failed:', data.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('❌ Logout error:', error);
-                alert('An error occurred during logout');
+                // Even if there's an error, try to update the UI state
+                currentUser = null;
+                isAuthenticated = false;
+                updateAuthButton();
+                
+                // Close profile modal if open
+                const profileModal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
+                if (profileModal) {
+                    profileModal.hide();
+                }
+                
+                console.log('Logout completed (with error handling)');
             }
         }
 
