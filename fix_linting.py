@@ -3,8 +3,6 @@
 Script to fix flake8 linting errors in app.py
 """
 
-import re
-
 
 def fix_app_py():
     """Fix linting errors in app.py"""

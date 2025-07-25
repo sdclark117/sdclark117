@@ -3,6 +3,7 @@
 Final script to fix specific linting errors in app.py
 """
 
+
 def fix_specific_errors():
     """Fix the specific linting errors mentioned in the GitHub build failure."""
     with open('app.py', 'r', encoding='utf-8') as f:
