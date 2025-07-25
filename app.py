@@ -1629,12 +1629,14 @@ def admin_dashboard():
 
         users = User.query.all()
 
-        return render_template("admin_dashboard.html",
-                             users=users,
-                             analytics_data=analytics_data,
-                             total_users=total_users,
-                             active_users_today=active_users_today,
-                             plan_distribution=plan_distribution)
+        return render_template(
+            "admin_dashboard.html",
+            users=users,
+            analytics_data=analytics_data,
+            total_users=total_users,
+            active_users_today=active_users_today,
+            plan_distribution=plan_distribution
+        )
     except Exception as e:
         app.logger.error(f"Error accessing admin dashboard: {e}")
         flash("An error occurred while loading the dashboard.", "danger")
