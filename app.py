@@ -2404,7 +2404,7 @@ def generate_access_code():
 
         # Generate a unique access code
         access_code = generate_token()[:8].upper()  # 8-character uppercase code
-        
+
         # Create access code record
         access_code_record = StaffAccessCode(
             code=access_code,
@@ -2412,16 +2412,19 @@ def generate_access_code():
             is_support=is_support,
             is_technical=is_technical,
             created_by=current_user.id,
-            expires_at=datetime.utcnow() + timedelta(hours=24)
+            expires_at=datetime.utcnow() + timedelta(hours=24),
         )
         db.session.add(access_code_record)
         db.session.commit()
 
-        return jsonify(
-            message="Access code generated successfully",
-            access_code=access_code,
-            expires_at=access_code_record.expires_at.isoformat(),
-        ), 201
+        return (
+            jsonify(
+                message="Access code generated successfully",
+                access_code=access_code,
+                expires_at=access_code_record.expires_at.isoformat(),
+            ),
+            201,
+        )
     except Exception as e:
         app.logger.error(f"Error generating access code: {e}")
         db.session.rollback()
@@ -2445,10 +2448,11 @@ def register_with_access_code():
             return jsonify(error="All fields are required"), 400
 
         # Validate access code
-        access_code_record = StaffAccessCode.query.filter_by(
-            code=access_code, 
-            is_used=False
-        ).filter(StaffAccessCode.expires_at > datetime.utcnow()).first()
+        access_code_record = (
+            StaffAccessCode.query.filter_by(code=access_code, is_used=False)
+            .filter(StaffAccessCode.expires_at > datetime.utcnow())
+            .first()
+        )
 
         if not access_code_record:
             return jsonify(error="Invalid or expired access code"), 400
@@ -2477,17 +2481,20 @@ def register_with_access_code():
 
         db.session.commit()
 
-        return jsonify(
-            message="Staff member registered successfully",
-            staff_member={
-                "id": staff_member.id,
-                "email": staff_member.email,
-                "name": staff_member.name,
-                "staff_role": staff_member.staff_role,
-                "is_support": staff_member.is_support,
-                "is_technical": staff_member.is_technical,
-            },
-        ), 201
+        return (
+            jsonify(
+                message="Staff member registered successfully",
+                staff_member={
+                    "id": staff_member.id,
+                    "email": staff_member.email,
+                    "name": staff_member.name,
+                    "staff_role": staff_member.staff_role,
+                    "is_support": staff_member.is_support,
+                    "is_technical": staff_member.is_technical,
+                },
+            ),
+            201,
+        )
     except Exception as e:
         app.logger.error(f"Error registering with access code: {e}")
         db.session.rollback()
