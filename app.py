@@ -230,7 +230,9 @@ class SiteAnalytics(db.Model):
     searches_performed = db.Column(db.Integer, default=0)
     exports_performed = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
 
 class PageVisits(db.Model):
@@ -241,9 +243,11 @@ class PageVisits(db.Model):
     visits = db.Column(db.Integer, default=0)
     unique_visitors = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
-    __table_args__ = (db.UniqueConstraint('date', 'page'),)
+    __table_args__ = (db.UniqueConstraint("date", "page"),)
 
 
 class UserActivity(db.Model):
@@ -323,7 +327,7 @@ def track_page_visit(page_name):
         existing_activity = UserActivity.query.filter_by(
             date=db.func.date(UserActivity.created_at),
             ip_address=ip_address,
-            page=page_name
+            page=page_name,
         ).first()
 
         if not existing_activity:
@@ -333,9 +337,9 @@ def track_page_visit(page_name):
         activity = UserActivity(
             user_id=current_user.id if current_user.is_authenticated else None,
             ip_address=ip_address,
-            action='page_visit',
+            action="page_visit",
             page=page_name,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
         db.session.add(activity)
 
@@ -356,7 +360,7 @@ def track_user_action(action, page_name=None):
             ip_address=ip_address,
             action=action,
             page=page_name,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
         db.session.add(activity)
         db.session.commit()
@@ -382,33 +386,35 @@ def update_daily_analytics():
         ).count()
 
         # Count unique visitors today
-        unique_visitors = db.session.query(
-            db.func.count(db.func.distinct(UserActivity.ip_address))
-        ).filter(
-            db.func.date(UserActivity.created_at) == today
-        ).scalar()
+        unique_visitors = (
+            db.session.query(db.func.count(db.func.distinct(UserActivity.ip_address)))
+            .filter(db.func.date(UserActivity.created_at) == today)
+            .scalar()
+        )
 
         # Count registered users
         registered_users = User.query.count()
 
         # Count active users today (users who performed actions)
-        active_users = db.session.query(
-            db.func.count(db.func.distinct(UserActivity.user_id))
-        ).filter(
-            db.func.date(UserActivity.created_at) == today,
-            UserActivity.user_id.isnot(None)
-        ).scalar()
+        active_users = (
+            db.session.query(db.func.count(db.func.distinct(UserActivity.user_id)))
+            .filter(
+                db.func.date(UserActivity.created_at) == today,
+                UserActivity.user_id.isnot(None),
+            )
+            .scalar()
+        )
 
         # Count searches performed today
         searches_performed = UserActivity.query.filter(
             db.func.date(UserActivity.created_at) == today,
-            UserActivity.action == 'search'
+            UserActivity.action == "search",
         ).count()
 
         # Count exports performed today
         exports_performed = UserActivity.query.filter(
             db.func.date(UserActivity.created_at) == today,
-            UserActivity.action == 'export'
+            UserActivity.action == "export",
         ).count()
 
         # Update analytics
@@ -432,38 +438,44 @@ def get_analytics_data(days=30):
         start_date = end_date - timedelta(days=days)
 
         # Get site analytics
-        site_analytics = SiteAnalytics.query.filter(
-            SiteAnalytics.date >= start_date,
-            SiteAnalytics.date <= end_date
-        ).order_by(SiteAnalytics.date).all()
+        site_analytics = (
+            SiteAnalytics.query.filter(
+                SiteAnalytics.date >= start_date, SiteAnalytics.date <= end_date
+            )
+            .order_by(SiteAnalytics.date)
+            .all()
+        )
 
         # Get page visits
-        page_visits = PageVisits.query.filter(
-            PageVisits.date >= start_date,
-            PageVisits.date <= end_date
-        ).order_by(PageVisits.date).all()
+        page_visits = (
+            PageVisits.query.filter(
+                PageVisits.date >= start_date, PageVisits.date <= end_date
+            )
+            .order_by(PageVisits.date)
+            .all()
+        )
 
         # Get user activity summary
-        user_activity = db.session.query(
-            UserActivity.action,
-            db.func.count(UserActivity.id).label('count')
-        ).filter(
-            db.func.date(UserActivity.created_at) >= start_date,
-            db.func.date(UserActivity.created_at) <= end_date
-        ).group_by(UserActivity.action).all()
+        user_activity = (
+            db.session.query(
+                UserActivity.action, db.func.count(UserActivity.id).label("count")
+            )
+            .filter(
+                db.func.date(UserActivity.created_at) >= start_date,
+                db.func.date(UserActivity.created_at) <= end_date,
+            )
+            .group_by(UserActivity.action)
+            .all()
+        )
 
         return {
-            'site_analytics': site_analytics,
-            'page_visits': page_visits,
-            'user_activity': user_activity
+            "site_analytics": site_analytics,
+            "page_visits": page_visits,
+            "user_activity": user_activity,
         }
     except Exception as e:
         app.logger.error(f"Error getting analytics data: {e}")
-        return {
-            'site_analytics': [],
-            'page_visits': [],
-            'user_activity': []
-        }
+        return {"site_analytics": [], "page_visits": [], "user_activity": []}
 
 
 def send_email(subject, recipients, body, html_body=None):
@@ -810,7 +822,7 @@ def index():
     guest_usage = get_or_create_guest_usage()
 
     # Track page visit
-    track_page_visit('index')
+    track_page_visit("index")
 
     return render_template(
         "index.html",
@@ -1181,7 +1193,7 @@ def search():
         session["last_search_results"] = leads
 
         # Track search action
-        track_user_action('search', 'search_page')
+        track_user_action("search", "search_page")
 
         return jsonify({"results": leads, "center": center})
 
@@ -1208,7 +1220,7 @@ def download():
             df.to_csv(output, index=False, encoding="utf-8")
             output.seek(0)
             # Track export action
-            track_user_action('export', 'csv_download')
+            track_user_action("export", "csv_download")
 
             return send_file(
                 output,
@@ -1237,7 +1249,7 @@ def download():
             workbook.save(output)
             output.seek(0)
             # Track export action
-            track_user_action('export', 'xlsx_download')
+            track_user_action("export", "xlsx_download")
 
             return send_file(
                 output,
@@ -1270,7 +1282,7 @@ def export_to_google_sheets():
         spreadsheet.share(current_user.email, perm_type="user", role="writer")
 
         # Track export action
-        track_user_action('export', 'google_sheets')
+        track_user_action("export", "google_sheets")
 
         return (
             jsonify(
@@ -1569,7 +1581,7 @@ def pricing():
     platinum_price_id = os.getenv("STRIPE_PLATINUM_PRICE_ID", "price_platinum")
 
     # Track page visit
-    track_page_visit('pricing')
+    track_page_visit("pricing")
 
     return render_template(
         "pricing.html",
@@ -1611,23 +1623,28 @@ def admin_dashboard():
         app.logger.info(f"User current_plan: {current_user.current_plan}")
 
         # Track admin dashboard visit
-        track_page_visit('admin_dashboard')
+        track_page_visit("admin_dashboard")
 
         # Get analytics data for the last 30 days
         analytics_data = get_analytics_data(30)
 
         # Get user statistics
         total_users = User.query.count()
-        active_users_today = UserActivity.query.filter(
-            db.func.date(UserActivity.created_at) == datetime.utcnow().date(),
-            UserActivity.user_id.isnot(None)
-        ).distinct(UserActivity.user_id).count()
+        active_users_today = (
+            UserActivity.query.filter(
+                db.func.date(UserActivity.created_at) == datetime.utcnow().date(),
+                UserActivity.user_id.isnot(None),
+            )
+            .distinct(UserActivity.user_id)
+            .count()
+        )
 
         # Get plan distribution
-        plan_distribution = db.session.query(
-            User.current_plan,
-            db.func.count(User.id).label('count')
-        ).group_by(User.current_plan).all()
+        plan_distribution = (
+            db.session.query(User.current_plan, db.func.count(User.id).label("count"))
+            .group_by(User.current_plan)
+            .all()
+        )
 
         users = User.query.all()
 
@@ -1637,7 +1654,7 @@ def admin_dashboard():
             analytics_data=analytics_data,
             total_users=total_users,
             active_users_today=active_users_today,
-            plan_distribution=plan_distribution
+            plan_distribution=plan_distribution,
         )
     except Exception as e:
         app.logger.error(f"Error accessing admin dashboard: {e}")
