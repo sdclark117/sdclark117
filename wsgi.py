@@ -27,7 +27,9 @@ def init_database():
 if __name__ == "__main__":
     init_database()
     app.run(
-        host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=False  # nosec B104
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        debug=False,  # nosec B104
     )
 
 
