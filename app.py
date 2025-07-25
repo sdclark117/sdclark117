@@ -109,9 +109,7 @@ app.logger.info(f"📧 MAIL_SERVER: {app.config['MAIL_SERVER']}")
 gmail_configured = app.config["MAIL_USERNAME"] and app.config["MAIL_PASSWORD"]
 
 if not gmail_configured:
-    app.logger.warning(
-        "📧 Gmail not configured. Using email simulation."
-    )
+    app.logger.warning("📧 Gmail not configured. Using email simulation.")
     # For development, we'll simulate email sending
     app.config["MAIL_SERVER"] = "localhost"
     app.config["MAIL_PORT"] = 1025
@@ -566,7 +564,7 @@ def send_email(subject, recipients, body, html_body=None):
         msg.body = body
         if html_body:
             msg.html = html_body
-        
+
         # Send email
         mail.send(msg)
         app.logger.info(f"✅ Email sent successfully to {recipients}")
