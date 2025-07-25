@@ -99,20 +99,16 @@ app.config["MAIL_USERNAME"] = os.getenv("GMAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.getenv("GMAIL_APP_PASSWORD")
 app.config["MAIL_DEFAULT_SENDER"] = os.getenv("GMAIL_USERNAME")
 
-# Check if we're in production and Gmail is configured
-is_production = os.getenv("FLASK_ENV") == "production"
+# Debug email configuration
+app.logger.info(f"📧 GMAIL_USERNAME set: {bool(app.config['MAIL_USERNAME'])}")
+app.logger.info(f"📧 GMAIL_APP_PASSWORD set: {bool(app.config['MAIL_PASSWORD'])}")
+
+# Check if Gmail is configured
 gmail_configured = app.config["MAIL_USERNAME"] and app.config["MAIL_PASSWORD"]
 
-if is_production and not gmail_configured:
-    app.logger.error(
-        "❌ PRODUCTION: Gmail not configured! Email verification will fail."
-    )
-    app.logger.error(
-        "❌ Set GMAIL_USERNAME and GMAIL_APP_PASSWORD environment variables."
-    )
-elif not gmail_configured:
+if not gmail_configured:
     app.logger.warning(
-        "📧 Development mode: Gmail not configured. Using email simulation."
+        "📧 Gmail not configured. Using email simulation."
     )
     # For development, we'll simulate email sending
     app.config["MAIL_SERVER"] = "localhost"
@@ -563,10 +559,13 @@ def send_email(subject, recipients, body, html_body=None):
             )
             return False
 
+        # Create message
         msg = Message(subject, recipients=recipients)
         msg.body = body
         if html_body:
             msg.html = html_body
+        
+        # Send email
         mail.send(msg)
         app.logger.info(f"✅ Email sent successfully to {recipients}")
         return True
@@ -2075,7 +2074,7 @@ def get_all_users():
     try:
         users = User.query.all()
         user_list = []
-        
+
         for user in users:
             user_data = {
                 "id": user.id,
@@ -2090,7 +2089,7 @@ def get_all_users():
                 "created_at": user.created_at.isoformat() if user.created_at else None,
             }
             user_list.append(user_data)
-        
+
         return jsonify(user_list)
     except Exception as e:
         app.logger.error(f"Error getting users: {e}")
@@ -2107,37 +2106,41 @@ def create_staff_member():
         name = data.get("name")
         email = data.get("email")
         role = data.get("role")  # 'support' or 'technical'
-        
+
         if not all([name, email, role]):
             return jsonify({"error": "Name, email, and role are required"}), 400
-        
+
         if role not in ["support", "technical"]:
             return jsonify({"error": "Role must be 'support' or 'technical'"}), 400
-        
+
         # Check if user already exists
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             return jsonify({"error": "User with this email already exists"}), 400
-        
+
         # Create new staff member
         user = User(
             name=name,
             email=email,
-            password_hash=generate_password_hash("temp_password_123"),  # Temporary password
+            password_hash=generate_password_hash(
+                "temp_password_123"
+            ),  # Temporary password
             is_support=(role == "support"),
             is_technical=(role == "technical"),
             staff_role=role,
             is_verified=True,  # Staff members are auto-verified
         )
-        
+
         db.session.add(user)
         db.session.commit()
-        
-        return jsonify({
-            "message": "Staff member created successfully",
-            "user_id": user.id
-        }), 201
-        
+
+        return (
+            jsonify(
+                {"message": "Staff member created successfully", "user_id": user.id}
+            ),
+            201,
+        )
+
     except Exception as e:
         app.logger.error(f"Error creating staff member: {e}")
         return jsonify({"error": "Failed to create staff member"}), 500
@@ -2151,27 +2154,29 @@ def update_staff_member(user_id):
     try:
         data = request.get_json()
         new_role = data.get("role")
-        
+
         if not new_role or new_role not in ["support", "technical"]:
             return jsonify({"error": "Valid role (support/technical) is required"}), 400
-        
+
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
-        
+
         # Update staff role
-        user.is_support = (new_role == "support")
-        user.is_technical = (new_role == "technical")
+        user.is_support = new_role == "support"
+        user.is_technical = new_role == "technical"
         user.staff_role = new_role
-        
+
         db.session.commit()
-        
-        return jsonify({
-            "message": "Staff member updated successfully",
-            "user_id": user.id,
-            "new_role": new_role
-        })
-        
+
+        return jsonify(
+            {
+                "message": "Staff member updated successfully",
+                "user_id": user.id,
+                "new_role": new_role,
+            }
+        )
+
     except Exception as e:
         app.logger.error(f"Error updating staff member: {e}")
         return jsonify({"error": "Failed to update staff member"}), 500
@@ -2186,19 +2191,18 @@ def remove_staff_member(user_id):
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
-        
+
         # Remove staff status
         user.is_support = False
         user.is_technical = False
         user.staff_role = None
-        
+
         db.session.commit()
-        
-        return jsonify({
-            "message": "Staff member removed successfully",
-            "user_id": user.id
-        })
-        
+
+        return jsonify(
+            {"message": "Staff member removed successfully", "user_id": user.id}
+        )
+
     except Exception as e:
         app.logger.error(f"Error removing staff member: {e}")
         return jsonify({"error": "Failed to remove staff member"}), 500
@@ -2212,27 +2216,29 @@ def promote_user_to_staff(user_id):
     try:
         data = request.get_json()
         role = data.get("role")
-        
+
         if not role or role not in ["support", "technical"]:
             return jsonify({"error": "Valid role (support/technical) is required"}), 400
-        
+
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
-        
+
         # Promote to staff
-        user.is_support = (role == "support")
-        user.is_technical = (role == "technical")
+        user.is_support = role == "support"
+        user.is_technical = role == "technical"
         user.staff_role = role
-        
+
         db.session.commit()
-        
-        return jsonify({
-            "message": "User promoted to staff successfully",
-            "user_id": user.id,
-            "new_role": role
-        })
-        
+
+        return jsonify(
+            {
+                "message": "User promoted to staff successfully",
+                "user_id": user.id,
+                "new_role": role,
+            }
+        )
+
     except Exception as e:
         app.logger.error(f"Error promoting user: {e}")
         return jsonify({"error": "Failed to promote user"}), 500
