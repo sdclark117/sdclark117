@@ -706,9 +706,9 @@ body {
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap&libraries=places&loading=async" async defer></script>
 </head>
 <body>
-    <button class="login-btn" id="authBtn" onclick="showAuthModal()" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; background: none; border: 2px solid #fff; color: #fff; border-radius: 25px; padding: 10px 24px; font-size: 1.1rem;">
-        <i class="bi bi-person-circle"></i>
-        <span id="authBtnText">Login</span>
+    <button class="login-btn" id="authBtn" onclick="showAuthModal()" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; background: none; border: 2px solid #fff; color: #fff; border-radius: 50px; padding: 8px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px;">
+        <i class="bi bi-person-circle" id="authBtnIcon"></i>
+        <img id="authBtnImage" src="" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: none;">
     </button>
     <a href="/pricing" class="btn btn-outline-primary" style="position: fixed; top: 1rem; right: 10rem; z-index: 1000;">Pricing</a>
 
@@ -935,6 +935,19 @@ body {
                   <div class="mb-3">
                     <label for="profilePhone" class="form-label">Phone</label>
                     <input type="tel" class="form-control" id="profilePhone">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Profile Picture</label>
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="position-relative">
+                        <img id="currentProfilePicture" src="" alt="Profile" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6;" onerror="this.style.display='none'">
+                        <i id="defaultProfileIcon" class="bi bi-person-circle" style="font-size: 60px; color: #6c757d;"></i>
+                      </div>
+                      <div class="flex-grow-1">
+                        <input type="file" class="form-control" id="profilePictureInput" accept="image/*">
+                        <div class="form-text">Upload a profile picture (PNG, JPG, JPEG, GIF). Max 16MB.</div>
+                      </div>
+                    </div>
                   </div>
                   <div class="mb-3">
                     <label class="form-label">Email Verification</label>
@@ -2653,16 +2666,25 @@ body {
         // Update the auth button based on authentication status
         function updateAuthButton() {
             const authBtn = document.getElementById('authBtn');
-            const authBtnText = document.getElementById('authBtnText');
+            const authBtnIcon = document.getElementById('authBtnIcon');
+            const authBtnImage = document.getElementById('authBtnImage');
             
             console.log('🔧 updateAuthButton called - isAuthenticated:', isAuthenticated, 'currentUser:', currentUser);
             
             if (isAuthenticated && currentUser) {
-                authBtnText.textContent = currentUser.name || currentUser.email;
+                if (currentUser.profile_picture) {
+                    authBtnImage.src = currentUser.profile_picture;
+                    authBtnImage.style.display = 'block';
+                    authBtnIcon.style.display = 'none';
+                } else {
+                    authBtnImage.style.display = 'none';
+                    authBtnIcon.style.display = 'block';
+                }
                 authBtn.onclick = showProfileModal;
-                console.log('🔧 Auth button updated to show profile for:', currentUser.name || currentUser.email);
+                console.log('🔧 Auth button updated to show profile picture for:', currentUser.name || currentUser.email);
             } else {
-                authBtnText.textContent = 'Login';
+                authBtnImage.style.display = 'none';
+                authBtnIcon.style.display = 'block';
                 authBtn.onclick = showAuthModal;
                 console.log('🔧 Auth button updated to show login');
             }
@@ -2687,6 +2709,9 @@ body {
             document.getElementById('profileBusiness').value = currentUser.business || '';
             document.getElementById('profilePhone').value = currentUser.phone || '';
             
+            // Update profile picture display
+            updateProfilePictureDisplay();
+            
             // Update verification status
             updateVerificationStatus();
             
@@ -2697,6 +2722,21 @@ body {
             
             const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
             profileModal.show();
+        }
+
+        // Update profile picture display
+        function updateProfilePictureDisplay() {
+            const currentPicture = document.getElementById('currentProfilePicture');
+            const defaultIcon = document.getElementById('defaultProfileIcon');
+            
+            if (currentUser.profile_picture) {
+                currentPicture.src = currentUser.profile_picture;
+                currentPicture.style.display = 'block';
+                defaultIcon.style.display = 'none';
+            } else {
+                currentPicture.style.display = 'none';
+                defaultIcon.style.display = 'block';
+            }
         }
 
         // Show forgot password modal
@@ -2956,6 +2996,58 @@ body {
                 const alertDiv = document.getElementById('profileAlert');
                 alertDiv.className = 'alert alert-danger mt-3';
                 alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> An error occurred while updating profile';
+                alertDiv.style.display = 'block';
+            }
+        });
+
+        // Handle profile picture upload
+        document.getElementById('profilePictureInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('profile_picture', file);
+            
+            try {
+                const response = await fetch('/api/profile-picture', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Update current user data
+                    currentUser.profile_picture = data.profile_picture;
+                    
+                    // Update displays
+                    updateProfilePictureDisplay();
+                    updateAuthButton();
+                    
+                    // Show success message
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-success mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                    alertDiv.style.display = 'block';
+                    
+                    // Hide alert after 3 seconds
+                    setTimeout(() => {
+                        alertDiv.style.display = 'none';
+                    }, 3000);
+                    
+                    // Clear the file input
+                    e.target.value = '';
+                } else {
+                    const alertDiv = document.getElementById('profileAlert');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + (data.error || 'Failed to upload profile picture');
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error uploading profile picture:', error);
+                const alertDiv = document.getElementById('profileAlert');
+                alertDiv.className = 'alert alert-danger mt-3';
+                alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> An error occurred while uploading profile picture';
                 alertDiv.style.display = 'block';
             }
         });

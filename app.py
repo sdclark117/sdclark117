@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from io import BytesIO
 from typing import Any, Dict, Optional
+from werkzeug.utils import secure_filename
 
 import click
 import googlemaps
@@ -95,6 +96,14 @@ app.config["REMEMBER_COOKIE_HTTPONLY"] = True
 app.config["REMEMBER_COOKIE_SECURE"] = os.environ.get("FLASK_ENV") == "production"
 app.config["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_MAPS_API_KEY")
 
+# File upload configuration
+app.config["UPLOAD_FOLDER"] = "static/profile_pictures"
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+
+# Create upload folder if it doesn't exist
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
 # Email configuration
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
@@ -179,6 +188,7 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(100))
     business = db.Column(db.String(100))
     phone = db.Column(db.String(20))
+    profile_picture = db.Column(db.String(255))  # Store file path
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     trial_ends_at = db.Column(db.DateTime)
@@ -348,6 +358,28 @@ def load_user(user_id):
 
 def generate_token():
     return secrets.token_urlsafe(32)
+
+
+def allowed_file(filename):
+    """Check if file extension is allowed."""
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_profile_picture(file, user_id):
+    """Save profile picture and return the filename."""
+    if file and allowed_file(file.filename):
+        # Create secure filename
+        filename = secure_filename(file.filename)
+        # Add user ID to make filename unique
+        name, ext = filename.rsplit(".", 1)
+        filename = f"user_{user_id}_{int(time.time())}.{ext}"
+        
+        # Save file
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(filepath)
+        
+        return filename
+    return None
 
 
 def get_client_ip():
@@ -1122,6 +1154,37 @@ def update_profile():
         return jsonify(error="An error occurred while updating profile."), 500
 
 
+@app.route("/api/profile-picture", methods=["POST"])
+@login_required
+def upload_profile_picture():
+    """Upload profile picture."""
+    try:
+        if "profile_picture" not in request.files:
+            return jsonify(error="No file provided"), 400
+        
+        file = request.files["profile_picture"]
+        if file.filename == "":
+            return jsonify(error="No file selected"), 400
+        
+        # Save the file
+        filename = save_profile_picture(file, current_user.id)
+        if not filename:
+            return jsonify(error="Invalid file type. Please use PNG, JPG, JPEG, or GIF."), 400
+        
+        # Update user's profile picture
+        current_user.profile_picture = filename
+        db.session.commit()
+        
+        return jsonify(
+            message="Profile picture updated successfully!",
+            profile_picture=f"/static/profile_pictures/{filename}"
+        ), 200
+    except Exception as e:
+        app.logger.error(f"Error uploading profile picture: {e}")
+        db.session.rollback()
+        return jsonify(error="An error occurred while uploading profile picture."), 500
+
+
 @app.route("/api/request-password-reset", methods=["POST"])
 def request_password_reset():
     """Request a password reset email."""
@@ -1218,6 +1281,7 @@ def check_auth():
                     "is_verified": current_user.is_verified,
                     "current_plan": current_user.current_plan,
                     "is_admin": current_user.is_admin,
+                    "profile_picture": f"/static/profile_pictures/{current_user.profile_picture}" if current_user.profile_picture else None,
                 },
             }
         )
