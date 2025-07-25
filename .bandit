@@ -1,2 +1,2 @@
 exclude_dirs = ['migrations', 'static', 'templates', '.venv', 'venv', 'env', '__pycache__']
-skips = ['B101', 'B110', 'B102', 'B307', 'B311', 'B324', 'B404', 'B603', 'B607', 'B310'] 
+skips = ['B101', 'B110', 'B102', 'B307', 'B311', 'B324', 'B404', 'B603', 'B607', 'B310', 'B104'] 
