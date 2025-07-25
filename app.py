@@ -167,6 +167,9 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     trial_ends_at = db.Column(db.DateTime)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_support = db.Column(db.Boolean, default=False, nullable=False)
+    is_technical = db.Column(db.Boolean, default=False, nullable=False)
+    staff_role = db.Column(db.String(50))  # 'support', 'technical', etc.
     stripe_customer_id = db.Column(db.String(120), unique=True)
     stripe_subscription_id = db.Column(db.String(120), unique=True)
     current_plan = db.Column(db.String(50))
@@ -2062,6 +2065,177 @@ def get_ai_specialties():
         "Sales",
     ]
     return jsonify(specialties), 200
+
+
+@app.route("/api/admin/users", methods=["GET"])
+@login_required
+@admin_required
+def get_all_users():
+    """Get all users for staff management"""
+    try:
+        users = User.query.all()
+        user_list = []
+        
+        for user in users:
+            user_data = {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "is_admin": user.is_admin,
+                "is_support": user.is_support,
+                "is_technical": user.is_technical,
+                "staff_role": user.staff_role,
+                "current_plan": user.current_plan,
+                "is_verified": user.is_verified,
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+            }
+            user_list.append(user_data)
+        
+        return jsonify(user_list)
+    except Exception as e:
+        app.logger.error(f"Error getting users: {e}")
+        return jsonify({"error": "Failed to get users"}), 500
+
+
+@app.route("/api/admin/staff", methods=["POST"])
+@login_required
+@admin_required
+def create_staff_member():
+    """Create a new staff member"""
+    try:
+        data = request.get_json()
+        name = data.get("name")
+        email = data.get("email")
+        role = data.get("role")  # 'support' or 'technical'
+        
+        if not all([name, email, role]):
+            return jsonify({"error": "Name, email, and role are required"}), 400
+        
+        if role not in ["support", "technical"]:
+            return jsonify({"error": "Role must be 'support' or 'technical'"}), 400
+        
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return jsonify({"error": "User with this email already exists"}), 400
+        
+        # Create new staff member
+        user = User(
+            name=name,
+            email=email,
+            password_hash=generate_password_hash("temp_password_123"),  # Temporary password
+            is_support=(role == "support"),
+            is_technical=(role == "technical"),
+            staff_role=role,
+            is_verified=True,  # Staff members are auto-verified
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Staff member created successfully",
+            "user_id": user.id
+        }), 201
+        
+    except Exception as e:
+        app.logger.error(f"Error creating staff member: {e}")
+        return jsonify({"error": "Failed to create staff member"}), 500
+
+
+@app.route("/api/admin/staff/<int:user_id>", methods=["PUT"])
+@login_required
+@admin_required
+def update_staff_member(user_id):
+    """Update staff member role"""
+    try:
+        data = request.get_json()
+        new_role = data.get("role")
+        
+        if not new_role or new_role not in ["support", "technical"]:
+            return jsonify({"error": "Valid role (support/technical) is required"}), 400
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Update staff role
+        user.is_support = (new_role == "support")
+        user.is_technical = (new_role == "technical")
+        user.staff_role = new_role
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Staff member updated successfully",
+            "user_id": user.id,
+            "new_role": new_role
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error updating staff member: {e}")
+        return jsonify({"error": "Failed to update staff member"}), 500
+
+
+@app.route("/api/admin/staff/<int:user_id>", methods=["DELETE"])
+@login_required
+@admin_required
+def remove_staff_member(user_id):
+    """Remove staff member status (convert to regular user)"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Remove staff status
+        user.is_support = False
+        user.is_technical = False
+        user.staff_role = None
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Staff member removed successfully",
+            "user_id": user.id
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error removing staff member: {e}")
+        return jsonify({"error": "Failed to remove staff member"}), 500
+
+
+@app.route("/api/admin/promote-user/<int:user_id>", methods=["POST"])
+@login_required
+@admin_required
+def promote_user_to_staff(user_id):
+    """Promote a regular user to staff"""
+    try:
+        data = request.get_json()
+        role = data.get("role")
+        
+        if not role or role not in ["support", "technical"]:
+            return jsonify({"error": "Valid role (support/technical) is required"}), 400
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Promote to staff
+        user.is_support = (role == "support")
+        user.is_technical = (role == "technical")
+        user.staff_role = role
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "User promoted to staff successfully",
+            "user_id": user.id,
+            "new_role": role
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error promoting user: {e}")
+        return jsonify({"error": "Failed to promote user"}), 500
 
 
 if __name__ == "__main__":

@@ -221,6 +221,11 @@
                             <i class="bi bi-people-fill"></i> AI Teams
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="staff-management-tab" data-bs-toggle="tab" data-bs-target="#staff-management" type="button" role="tab">
+                            <i class="bi bi-person-badge"></i> Staff Management
+                        </button>
+                    </li>
                 </ul>
             </div>
             <div class="card-body">
@@ -503,6 +508,127 @@
                             </div>
                             <div class="card-body">
                                 <div id="teamsOverview"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff Management Tab -->
+                    <div class="tab-pane fade" id="staff-management" role="tabpanel">
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <button class="btn btn-primary" onclick="createStaffMember()">
+                                    <i class="bi bi-plus-circle"></i> Add Staff Member
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Staff Categories -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="bi bi-headset"></i> Support Staff</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-dark">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Name</th>
+                                                        <th>Role</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="supportStaffList">
+                                                    <!-- Support staff will be populated here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="bi bi-tools"></i> Technical Staff</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-dark">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Name</th>
+                                                        <th>Role</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="technicalStaffList">
+                                                    <!-- Technical staff will be populated here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="bi bi-people"></i> Regular Users</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-dark">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Name</th>
+                                                        <th>Plan</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="regularUsersList">
+                                                    <!-- Regular users will be populated here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Staff Management Overview -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="bi bi-graph-up"></i> Staff Overview</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h4 id="supportCount">0</h4>
+                                            <p class="text-muted">Support Staff</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h4 id="technicalCount">0</h4>
+                                            <p class="text-muted">Technical Staff</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h4 id="regularUsersCount">0</h4>
+                                            <p class="text-muted">Regular Users</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <h4 id="totalStaffCount">0</h4>
+                                            <p class="text-muted">Total Users</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1064,6 +1190,249 @@
         setInterval(function() {
             location.reload();
         }, 300000);
+
+        // Staff Management Functions
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStaffData();
+        });
+
+        async function loadStaffData() {
+            try {
+                // Load all users and categorize them
+                const response = await fetch('/api/admin/users');
+                const users = await response.json();
+                
+                categorizeUsers(users);
+                updateStaffCounts(users);
+            } catch (error) {
+                console.error('Error loading staff data:', error);
+            }
+        }
+
+        function categorizeUsers(users) {
+            const supportStaff = users.filter(user => user.role === 'support' || user.is_support);
+            const technicalStaff = users.filter(user => user.role === 'technical' || user.is_technical);
+            const regularUsers = users.filter(user => !user.is_admin && !user.is_support && !user.is_technical);
+
+            updateSupportStaffList(supportStaff);
+            updateTechnicalStaffList(technicalStaff);
+            updateRegularUsersList(regularUsers);
+        }
+
+        function updateSupportStaffList(staff) {
+            const container = document.getElementById('supportStaffList');
+            if (!container) return;
+
+            if (staff.length === 0) {
+                container.innerHTML = '<tr><td colspan="3" class="text-muted">No support staff</td></tr>';
+                return;
+            }
+
+            let html = '';
+            staff.forEach(member => {
+                html += `
+                    <tr>
+                        <td>${member.name || 'N/A'}</td>
+                        <td><span class="badge bg-info">${member.role || 'Support'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editStaffMember('${member.id}', 'support')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeStaffMember('${member.id}', 'support')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateTechnicalStaffList(staff) {
+            const container = document.getElementById('technicalStaffList');
+            if (!container) return;
+
+            if (staff.length === 0) {
+                container.innerHTML = '<tr><td colspan="3" class="text-muted">No technical staff</td></tr>';
+                return;
+            }
+
+            let html = '';
+            staff.forEach(member => {
+                html += `
+                    <tr>
+                        <td>${member.name || 'N/A'}</td>
+                        <td><span class="badge bg-warning">${member.role || 'Technical'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editStaffMember('${member.id}', 'technical')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeStaffMember('${member.id}', 'technical')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateRegularUsersList(users) {
+            const container = document.getElementById('regularUsersList');
+            if (!container) return;
+
+            if (users.length === 0) {
+                container.innerHTML = '<tr><td colspan="3" class="text-muted">No regular users</td></tr>';
+                return;
+            }
+
+            let html = '';
+            users.forEach(user => {
+                html += `
+                    <tr>
+                        <td>${user.name || 'N/A'}</td>
+                        <td><span class="badge plan-badge plan-${user.current_plan?.toLowerCase() || 'basic'}">${user.current_plan || 'BASIC'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewUserDetails('${user.id}')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="promoteToStaff('${user.id}')">
+                                <i class="bi bi-arrow-up"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateStaffCounts(users) {
+            const supportCount = users.filter(u => u.role === 'support' || u.is_support).length;
+            const technicalCount = users.filter(u => u.role === 'technical' || u.is_technical).length;
+            const regularCount = users.filter(u => !u.is_admin && !u.is_support && !u.is_technical).length;
+            const totalCount = users.length;
+
+            document.getElementById('supportCount').textContent = supportCount;
+            document.getElementById('technicalCount').textContent = technicalCount;
+            document.getElementById('regularUsersCount').textContent = regularCount;
+            document.getElementById('totalStaffCount').textContent = totalCount;
+        }
+
+        async function createStaffMember() {
+            const name = prompt('Enter staff member name:');
+            if (!name) return;
+
+            const email = prompt('Enter staff member email:');
+            if (!email) return;
+
+            const role = prompt('Enter staff role (support/technical):');
+            if (!role || !['support', 'technical'].includes(role.toLowerCase())) {
+                alert('Please enter a valid role: support or technical');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/staff', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, role })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`Staff member "${name}" created successfully with role: ${role}!`);
+                    loadStaffData(); // Reload the data
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error creating staff member:', error);
+                alert('Failed to create staff member');
+            }
+        }
+
+        async function editStaffMember(userId, type) {
+            const newRole = prompt('Enter new role for this staff member (support/technical):');
+            if (!newRole || !['support', 'technical'].includes(newRole.toLowerCase())) {
+                alert('Please enter a valid role: support or technical');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/staff/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`Staff member updated successfully with new role: ${newRole}!`);
+                    loadStaffData(); // Reload the data
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error updating staff member:', error);
+                alert('Failed to update staff member');
+            }
+        }
+
+        async function removeStaffMember(userId, type) {
+            if (!confirm('Are you sure you want to remove this staff member?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/staff/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Staff member removed successfully!');
+                    loadStaffData(); // Reload the data
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error removing staff member:', error);
+                alert('Failed to remove staff member');
+            }
+        }
+
+        async function promoteToStaff(userId) {
+            const role = prompt('Enter role for promotion (support/technical):');
+            if (!role || !['support', 'technical'].includes(role.toLowerCase())) {
+                alert('Please enter a valid role: support or technical');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/promote-user/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`User promoted to staff with role: ${role}!`);
+                    loadStaffData(); // Reload the data
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error promoting user:', error);
+                alert('Failed to promote user');
+            }
+        }
+
+        function viewUserDetails(userId) {
+            // In a real implementation, this would show user details in a modal
+            alert(`Viewing details for user ID: ${userId}`);
+        }
     </script>
 </body>
 </html> 
