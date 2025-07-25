@@ -2825,9 +2825,10 @@ class AIContentCreationSystem:
         """Generate SEO-optimized blog post"""
         outline = {
             "title": "Complete Guide to {} in 2024".format(topic),
-            "meta_description": "Learn everything about {} and how it can benefit your business. Expert insights and actionable tips.".format(
-                topic
-            ),
+            "meta_description": (
+                "Learn everything about {} and how it can benefit your business. "
+                "Expert insights and actionable tips."
+            ).format(topic),
             "introduction": "{} has become increasingly important for businesses looking to...".format(topic),
             "sections": [
                 "What is {}?".format(topic),
@@ -2877,9 +2878,10 @@ class AIContentCreationSystem:
             "heading_structure": ["H1", "H2", "H3"],
             "meta_tags": {
                 "title": "{} - Complete Guide | [Company]".format(target_keywords[0]),
-                "description": "Learn about {} and how it can help your business. Expert insights and actionable tips.".format(
-                    target_keywords[0]
-                ),
+                "description": (
+                    "Learn about {} and how it can help your business. "
+                    "Expert insights and actionable tips."
+                ).format(target_keywords[0]),
                 "keywords": ", ".join(target_keywords),
             },
             "internal_links": [
