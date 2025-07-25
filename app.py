@@ -117,9 +117,13 @@ gmail_configured = app.config["MAIL_USERNAME"] and app.config["MAIL_PASSWORD"]
 if not gmail_configured:
     if os.getenv("FLASK_ENV") == "production":
         app.logger.error("❌ Gmail not configured in PRODUCTION mode!")
-        app.logger.error("❌ Please set GMAIL_USERNAME2 and GMAIL_APP_PASSWORD2 in Render")
+        app.logger.error(
+            "❌ Please set GMAIL_USERNAME2 and GMAIL_APP_PASSWORD2 in Render"
+        )
     else:
-        app.logger.warning("📧 Gmail not configured. Using email simulation for development.")
+        app.logger.warning(
+            "📧 Gmail not configured. Using email simulation for development."
+        )
         # For development, we'll simulate email sending
         app.config["MAIL_SERVER"] = "localhost"
         app.config["MAIL_PORT"] = 1025
