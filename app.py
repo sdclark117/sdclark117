@@ -50,8 +50,12 @@ secret_key = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY")
 if not secret_key:
     # Generate a secure random key if none is provided
     secret_key = secrets.token_hex(32)
-    print("WARNING: No SECRET_KEY or FLASK_SECRET_KEY environment variable set. Generated a temporary key.")
-    print("Please set SECRET_KEY or FLASK_SECRET_KEY environment variable for production use.")
+    print(
+        "WARNING: No SECRET_KEY or FLASK_SECRET_KEY environment variable set. Generated a temporary key."
+    )
+    print(
+        "Please set SECRET_KEY or FLASK_SECRET_KEY environment variable for production use."
+    )
 app.secret_key = secret_key
 
 # Configure Flask for production - only set SERVER_NAME if explicitly provided
