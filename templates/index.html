@@ -2677,16 +2677,28 @@ body {
                 const authBtnIcon = document.getElementById('authBtnIcon');
                 const authBtnImage = document.getElementById('authBtnImage');
                 
-                if (currentUser.profile_picture) {
-                    authBtnImage.src = currentUser.profile_picture;
-                    authBtnImage.style.display = 'block';
-                    authBtnIcon.style.display = 'none';
-                } else {
-                    authBtnImage.style.display = 'none';
-                    authBtnIcon.style.display = 'block';
+                if (authBtnIcon && authBtnImage) {
+                    if (currentUser.profile_picture) {
+                        authBtnImage.src = currentUser.profile_picture;
+                        authBtnImage.style.display = 'block';
+                        authBtnIcon.style.display = 'none';
+                    } else {
+                        authBtnImage.style.display = 'none';
+                        authBtnIcon.style.display = 'block';
+                    }
                 }
                 authBtn.onclick = showProfileModal;
                 console.log('🔧 Auth button updated to show profile picture for:', currentUser.name || currentUser.email);
+            } else if (isAuthenticated && !currentUser) {
+                // User is authenticated but currentUser data is not loaded yet
+                // Show loading state or default icon
+                resetAuthButtonHTML();
+                const authBtnIcon = document.getElementById('authBtnIcon');
+                if (authBtnIcon) {
+                    authBtnIcon.style.display = 'block';
+                }
+                authBtn.onclick = showProfileModal;
+                console.log('🔧 Auth button updated to show loading state (authenticated but no user data)');
             } else {
                 // Show "Login" text for non-authenticated users
                 authBtnImage.style.display = 'none';
