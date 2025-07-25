@@ -373,11 +373,11 @@ def save_profile_picture(file, user_id):
         # Add user ID to make filename unique
         name, ext = filename.rsplit(".", 1)
         filename = f"user_{user_id}_{int(time.time())}.{ext}"
-        
+
         # Save file
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(filepath)
-        
+
         return filename
     return None
 
@@ -1161,24 +1161,30 @@ def upload_profile_picture():
     try:
         if "profile_picture" not in request.files:
             return jsonify(error="No file provided"), 400
-        
+
         file = request.files["profile_picture"]
         if file.filename == "":
             return jsonify(error="No file selected"), 400
-        
+
         # Save the file
         filename = save_profile_picture(file, current_user.id)
         if not filename:
-            return jsonify(error="Invalid file type. Please use PNG, JPG, JPEG, or GIF."), 400
-        
+            return (
+                jsonify(error="Invalid file type. Please use PNG, JPG, JPEG, or GIF."),
+                400,
+            )
+
         # Update user's profile picture
         current_user.profile_picture = filename
         db.session.commit()
-        
-        return jsonify(
-            message="Profile picture updated successfully!",
-            profile_picture=f"/static/profile_pictures/{filename}"
-        ), 200
+
+        return (
+            jsonify(
+                message="Profile picture updated successfully!",
+                profile_picture=f"/static/profile_pictures/{filename}",
+            ),
+            200,
+        )
     except Exception as e:
         app.logger.error(f"Error uploading profile picture: {e}")
         db.session.rollback()
@@ -1281,7 +1287,11 @@ def check_auth():
                     "is_verified": current_user.is_verified,
                     "current_plan": current_user.current_plan,
                     "is_admin": current_user.is_admin,
-                    "profile_picture": f"/static/profile_pictures/{current_user.profile_picture}" if current_user.profile_picture else None,
+                    "profile_picture": (
+                        f"/static/profile_pictures/{current_user.profile_picture}"
+                        if current_user.profile_picture
+                        else None
+                    ),
                 },
             }
         )
