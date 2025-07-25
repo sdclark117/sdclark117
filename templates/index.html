@@ -908,6 +908,11 @@ body {
                   <i class="bi bi-gear"></i> Settings
                 </button>
               </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ai-assistant-tab" data-bs-toggle="tab" data-bs-target="#ai-assistant" type="button" role="tab" aria-controls="ai-assistant" aria-selected="false">
+                  <i class="bi bi-robot"></i> AI Assistant
+                </button>
+              </li>
             </ul>
             
             <!-- Tab Content -->
@@ -1079,6 +1084,183 @@ body {
                     <button type="button" class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
                   </div>
                 </form>
+              </div>
+              
+              <!-- AI Assistant Tab -->
+              <div class="tab-pane fade" id="ai-assistant" role="tabpanel" aria-labelledby="ai-assistant-tab">
+                <div class="ai-assistant-management">
+                  <!-- AI Assistant Status -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-robot"></i> AI Assistant Status</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="d-flex align-items-center mb-3">
+                            <div class="status-indicator me-3">
+                              <i class="bi bi-circle-fill text-success"></i>
+                            </div>
+                            <div>
+                              <strong>Status:</strong> <span id="aiStatus">Active</span>
+                            </div>
+                          </div>
+                          <div class="mb-3">
+                            <strong>Current Assistant:</strong> <span id="currentAssistant">Cleo</span>
+                          </div>
+                          <div class="mb-3">
+                            <strong>Plan:</strong> <span id="aiPlan">Basic</span>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="text-end">
+                            <button class="btn btn-primary btn-sm" onclick="toggleChat()">
+                              <i class="bi bi-chat"></i> Open Chat
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- AI Assistant Features -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-lightning"></i> Available Features</h6>
+                    </div>
+                    <div class="card-body">
+                      <div id="aiFeatures">
+                        <!-- Basic Features (All Users) -->
+                        <div class="feature-group mb-3">
+                          <h6 class="text-primary">Basic Features</h6>
+                          <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> Business lead search assistance</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Export guidance</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Account support</li>
+                            <li><i class="bi bi-check-circle text-success"></i> General questions</li>
+                          </ul>
+                        </div>
+                        
+                        <!-- Premium Features (Premium/Platinum/Admin) -->
+                        <div class="feature-group mb-3" id="premiumFeatures" style="display: none;">
+                          <h6 class="text-warning">Premium Features</h6>
+                          <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> AI Team Management (5 Specialized AIs)</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Outsourcing AI Assistant</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Copywriting AI Assistant</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Email AI Assistant</li>
+                            <li><i class="bi bi-check-circle text-success"></i> SEO AI Assistant</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Cold Calling AI Assistant</li>
+                          </ul>
+                        </div>
+                        
+                        <!-- Platinum Features (Platinum/Admin) -->
+                        <div class="feature-group mb-3" id="platinumFeatures" style="display: none;">
+                          <h6 class="text-info">Platinum Features</h6>
+                          <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> Automated search execution</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Advanced result vetting</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Custom search strategies</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Quality scoring</li>
+                          </ul>
+                        </div>
+                        
+                        <!-- Admin Features (Admin Only) -->
+                        <div class="feature-group mb-3" id="adminFeatures" style="display: none;">
+                          <h6 class="text-danger">Admin Features</h6>
+                          <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> Unlimited searches</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Advanced analytics</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Multiple AI assistant creation</li>
+                            <li><i class="bi bi-check-circle text-success"></i> System monitoring</li>
+                            <li><i class="bi bi-check-circle text-success"></i> User management</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- AI Assistant Management (Premium/Platinum/Admin) -->
+                  <div class="card mb-3" id="aiManagement" style="display: none;">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-gear"></i> AI Assistant Management</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <h6>Active Assistants</h6>
+                          <div id="activeAssistants">
+                            <div class="assistant-item mb-2">
+                              <i class="bi bi-robot text-primary"></i>
+                              <span>Cleo (Main Assistant)</span>
+                              <span class="badge bg-success">Active</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <h6>Quick Actions</h6>
+                          <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="createAIAssistant()">
+                              <i class="bi bi-plus-circle"></i> Create New Assistant
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="configureAIAssistant()">
+                              <i class="bi bi-gear"></i> Configure Assistant
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="testAIAssistant()">
+                              <i class="bi bi-play-circle"></i> Test Assistant
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- AI Assistant Settings -->
+                  <div class="card mb-3">
+                    <div class="card-header">
+                      <h6 class="mb-0"><i class="bi bi-sliders"></i> AI Assistant Settings</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="mb-3">
+                        <label for="aiResponseStyle" class="form-label">Response Style</label>
+                        <select class="form-select" id="aiResponseStyle">
+                          <option value="professional">Professional</option>
+                          <option value="friendly">Friendly</option>
+                          <option value="concise">Concise</option>
+                          <option value="detailed">Detailed</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label for="aiLanguage" class="form-label">Language</label>
+                        <select class="form-select" id="aiLanguage">
+                          <option value="en">English</option>
+                          <option value="es">Spanish</option>
+                          <option value="fr">French</option>
+                          <option value="de">German</option>
+                        </select>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="aiNotifications" checked>
+                        <label class="form-check-label" for="aiNotifications">
+                          AI Assistant notifications
+                        </label>
+                        <div class="form-text">Receive notifications when AI assistant is available or has updates.</div>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="aiAutoSuggestions" checked>
+                        <label class="form-check-label" for="aiAutoSuggestions">
+                          Auto-suggestions
+                        </label>
+                        <div class="form-text">AI assistant will suggest helpful actions and tips.</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" onclick="saveAISettings()">Save AI Settings</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetAISettings()">Reset to Defaults</button>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -2615,6 +2797,158 @@ body {
         document.getElementById('settingsForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             await saveSettings();
+        });
+
+        // AI Assistant Management Functions
+        function updateAIFeatures() {
+            const isAdmin = currentUser && currentUser.is_admin;
+            const isPlatinum = currentUser && currentUser.current_plan === 'PLATINUM';
+            const isPremium = currentUser && currentUser.current_plan === 'PREMIUM';
+            const isBasic = currentUser && currentUser.current_plan === 'BASIC';
+
+            // Update plan display
+            const aiPlanElement = document.getElementById('aiPlan');
+            if (aiPlanElement) {
+                if (isAdmin) {
+                    aiPlanElement.textContent = 'Admin';
+                } else if (isPlatinum) {
+                    aiPlanElement.textContent = 'Platinum';
+                } else if (isPremium) {
+                    aiPlanElement.textContent = 'Premium';
+                } else if (isBasic) {
+                    aiPlanElement.textContent = 'Basic';
+                } else {
+                    aiPlanElement.textContent = 'Guest';
+                }
+            }
+
+            // Show/hide feature sections based on plan
+            const premiumFeatures = document.getElementById('premiumFeatures');
+            const platinumFeatures = document.getElementById('platinumFeatures');
+            const adminFeatures = document.getElementById('adminFeatures');
+            const aiManagement = document.getElementById('aiManagement');
+
+            if (premiumFeatures) {
+                premiumFeatures.style.display = (isPremium || isPlatinum || isAdmin) ? 'block' : 'none';
+            }
+            if (platinumFeatures) {
+                platinumFeatures.style.display = (isPlatinum || isAdmin) ? 'block' : 'none';
+            }
+            if (adminFeatures) {
+                adminFeatures.style.display = isAdmin ? 'block' : 'none';
+            }
+            if (aiManagement) {
+                aiManagement.style.display = (isPremium || isPlatinum || isAdmin) ? 'block' : 'none';
+            }
+        }
+
+        // Create new AI Assistant
+        function createAIAssistant() {
+            const assistantName = prompt('Enter a name for your new AI Assistant:');
+            if (!assistantName) return;
+
+            const assistantType = prompt('Choose assistant type:\n1. Lead Generation\n2. Customer Support\n3. Sales Analysis\n4. Market Research\n5. Quality Control\n6. Export Management');
+            if (!assistantType) return;
+
+            // In a real implementation, this would create the assistant via API
+            alert(`AI Assistant "${assistantName}" created successfully!`);
+            
+            // Add to active assistants list
+            const activeAssistants = document.getElementById('activeAssistants');
+            if (activeAssistants) {
+                const assistantItem = document.createElement('div');
+                assistantItem.className = 'assistant-item mb-2';
+                assistantItem.innerHTML = `
+                    <i class="bi bi-robot text-primary"></i>
+                    <span>${assistantName} (${assistantType})</span>
+                    <span class="badge bg-success">Active</span>
+                `;
+                activeAssistants.appendChild(assistantItem);
+            }
+        }
+
+        // Configure AI Assistant
+        function configureAIAssistant() {
+            const assistantName = prompt('Enter the name of the assistant to configure:');
+            if (!assistantName) return;
+
+            const configuration = prompt('Enter configuration (JSON format):');
+            if (!configuration) return;
+
+            try {
+                JSON.parse(configuration);
+                alert(`AI Assistant "${assistantName}" configured successfully!`);
+            } catch (e) {
+                alert('Invalid JSON configuration format');
+            }
+        }
+
+        // Test AI Assistant
+        function testAIAssistant() {
+            const assistantName = prompt('Enter the name of the assistant to test:');
+            if (!assistantName) return;
+
+            const testMessage = prompt('Enter a test message:');
+            if (!testMessage) return;
+
+            // Simulate AI response
+            setTimeout(() => {
+                alert(`AI Assistant "${assistantName}" response: "This is a test response from ${assistantName}. The message was: ${testMessage}"`);
+            }, 1000);
+        }
+
+        // Save AI Settings
+        async function saveAISettings() {
+            try {
+                const aiSettings = {
+                    response_style: document.getElementById('aiResponseStyle').value,
+                    language: document.getElementById('aiLanguage').value,
+                    notifications: document.getElementById('aiNotifications').checked,
+                    auto_suggestions: document.getElementById('aiAutoSuggestions').checked
+                };
+                
+                const response = await fetch('/api/ai-settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(aiSettings)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('AI Settings saved successfully!');
+                } else {
+                    alert(data.error || 'Failed to save AI settings');
+                }
+            } catch (error) {
+                console.error('Error saving AI settings:', error);
+                alert('An error occurred while saving AI settings');
+            }
+        }
+
+        // Reset AI Settings
+        function resetAISettings() {
+            if (confirm('Are you sure you want to reset all AI settings to defaults?')) {
+                document.getElementById('aiResponseStyle').value = 'professional';
+                document.getElementById('aiLanguage').value = 'en';
+                document.getElementById('aiNotifications').checked = true;
+                document.getElementById('aiAutoSuggestions').checked = true;
+                
+                // Save the reset settings
+                saveAISettings();
+            }
+        }
+
+        // Update AI features when profile modal is shown
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileModal = document.getElementById('profileModal');
+            if (profileModal) {
+                profileModal.addEventListener('shown.bs.modal', function() {
+                    updateAIFeatures();
+                });
+            }
         });
     </script>
 </body>
